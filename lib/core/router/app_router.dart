@@ -65,7 +65,7 @@ final _customerShellKey = GlobalKey<NavigatorState>(debugLabel: 'customer');
 /// The app's single [GoRouter].
 ///
 /// Structure:
-/// - a flat onboarding stack (intro → name → phone → OTP → details → role)
+/// - a flat onboarding stack (intro → phone → OTP → role → name → details)
 /// - one `StatefulShellRoute` per role, so each role's tabs keep their own
 ///   navigation stack
 /// - detail routes pushed above the shells on the root navigator

@@ -36,7 +36,9 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
 
   Future<void> _start() async {
     await ref.read(sessionProvider.notifier).setLanguage(_language);
-    if (mounted) context.goNamed(AppRoutes.signUpPhone);
+    // Pushed, not replaced: step 1 keeps a back route to the intro, which
+    // is where its back chevron goes.
+    if (mounted) context.pushNamed(AppRoutes.signUpPhone);
   }
 
   @override
@@ -321,16 +323,21 @@ class _LanguageBar extends StatelessWidget {
         color: Colors.white.withValues(alpha: 0.75),
       ),
       const SizedBox(width: 7),
-      Text(
-        'LANGUAGE',
-        style: AppTypography.body(
-          size: 11,
-          weight: FontWeight.w700,
-          letterSpacing: 1,
-          color: Colors.white.withValues(alpha: 0.75),
+      // The label yields first: the segmented control must never be clipped.
+      Flexible(
+        child: Text(
+          'LANGUAGE',
+          maxLines: 1,
+          overflow: TextOverflow.clip,
+          style: AppTypography.body(
+            size: 11,
+            weight: FontWeight.w700,
+            letterSpacing: 1,
+            color: Colors.white.withValues(alpha: 0.75),
+          ),
         ),
       ),
-      const Spacer(),
+      const SizedBox(width: 8),
       Container(
         padding: const EdgeInsets.all(4),
         decoration: BoxDecoration(
@@ -379,7 +386,7 @@ class _LanguageSegment extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
           color: selected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.pill),

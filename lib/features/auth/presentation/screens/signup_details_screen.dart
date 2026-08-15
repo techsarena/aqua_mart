@@ -9,10 +9,14 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_section.dart';
 import '../../../../shared/widgets/selectable_option.dart';
 import '../../domain/entities/app_user.dart';
+import '../../domain/entities/user_role.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/onboarding_scaffold.dart';
 
-/// Sign-up 3 of 4 — optional. Skipping lands you in the app just the same.
+/// Sign-up 4 of 4 — optional. Skipping lands you in the app just the same.
+///
+/// The last step, so this is where the account is actually created from the
+/// draft the previous three steps filled in.
 class SignUpDetailsScreen extends ConsumerStatefulWidget {
   const SignUpDetailsScreen({super.key});
 
@@ -25,15 +29,36 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
   Gender _gender = Gender.unspecified;
   DateTime _dob = DateTime(1994, 4, 14);
 
-  /// Records the optional details, then hands off to the role picker — the
-  /// last of the four steps. Signing in happens there, once the role is known.
-  void _finish({bool skipped = false}) {
+  /// Creates the account and signs in. Sellers register their business
+  /// first, so they are routed there rather than to a customer home.
+  Future<void> _finish({bool skipped = false}) async {
     if (!skipped) {
       ref
           .read(sessionProvider.notifier)
           .updateDraft((d) => d.copyWith(gender: _gender, dateOfBirth: _dob));
     }
-    context.pushNamed(AppRoutes.rolePicker);
+
+    final draft = ref.read(sessionProvider).draft;
+    final result = await ref.read(authRepositoryProvider).completeProfile(draft);
+    if (!mounted) return;
+
+    result.when(
+      success: (user) {
+        // Signing in first: the seller onboarding routes sit outside the
+        // onboarding stack, so a signed-out seller would be redirected
+        // straight back to the intro.
+        ref.read(sessionProvider.notifier).signIn(user);
+        if (draft.role == UserRole.seller) {
+          context.goNamed(AppRoutes.sellerOnboarding);
+        }
+      },
+      failure: (f) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(f.message)));
+      },
+    );
   }
 
   Future<void> _pickDate() async {
@@ -48,7 +73,7 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
 
   @override
   Widget build(BuildContext context) => OnboardingScaffold(
-    step: 3,
+    step: 4,
     totalSteps: 4,
     title: 'A little about you',
     subtitle:

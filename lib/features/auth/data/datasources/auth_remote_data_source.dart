@@ -132,9 +132,20 @@ class MockAuthDataSource implements AuthRemoteDataSource {
   @override
   Future<UserDto> completeProfile(SignUpDraft draft) async {
     await Future<void>.delayed(_latency);
-    final current = _signedIn ?? UserDto.fromDomain(MockFixtures.customer);
+    // The role is chosen during sign-up, so the fixture is picked from the
+    // draft rather than defaulting to a customer.
+    final base = switch (draft.role) {
+      UserRole.customer => MockFixtures.customer,
+      UserRole.seller => MockFixtures.sellerUser,
+      UserRole.rider => MockFixtures.riderUser,
+    };
+    // `_signedIn` is whatever verifyOtp minted before the role was known, so
+    // the draft's fixture wins on role.
+    final current = _signedIn?.toDomain().role == draft.role
+        ? _signedIn!.toDomain()
+        : base;
     final updated = UserDto.fromDomain(
-      current.toDomain().copyWith(
+      current.copyWith(
         fullName: draft.fullName.isEmpty ? current.fullName : draft.fullName,
         gender: draft.gender,
         dateOfBirth: draft.dateOfBirth,

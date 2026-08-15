@@ -30,9 +30,7 @@ class AquaMartApp extends ConsumerWidget {
       builder: (context, child) {
         // Urdu mirrors the whole layout; Roman Urdu stays left-to-right.
         return Directionality(
-          textDirection: language.isRtl
-              ? TextDirection.rtl
-              : TextDirection.ltr,
+          textDirection: language.isRtl ? TextDirection.rtl : TextDirection.ltr,
           // Cap text scaling so dense screens (the seller queue, the rider
           // run) stay readable at large accessibility sizes.
           child: MediaQuery.withClampedTextScaling(

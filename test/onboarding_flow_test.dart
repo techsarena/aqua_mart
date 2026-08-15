@@ -1,5 +1,6 @@
 import 'package:aqua_mart/app.dart';
 import 'package:aqua_mart/core/providers/core_providers.dart';
+import 'package:aqua_mart/core/theme/app_colors.dart';
 import 'package:aqua_mart/features/auth/presentation/providers/auth_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,7 +36,7 @@ Future<ProviderContainer> _pumpApp(WidgetTester tester) async {
 }
 
 /// The intro screen stands in front of every other screen, and "Get started"
-/// leads into step 1 of 4.
+/// leads into step 1 of 4 — the mobile number.
 ///
 /// The intro is taller than the 600px test viewport, so the action has to be
 /// scrolled into view before it can be tapped.
@@ -45,19 +46,13 @@ Future<void> _passIntro(WidgetTester tester) async {
   await tester.pumpAndSettle();
   await tester.tap(find.text('Get started'));
   await tester.pumpAndSettle();
-  expect(find.text('What should we call you?'), findsOneWidget);
+  expect(find.text('Your mobile number'), findsOneWidget);
 }
 
-/// Walks name → phone → OTP → details, leaving the role picker on screen.
+/// Walks phone → OTP, leaving the role picker (step 2) on screen.
 Future<void> _reachRolePicker(WidgetTester tester) async {
   await _passIntro(tester);
 
-  await tester.enterText(find.byType(TextField).first, 'Ayesha Khan');
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Continue'));
-  await tester.pumpAndSettle();
-
-  expect(find.text('Your mobile number'), findsOneWidget);
   await tester.enterText(find.byType(TextField).first, '3004412987');
   await tester.pumpAndSettle();
   await tester.tap(find.text('Send code'));
@@ -70,13 +65,6 @@ Future<void> _reachRolePicker(WidgetTester tester) async {
     await tester.tap(find.widgetWithText(InkWell, '1').first);
     await tester.pumpAndSettle();
   }
-
-  // Land on the optional details step, then skip it.
-  expect(find.text('A little about you'), findsOneWidget);
-  await tester.ensureVisible(find.text('Skip for now'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Skip for now'));
-  await tester.pumpAndSettle();
 
   expect(find.text('Who are you?'), findsOneWidget);
   await _drainOtpCountdown(tester);
@@ -101,9 +89,13 @@ void main() {
   testWidgets('choosing a language on the intro records it', (tester) async {
     final container = await _pumpApp(tester);
 
+    // The language bar sits in the hero at the top of the page.
     await tester.ensureVisible(find.text('اردو'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('اردو'));
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('Get started'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Get started'));
     await tester.pumpAndSettle();
@@ -111,27 +103,68 @@ void main() {
     expect(container.read(sessionProvider).hasLanguage, isTrue);
   });
 
-  testWidgets('the name step will not continue while empty', (tester) async {
+  testWidgets('the phone step will not send a code while empty', (
+    tester,
+  ) async {
     await _pumpApp(tester);
     await _passIntro(tester);
 
     final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Continue'),
+      find.widgetWithText(FilledButton, 'Send code'),
     );
     expect(button.onPressed, isNull);
   });
 
-  testWidgets('the role picker is the last step', (tester) async {
+  testWidgets('every step shows a back button and the progress track', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+    await _passIntro(tester);
+
+    // Step 1 is the first pushed route, so it can be popped back to the
+    // intro, and the track draws one segment per step.
+    expect(find.byIcon(Icons.arrow_back_ios_new_rounded), findsOneWidget);
+    expect(find.text('1 of 4'), findsOneWidget);
+
+    final segments = find.byWidgetPredicate(
+      (w) =>
+          w is AnimatedContainer &&
+          w.decoration is BoxDecoration &&
+          (w.decoration! as BoxDecoration).color == AppColors.accent,
+    );
+    expect(segments, findsOneWidget, reason: 'one filled segment on step 1');
+
+    // Back returns to the intro.
+    await tester.tap(find.byIcon(Icons.arrow_back_ios_new_rounded));
+    await tester.pumpAndSettle();
+    expect(find.text('Get started'), findsOneWidget);
+  });
+
+  testWidgets('the role picker is the second step', (tester) async {
     await _pumpApp(tester);
     await _reachRolePicker(tester);
 
-    expect(find.text('Last step. You can switch later in settings.'),
-        findsOneWidget);
+    expect(find.text('2 of 4'), findsOneWidget);
 
     final button = tester.widget<FilledButton>(
       find.widgetWithText(FilledButton, 'Continue'),
     );
     expect(button.onPressed, isNull, reason: 'no role chosen yet');
+  });
+
+  testWidgets('a customer continues from the role to the name step', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+    await _reachRolePicker(tester);
+
+    await tester.tap(find.text('I need water'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('What should we call you?'), findsOneWidget);
+    expect(find.text('3 of 4'), findsOneWidget);
   });
 
   testWidgets('rider role reaches the invitation while signed out', (
@@ -150,7 +183,9 @@ void main() {
     expect(find.textContaining('wants you as their rider'), findsOneWidget);
   });
 
-  testWidgets('seller role continues to business registration', (tester) async {
+  testWidgets('a seller finishing step 4 reaches business registration', (
+    tester,
+  ) async {
     await _pumpApp(tester);
     await _reachRolePicker(tester);
 
@@ -159,10 +194,24 @@ void main() {
     await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
+    // Step 3 — the name.
+    await tester.enterText(find.byType(TextField).first, 'Imran Ali');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // Step 4 — skip the optional details, which creates the account. The
+    // mock repository takes 600ms, so settle past it.
+    expect(find.text('A little about you'), findsOneWidget);
+    await tester.ensureVisible(find.text('Skip for now'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Skip for now'));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
     // Sellers must be signed in before this route, or the redirect sends
     // them back to the intro.
-    expect(find.text('Who are you?'), findsNothing);
-    expect(find.text('Get started'), findsNothing);
+    expect(find.text('Your water business'), findsOneWidget);
   });
 
   testWidgets('the chosen role is recorded on the session', (tester) async {
