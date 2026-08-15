@@ -35,12 +35,12 @@ class SellerCard extends StatelessWidget {
   Widget build(BuildContext context) => AppCard(
     onTap: onTap,
     radius: 24,
-    padding: const EdgeInsets.all(15),
+    padding: const EdgeInsets.all(AppSpacing.lg),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SellerAvatar(size: 64, isOpen: seller.isOpen),
-        const SizedBox(width: 13),
+        SellerAvatar(size: 72, isOpen: seller.isOpen),
+        const SizedBox(width: AppSpacing.lg),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,23 +52,20 @@ class SellerCard extends StatelessWidget {
                       seller.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.body(
-                        size: 16.5,
-                        weight: FontWeight.w700,
-                      ),
+                      style: AppTypography.heading(size: 19),
                     ),
                   ),
                   if (seller.isRegular) ...[
                     const SizedBox(width: 6),
                     const Icon(
                       Icons.verified_rounded,
-                      size: 15,
+                      size: 17,
                       color: AppColors.accent,
                     ),
                   ],
                 ],
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 3),
               Text(
                 seller.isOpen
                     ? [
@@ -79,53 +76,39 @@ class SellerCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTypography.body(
-                  size: 13,
+                  size: 14,
                   color: AppColors.textMuted(0.6),
                 ),
               ),
-              const SizedBox(height: 7),
-              // Rating and ETA read as pills, not as an icon row.
+              const SizedBox(height: AppSpacing.sm),
+              // Rating, ETA and price all read as pills on one line — the
+              // price is the decision, so it carries the positive tone.
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  AppTag('★ ${seller.rating.toStringAsFixed(1)}',
-                      tone: TagTone.accent),
+                  AppTag(
+                    '★ ${seller.rating.toStringAsFixed(1)}',
+                    tone: TagTone.accent,
+                  ),
                   if (seller.isOpen)
                     AppTag(
                       Formatters.eta(seller.etaMinutes),
                       tone: TagTone.neutral,
+                    )
+                  else
+                    const AppTag('Pre-order', tone: TagTone.neutral),
+                  if (priceLabel != null)
+                    AppTag(priceLabel!, tone: TagTone.accent2)
+                  else if (seller.cheapestRefillPrice != null)
+                    AppTag(
+                      'Refill ${Formatters.rupees(seller.cheapestRefillPrice!)}',
+                      tone: TagTone.accent2,
                     ),
                 ],
               ),
             ],
           ),
-        ),
-        const SizedBox(width: AppSpacing.sm),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (!seller.isOpen)
-              const AppTag('Pre-order', tone: TagTone.neutral)
-            else if (priceLabel != null)
-              Text(
-                priceLabel!,
-                style: AppTypography.body(size: 13, weight: FontWeight.w700),
-              )
-            else if (seller.cheapestRefillPrice != null) ...[
-              Text(
-                Formatters.rupees(seller.cheapestRefillPrice!),
-                style: AppTypography.body(size: 14.5, weight: FontWeight.w800),
-              ),
-              Text(
-                'refill',
-                style: AppTypography.body(
-                  size: 11,
-                  color: AppColors.textMuted(0.5),
-                ),
-              ),
-            ],
-          ],
         ),
       ],
     ),

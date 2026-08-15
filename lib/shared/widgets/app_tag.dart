@@ -26,7 +26,7 @@ class AppTag extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -44,8 +44,8 @@ class AppTag extends StatelessWidget {
           Text(
             label,
             style: AppTypography.body(
-              size: 11.5,
-              weight: FontWeight.w600,
+              size: 13,
+              weight: FontWeight.w700,
               color: fg,
               height: 1.3,
             ),

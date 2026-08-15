@@ -18,11 +18,8 @@ class RiderShell extends StatelessWidget {
         index,
         initialLocation: index == shell.currentIndex,
       ),
+      // The rider bar sits on white; everything else comes from the theme.
       backgroundColor: AppColors.surface,
-      indicatorColor: AppColors.accent100,
-      surfaceTintColor: Colors.transparent,
-      height: 66,
-      labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
       destinations: const [
         NavigationDestination(
           icon: Icon(Icons.route_outlined),

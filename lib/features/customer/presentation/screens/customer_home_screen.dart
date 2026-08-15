@@ -12,68 +12,40 @@ import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_section.dart';
 import '../../../../shared/widgets/state_views.dart';
 import '../../../addresses/presentation/providers/address_providers.dart';
-import '../../../catalog/domain/entities/bottle.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../../../catalog/presentation/widgets/seller_card.dart';
+import '../../../orders/domain/entities/order.dart';
 import '../../../orders/presentation/providers/cart_providers.dart';
 import '../../../orders/presentation/providers/order_providers.dart';
 import '../../../notifications/presentation/providers/notification_providers.dart';
 import '../widgets/delivery_header.dart';
-import '../widgets/water_shelf.dart';
 
-/// The customer's home, built around the water shelf.
+/// The customer's home: where you are, what you last ordered, and who can
+/// deliver to you.
 ///
-/// Reorder is expressed as "send my empties back" — the shelf is what the
-/// customer already has, and tapping an empty starts a refill.
-class CustomerHomeScreen extends ConsumerStatefulWidget {
+/// "Your usual" is the whole point of the screen — a repeat customer should
+/// never have to browse, so the last order sits above the seller list as a
+/// one-tap reorder.
+class CustomerHomeScreen extends ConsumerWidget {
   const CustomerHomeScreen({super.key});
 
-  @override
-  ConsumerState<CustomerHomeScreen> createState() => _CustomerHomeScreenState();
-}
-
-class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
-  /// Which empties on the shelf are selected for a refill run.
-  final _selectedEmpties = <int>{};
-
-  static const _shelf = [
-    ShelfBottle(level: ShelfLevel.full, litres: 25),
-    ShelfBottle(level: ShelfLevel.half, litres: 25),
-    ShelfBottle(level: ShelfLevel.empty, litres: 25),
-    ShelfBottle(level: ShelfLevel.empty, litres: 25),
-  ];
-
-  /// The refill price for the customer's regular seller.
-  static const _refillPrice = 110;
-
-  void _sendEmpties() {
-    final bottles = ref.read(sellerBottlesProvider('s-1')).value;
-    if (bottles == null || bottles.isEmpty) return;
-
-    final bottle = bottles.firstWhere(
-      (b) => b.size.litres == 25,
-      orElse: () => bottles.first,
-    );
-
+  /// Puts the previous order back in the cart and opens it for review.
+  void _reorder(BuildContext context, WidgetRef ref, Order usual) {
     ref
         .read(cartProvider.notifier)
-        .adjust(
-          bottle: bottle,
-          kind: PurchaseKind.refill,
-          sellerName: 'Chashma Pure Water',
-          delta: _selectedEmpties.length,
+        .loadLines(
+          sellerId: usual.sellerId,
+          sellerName: usual.sellerName,
+          lines: usual.lines,
         );
     context.pushNamed(AppRoutes.cart);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final address = ref.watch(selectedAddressProvider);
     final unread = ref.watch(unreadNotificationCountProvider);
     final usual = ref.watch(usualOrderProvider);
-
-    // Preload the regular seller's bottles so "send empties" is instant.
-    ref.watch(sellerBottlesProvider('s-1'));
 
     final sellersAsync = address == null
         ? const AsyncValue<List<dynamic>>.loading()
@@ -82,188 +54,235 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: RefreshIndicator(
-          onRefresh: () async {
-            ref.invalidate(addressBookProvider);
-            if (address != null) {
-              ref.invalidate(nearbySellersProvider(address.id));
-            }
-          },
-          child: ListView(
-            padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
-            children: [
-              DeliveryHeader(address: address, unreadCount: unread),
-
-              // ── The shelf ───────────────────────────────────────────────
-              // Sits directly on the ground, not in a card: the shelf is the
-              // screen, so nothing should frame it.
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.gutter,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          children: [
+            // ── Pinned: where to, and how to find a seller ────────────────
+            // Outside the scroll view so the address and search stay put —
+            // both are how you change what the list below is showing.
+            DeliveryHeader(address: address, unreadCount: unread),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                0,
+                AppSpacing.gutter,
+                AppSpacing.lg,
+              ),
+              child: _SearchBar(
+                onTap: () => context.pushNamed(AppRoutes.searchResults),
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.invalidate(addressBookProvider);
+                  if (address != null) {
+                    ref.invalidate(nearbySellersProvider(address.id));
+                  }
+                },
+                child: ListView(
+                  padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
                   children: [
-                    Text(
-                      'Your water shelf',
-                      style: AppTypography.heading(size: 30, height: 1.08),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Tap an empty to send it back for a refill.',
-                      style: AppTypography.body(
-                        size: 14.5,
-                        color: AppColors.textMuted(0.6),
+                    // ── Your usual ──────────────────────────────────────────
+                    if (usual != null)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.gutter,
+                        ),
+                        child: _UsualOrderCard(
+                          usual: usual,
+                          onReorder: () => _reorder(context, ref, usual),
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 18),
-                    WaterShelf(
-                      bottles: _shelf,
-                      selectedIndices: _selectedEmpties,
-                      daysRemaining: 3,
-                      onToggle: (i) => setState(() {
-                        _selectedEmpties.contains(i)
-                            ? _selectedEmpties.remove(i)
-                            : _selectedEmpties.add(i);
-                      }),
-                    ),
-                    const SizedBox(height: 14),
-                    FilledButton(
-                      onPressed: _selectedEmpties.isEmpty ? null : _sendEmpties,
-                      child: Text(
-                        _selectedEmpties.isEmpty
-                            ? 'Select an empty bottle'
-                            : 'Send ${_selectedEmpties.length} '
-                                  '${_selectedEmpties.length == 1 ? 'empty' : 'empties'} '
-                                  'for refill · '
-                                  '${Formatters.rupees(_selectedEmpties.length * _refillPrice)}',
-                      ),
+
+                    // ── Sellers near you ────────────────────────────────────
+                    AppSection(
+                      title: 'Sellers near you',
+                      actionLabel: 'Map view',
+                      onAction: () => context.pushNamed(AppRoutes.sellerMap),
+                      child: switch (sellersAsync) {
+                        AsyncLoading() => const SkeletonList(),
+                        AsyncError(:final error) => ErrorView(
+                          failure: asFailure(error),
+                          onRetry: () => ref.invalidate(
+                            nearbySellersProvider(address!.id),
+                          ),
+                        ),
+                        AsyncValue(value: final sellers) =>
+                          (sellers?.isEmpty ?? true)
+                              ? _NoSellersHere(
+                                  area: address?.area ?? 'this area',
+                                )
+                              : Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: AppSpacing.gutter,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      for (final seller in sellers!) ...[
+                                        SellerCard(
+                                          seller: seller,
+                                          highlight: seller.isRegular
+                                              ? 'Your regular'
+                                              : null,
+                                          onTap: () => context.pushNamed(
+                                            AppRoutes.sellerStore,
+                                            pathParameters: {
+                                              'sellerId': seller.id,
+                                            },
+                                          ),
+                                        ),
+                                        const SizedBox(height: AppSpacing.md),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                      },
                     ),
                   ],
                 ),
               ),
-
-              // ── Your usual ──────────────────────────────────────────────
-              if (usual != null)
-                AppSection(
-                  title: 'Your usual',
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.gutter,
-                    ),
-                    child: AppCard(
-                      onTap: () {
-                        ref
-                            .read(cartProvider.notifier)
-                            .loadLines(
-                              sellerId: usual.sellerId,
-                              sellerName: usual.sellerName,
-                              lines: usual.lines,
-                            );
-                        context.pushNamed(AppRoutes.cart);
-                      },
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: AppColors.accent100,
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                            ),
-                            child: const Icon(
-                              Icons.replay_rounded,
-                              color: AppColors.accent,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  usual.itemsSummary,
-                                  style: AppTypography.body(
-                                    size: 14.5,
-                                    weight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${usual.sellerName} · '
-                                  '${Formatters.rupees(usual.total)} · '
-                                  '${Formatters.eta(usual.etaMinutes)}',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTypography.body(
-                                    size: 12.5,
-                                    color: AppColors.textMuted(0.6),
-                                  ),
-                                ),
-                                const SizedBox(height: 6),
-                                Text(
-                                  'Reorder in one tap',
-                                  style: AppTypography.body(
-                                    size: 12,
-                                    weight: FontWeight.w700,
-                                    color: AppColors.accent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-
-              // ── Sellers near you ────────────────────────────────────────
-              AppSection(
-                title: 'Or try another seller',
-                actionLabel: 'Map',
-                onAction: () => context.pushNamed(AppRoutes.sellerMap),
-                child: switch (sellersAsync) {
-                  AsyncLoading() => const SkeletonList(),
-                  AsyncError(:final error) => ErrorView(
-                    failure: asFailure(error),
-                    onRetry: () => ref.invalidate(
-                      nearbySellersProvider(address!.id),
-                    ),
-                  ),
-                  AsyncValue(value: final sellers) => (sellers?.isEmpty ?? true)
-                      ? _NoSellersHere(area: address?.area ?? 'this area')
-                      : Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.gutter,
-                          ),
-                          child: Column(
-                            children: [
-                              for (final seller in sellers!) ...[
-                                SellerCard(
-                                  seller: seller,
-                                  highlight: seller.isRegular
-                                      ? 'Your regular'
-                                      : null,
-                                  onTap: () => context.pushNamed(
-                                    AppRoutes.sellerStore,
-                                    pathParameters: {'sellerId': seller.id},
-                                  ),
-                                ),
-                                const SizedBox(height: AppSpacing.md),
-                              ],
-                            ],
-                          ),
-                        ),
-                },
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+/// The search field. A button rather than an input — tapping opens the search
+/// screen, which owns the actual text field and its results.
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    borderRadius: BorderRadius.circular(AppRadius.pill),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: 17,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.search_rounded,
+              size: 22,
+              color: AppColors.textMuted(0.45),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            // Expanded so the placeholder ellipsizes on narrow phones and at
+            // large text scales rather than overflowing the pill.
+            Expanded(
+              child: Text(
+                'Search sellers or bottle size',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.body(
+                  size: 15.5,
+                  color: AppColors.textMuted(0.45),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// "Your usual" — the last delivered order, reorderable in one tap.
+///
+/// The only dark panel on the screen, so it carries the most weight: a repeat
+/// customer's whole journey is meant to end at this button.
+class _UsualOrderCard extends StatelessWidget {
+  const _UsualOrderCard({required this.usual, required this.onReorder});
+
+  final Order usual;
+  final VoidCallback onReorder;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(AppSpacing.xl),
+    decoration: BoxDecoration(
+      color: AppColors.accent,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'YOUR USUAL',
+                    style: AppTypography.body(
+                      size: 12,
+                      weight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: Colors.white.withValues(alpha: 0.75),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    usual.itemsSummary,
+                    style: AppTypography.heading(
+                      size: 26,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${usual.sellerName} · '
+                    '${Formatters.rupees(usual.total)} · '
+                    '${Formatters.eta(usual.etaMinutes)}',
+                    style: AppTypography.body(
+                      size: 14.5,
+                      height: 1.35,
+                      color: Colors.white.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            // A quiet echo of the reorder action, tinted into the panel.
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.replay_rounded,
+                size: 28,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSpacing.xl),
+        FilledButton(
+          onPressed: onReorder,
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.accent700,
+          ),
+          child: const Text('Reorder in one tap'),
+        ),
+      ],
+    ),
+  );
 }
 
 /// "No sellers here yet" — the unhappy path when an address is out of coverage.

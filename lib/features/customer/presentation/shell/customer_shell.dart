@@ -33,21 +33,17 @@ class CustomerShell extends ConsumerWidget {
               onPressed: () => context.pushNamed(AppRoutes.cart),
             ),
           const Divider(height: 1, thickness: 1, color: AppColors.divider),
+          // Colours, height and label behaviour come from the shared
+          // navigationBarTheme, so all three role shells stay identical.
           NavigationBar(
             selectedIndex: shell.currentIndex,
             onDestinationSelected: (index) =>
                 shell.goBranch(index, initialLocation: index == shell.currentIndex),
-            // The bar sits on the page ground, separated by a hairline only.
-            backgroundColor: AppColors.bg,
-            indicatorColor: AppColors.accent100,
-            surfaceTintColor: Colors.transparent,
-            height: 66,
-            labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
             destinations: const [
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
                 selectedIcon: Icon(Icons.home_rounded),
-                label: 'Shelf',
+                label: 'Home',
               ),
               NavigationDestination(
                 icon: Icon(Icons.receipt_long_outlined),
@@ -55,8 +51,8 @@ class CustomerShell extends ConsumerWidget {
                 label: 'Orders',
               ),
               NavigationDestination(
-                icon: Icon(Icons.local_shipping_outlined),
-                selectedIcon: Icon(Icons.local_shipping_rounded),
+                icon: Icon(Icons.location_on_outlined),
+                selectedIcon: Icon(Icons.location_on_rounded),
                 label: 'Track',
               ),
               NavigationDestination(

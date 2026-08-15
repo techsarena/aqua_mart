@@ -91,6 +91,35 @@ abstract final class AppTheme {
         errorBorder: _inputBorder(AppColors.danger),
         focusedErrorBorder: _inputBorder(AppColors.danger, width: 1.5),
       ),
+      // The tab bar carries the selection in colour alone — accent icon and
+      // accent label, no indicator pill behind it.
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: AppColors.bg,
+        surfaceTintColor: Colors.transparent,
+        indicatorColor: Colors.transparent,
+        elevation: 0,
+        height: 66,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        iconTheme: WidgetStateProperty.resolveWith(
+          (s) => IconThemeData(
+            size: 25,
+            color: s.contains(WidgetState.selected)
+                ? AppColors.accent
+                : AppColors.textMuted(0.5),
+          ),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith(
+          (s) => AppTypography.body(
+            size: 12,
+            weight: s.contains(WidgetState.selected)
+                ? FontWeight.w700
+                : FontWeight.w500,
+            color: s.contains(WidgetState.selected)
+                ? AppColors.accent
+                : AppColors.textMuted(0.5),
+          ),
+        ),
+      ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
