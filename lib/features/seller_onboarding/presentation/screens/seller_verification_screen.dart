@@ -132,9 +132,9 @@ class SellerVerificationScreen extends ConsumerWidget {
         // Straight into the seller app, where area and stock live.
         onPressed: () => context.goNamed(AppRoutes.sellerServiceArea),
         secondaryLabel: 'Call support · 0800-AQUAMART',
-        onSecondary: () => ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Calling 0800-AQUAMART…')),
-        ),
+        onSecondary: () => ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Calling 0800-AQUAMART…'))),
       ),
     );
   }

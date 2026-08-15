@@ -57,9 +57,7 @@ class _SellerOnboardingScreenState
             onChanged: (v) => ref
                 .read(sellerApplicationProvider.notifier)
                 .setDetails(businessName: v),
-            decoration: const InputDecoration(
-              hintText: 'Chashma Pure Water',
-            ),
+            decoration: const InputDecoration(hintText: 'Chashma Pure Water'),
           ),
 
           const SizedBox(height: AppSpacing.xl),
@@ -70,9 +68,7 @@ class _SellerOnboardingScreenState
             onChanged: (v) => ref
                 .read(sellerApplicationProvider.notifier)
                 .setDetails(ownerName: v),
-            decoration: const InputDecoration(
-              hintText: 'Full name as on CNIC',
-            ),
+            decoration: const InputDecoration(hintText: 'Full name as on CNIC'),
           ),
 
           const SizedBox(height: AppSpacing.xl),

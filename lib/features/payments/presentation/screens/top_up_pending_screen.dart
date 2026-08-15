@@ -23,8 +23,7 @@ class TopUpPendingScreen extends ConsumerStatefulWidget {
   final String? topUpId;
 
   @override
-  ConsumerState<TopUpPendingScreen> createState() =>
-      _TopUpPendingScreenState();
+  ConsumerState<TopUpPendingScreen> createState() => _TopUpPendingScreenState();
 }
 
 class _TopUpPendingScreenState extends ConsumerState<TopUpPendingScreen> {
@@ -62,9 +61,7 @@ class _TopUpPendingScreenState extends ConsumerState<TopUpPendingScreen> {
 
     final result = await ref.read(walletProvider.notifier).checkTopUp(id);
     if (!mounted) return;
-    _finish(
-      succeeded: result.valueOrNull?.status == TopUpStatus.succeeded,
-    );
+    _finish(succeeded: result.valueOrNull?.status == TopUpStatus.succeeded);
   }
 
   void _finish({required bool succeeded}) {
@@ -163,10 +160,7 @@ class _TopUpPendingScreenState extends ConsumerState<TopUpPendingScreen> {
         Text(
           "Don't close this screen — we'll update it for you.",
           textAlign: TextAlign.center,
-          style: AppTypography.body(
-            size: 13,
-            color: AppColors.textMuted(0.6),
-          ),
+          style: AppTypography.body(size: 13, color: AppColors.textMuted(0.6)),
         ),
 
         const SizedBox(height: AppSpacing.xl),
@@ -189,13 +183,12 @@ class _TopUpPendingScreenState extends ConsumerState<TopUpPendingScreen> {
         ),
 
         const SizedBox(height: AppSpacing.xl),
-        FilledButton(
-          onPressed: _confirm,
-          child: const Text('Open JazzCash'),
-        ),
+        FilledButton(onPressed: _confirm, child: const Text('Open JazzCash')),
         TextButton(
           onPressed: () => context.pop(),
-          style: TextButton.styleFrom(foregroundColor: AppColors.textMuted(0.7)),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.textMuted(0.7),
+          ),
           child: const Text('Cancel top-up'),
         ),
       ],

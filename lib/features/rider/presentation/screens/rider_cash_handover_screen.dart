@@ -123,10 +123,7 @@ class _HandoverView extends ConsumerWidget {
               children: [
                 Text(
                   'Also going back to the plant',
-                  style: AppTypography.body(
-                    size: 14,
-                    weight: FontWeight.w700,
-                  ),
+                  style: AppTypography.body(size: 14, weight: FontWeight.w700),
                 ),
                 const SizedBox(height: AppSpacing.md),
                 Row(
@@ -141,9 +138,7 @@ class _HandoverView extends ConsumerWidget {
                       child: StatTile(
                         value: '${failed.length}',
                         label: 'undelivered bottles',
-                        valueColor: failed.isEmpty
-                            ? null
-                            : AppColors.warning,
+                        valueColor: failed.isEmpty ? null : AppColors.warning,
                       ),
                     ),
                   ],

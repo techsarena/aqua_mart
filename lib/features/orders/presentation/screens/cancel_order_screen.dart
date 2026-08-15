@@ -44,7 +44,9 @@ class _CancelOrderScreenState extends ConsumerState<CancelOrderScreen> {
     result.when(
       success: (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Order cancelled. No charge this time.')),
+          const SnackBar(
+            content: Text('Order cancelled. No charge this time.'),
+          ),
         );
         context.pop();
       },

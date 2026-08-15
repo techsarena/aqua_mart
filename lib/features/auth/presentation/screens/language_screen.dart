@@ -68,9 +68,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
           const SizedBox(height: AppSpacing.xl),
           Expanded(
             child: ListView.separated(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.xl,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
               itemCount: AppLanguage.values.length,
               separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.md),
               itemBuilder: (context, i) {

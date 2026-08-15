@@ -5,6 +5,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/bottle_glyph.dart';
 import '../../domain/entities/bottle.dart';
 
 /// One bottle on a seller's shelf, with both prices offered side by side.
@@ -41,16 +42,13 @@ class BottleRow extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _BottleGlyph(size: bottle.size),
+                BottleGlyph(size: bottle.size),
                 const SizedBox(width: AppSpacing.lg),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        bottle.name,
-                        style: AppTypography.heading(size: 19),
-                      ),
+                      Text(bottle.name, style: AppTypography.heading(size: 19)),
                       const SizedBox(height: 4),
                       Text(
                         _availabilityLine,
@@ -104,72 +102,13 @@ class BottleRow extends StatelessWidget {
 
   String get _availabilityLine {
     if (bottle.isOutOfStock) return 'Out of stock';
-    if (bottle.isLowStock) return '${bottle.description} · ${bottle.filledStock} left';
+    if (bottle.isLowStock) {
+      return '${bottle.description} · ${bottle.filledStock} left';
+    }
     return bottle.description.isEmpty
         ? 'In stock'
         : '${bottle.description} · in stock';
   }
-}
-
-/// A bottle drawn as a bottle — body, neck cap, and the size inside it.
-class _BottleGlyph extends StatelessWidget {
-  const _BottleGlyph({required this.size});
-
-  final BottleSize size;
-
-  /// The 25L cooler bottle is drawn taller than the handheld sizes.
-  double get _height => switch (size) {
-    BottleSize.twentyFive => 92,
-    BottleSize.ten => 82,
-    BottleSize.six => 72,
-  };
-
-  double get _width => switch (size) {
-    BottleSize.twentyFive => 68,
-    BottleSize.ten => 60,
-    BottleSize.six => 52,
-  };
-
-  @override
-  Widget build(BuildContext context) => SizedBox(
-    width: _width,
-    height: _height + 10,
-    child: Column(
-      children: [
-        // The neck, sitting proud of the body.
-        Container(
-          width: _width * 0.3,
-          height: 14,
-          decoration: const BoxDecoration(
-            color: AppColors.accent2Deep,
-            borderRadius: BorderRadius.vertical(
-              top: Radius.circular(5),
-              bottom: Radius.zero,
-            ),
-          ),
-        ),
-        Expanded(
-          child: Container(
-            width: _width,
-            alignment: Alignment.bottomCenter,
-            padding: const EdgeInsets.only(bottom: 10),
-            decoration: BoxDecoration(
-              color: AppColors.accent2_200,
-              borderRadius: BorderRadius.circular(AppRadius.md),
-            ),
-            child: Text(
-              size.label,
-              style: AppTypography.body(
-                size: 12.5,
-                weight: FontWeight.w800,
-                color: AppColors.accent2Deep,
-              ),
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
 }
 
 class _CountBadge extends StatelessWidget {

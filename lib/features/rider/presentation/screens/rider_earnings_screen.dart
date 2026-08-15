@@ -176,11 +176,7 @@ class _Body extends StatelessWidget {
         color: AppColors.accent2_100,
         child: Row(
           children: [
-            const Icon(
-              Icons.star_rounded,
-              size: 26,
-              color: Color(0xFFE8A33D),
-            ),
+            const Icon(Icons.star_rounded, size: 26, color: Color(0xFFE8A33D)),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
@@ -205,8 +201,7 @@ class _Body extends StatelessWidget {
                 ],
               ),
             ),
-            if (earnings.isTopRider)
-              const AppTag('Top', tone: TagTone.accent2),
+            if (earnings.isTopRider) const AppTag('Top', tone: TagTone.accent2),
           ],
         ),
       ),

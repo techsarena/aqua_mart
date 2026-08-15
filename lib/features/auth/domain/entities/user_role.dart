@@ -14,7 +14,8 @@ enum UserRole {
   String get subtitle => switch (this) {
     UserRole.customer =>
       'Order bottles from sellers near you, pay cash or wallet.',
-    UserRole.seller => 'List your bottles, set prices and areas, run your orders.',
+    UserRole.seller =>
+      'List your bottles, set prices and areas, run your orders.',
     UserRole.rider => 'Rider — invited by a seller',
   };
 }

@@ -84,7 +84,10 @@ abstract final class AppTheme {
           size: 14,
           color: AppColors.textMuted(0.4),
         ),
-        labelStyle: AppTypography.body(size: 12, color: AppColors.textMuted(0.7)),
+        labelStyle: AppTypography.body(
+          size: 12,
+          color: AppColors.textMuted(0.7),
+        ),
         border: _inputBorder(AppColors.divider),
         enabledBorder: _inputBorder(AppColors.divider),
         focusedBorder: _inputBorder(AppColors.accent, width: 1.5),

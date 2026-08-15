@@ -47,7 +47,9 @@ class SellerApiDataSource implements SellerRemoteDataSource {
       sync: ErpSyncState(
         isOnline: data['sync_online'] as bool? ?? true,
         pendingUploads: (data['sync_pending'] as num?)?.toInt() ?? 0,
-        lastSyncedAt: DateTime.tryParse(data['last_synced_at'] as String? ?? ''),
+        lastSyncedAt: DateTime.tryParse(
+          data['last_synced_at'] as String? ?? '',
+        ),
       ),
     );
   }
@@ -145,7 +147,8 @@ class SellerApiDataSource implements SellerRemoteDataSource {
       customerNote: data['customer_note'] as String? ?? '',
       orderSummary: data['order_summary'] as String? ?? '',
       amount: (data['amount'] as num?)?.toInt() ?? 0,
-      raisedAt: DateTime.tryParse(data['raised_at'] as String? ?? '') ??
+      raisedAt:
+          DateTime.tryParse(data['raised_at'] as String? ?? '') ??
           DateTime.now(),
       customerHistory: data['customer_history'] as String?,
       hasPhoto: data['has_photo'] as bool? ?? false,
@@ -198,7 +201,9 @@ class SellerApiDataSource implements SellerRemoteDataSource {
 class MockSellerDataSource implements SellerRemoteDataSource {
   MockSellerDataSource()
     : _queue = _seedQueue(),
-      _inventory = MockFixtures.chashmaBottles.map(BottleDto.fromDomain).toList();
+      _inventory = MockFixtures.chashmaBottles
+          .map(BottleDto.fromDomain)
+          .toList();
 
   final List<OrderDto> _queue;
   final List<BottleDto> _inventory;
@@ -434,7 +439,8 @@ class MockSellerDataSource implements SellerRemoteDataSource {
       required String reference,
       required String customer,
       required String area,
-      required List<({int litres, int qty, PurchaseKind kind, int price})> items,
+      required List<({int litres, int qty, PurchaseKind kind, int price})>
+      items,
       required PaymentMethod payment,
       required OrderStatus status,
       required int minutesAgo,

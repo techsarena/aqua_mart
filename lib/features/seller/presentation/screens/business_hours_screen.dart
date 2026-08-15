@@ -51,10 +51,7 @@ class _BusinessHoursScreenState extends ConsumerState<BusinessHoursScreen> {
       children: [
         Text(
           'Customers can only order inside these hours.',
-          style: AppTypography.body(
-            size: 13,
-            color: AppColors.textMuted(0.6),
-          ),
+          style: AppTypography.body(size: 13, color: AppColors.textMuted(0.6)),
         ),
 
         const SizedBox(height: AppSpacing.lg),
@@ -192,10 +189,7 @@ class _TimeField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 3),
-        Text(
-          time.format(context),
-          style: AppTypography.heading(size: 20),
-        ),
+        Text(time.format(context), style: AppTypography.heading(size: 20)),
       ],
     ),
   );

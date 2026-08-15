@@ -9,6 +9,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/back_disc_button.dart';
 import '../../../../shared/widgets/state_views.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
 import '../../../orders/presentation/providers/cart_providers.dart';
@@ -119,7 +120,7 @@ class _CollapsingStoreHeader extends StatelessWidget {
   final Seller seller;
 
   /// Tall enough for the back button, the 34pt name and the chip row.
-  static const expandedHeight = 250.0;
+  static const expandedHeight = 200.0;
 
   @override
   Widget build(BuildContext context) {
@@ -178,10 +179,9 @@ class _CompactStoreBar extends StatelessWidget {
       height: kToolbarHeight,
       child: Row(
         children: [
-          IconButton(
-            onPressed: () => context.pop(),
-            icon: const Icon(Icons.chevron_left_rounded, size: 30),
-          ),
+          const SizedBox(width: AppSpacing.gutter),
+          const BackDiscButton(),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Text(
               seller.name,
@@ -216,21 +216,7 @@ class _StoreHeader extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // A back button big enough to hit without looking, on its own white
-        // disc so it reads against the band.
-        Material(
-          color: AppColors.surface,
-          shape: const CircleBorder(),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => context.pop(),
-            child: const SizedBox(
-              width: 48,
-              height: 48,
-              child: Icon(Icons.chevron_left_rounded, size: 30),
-            ),
-          ),
-        ),
+        const BackDiscButton(),
         const SizedBox(height: AppSpacing.lg),
         Text(
           seller.name,
@@ -275,8 +261,8 @@ class _HeaderChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(
-      horizontal: AppSpacing.lg,
-      vertical: AppSpacing.md,
+      horizontal: AppSpacing.sm,
+      vertical: AppSpacing.xs,
     ),
     decoration: BoxDecoration(
       color: AppColors.surface,
@@ -286,12 +272,12 @@ class _HeaderChip extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (icon != null) ...[
-          Icon(icon, size: 18, color: iconColor ?? AppColors.text),
-          const SizedBox(width: 6),
+          Icon(icon, size: 14, color: iconColor ?? AppColors.text),
+          const SizedBox(width: 4),
         ],
         Text(
           label,
-          style: AppTypography.body(size: 16, weight: FontWeight.w700),
+          style: AppTypography.body(size: 14, weight: FontWeight.w700),
         ),
       ],
     ),
@@ -311,7 +297,10 @@ class _RefillExplainer extends StatelessWidget {
     ),
     child: AppCard(
       color: AppColors.accent100,
-      padding: const EdgeInsets.all(AppSpacing.lg),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.xl,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

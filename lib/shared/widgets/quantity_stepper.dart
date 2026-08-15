@@ -14,6 +14,7 @@ class QuantityStepper extends StatelessWidget {
     required this.onIncrement,
     required this.onDecrement,
     this.compact = false,
+    this.large = false,
     this.minQuantity = 0,
   });
 
@@ -21,17 +22,26 @@ class QuantityStepper extends StatelessWidget {
   final VoidCallback onIncrement;
   final VoidCallback onDecrement;
   final bool compact;
+
+  /// The cart's roomier pill — bigger targets, both signs in accent, no
+  /// border. Used where the row is the thing being edited.
+  final bool large;
+
   final int minQuantity;
 
   @override
   Widget build(BuildContext context) {
-    final size = compact ? 30.0 : 34.0;
+    final size = large
+        ? 44.0
+        : compact
+        ? 30.0
+        : 34.0;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.neutral100,
+        color: large ? AppColors.accent100 : AppColors.neutral100,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.divider),
+        border: large ? null : Border.all(color: AppColors.divider),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -39,15 +49,25 @@ class QuantityStepper extends StatelessWidget {
           _StepButton(
             icon: Icons.remove_rounded,
             size: size,
+            iconSize: large ? 24 : 17,
             onTap: quantity > minQuantity ? onDecrement : null,
+            emphasised: large,
           ),
           SizedBox(
-            width: compact ? 26 : 32,
+            width: large
+                ? 34
+                : compact
+                ? 26
+                : 32,
             child: Text(
               '$quantity',
               textAlign: TextAlign.center,
               style: AppTypography.body(
-                size: compact ? 14 : 15,
+                size: large
+                    ? 19
+                    : compact
+                    ? 14
+                    : 15,
                 weight: FontWeight.w700,
               ),
             ),
@@ -55,6 +75,7 @@ class QuantityStepper extends StatelessWidget {
           _StepButton(
             icon: Icons.add_rounded,
             size: size,
+            iconSize: large ? 24 : 17,
             onTap: onIncrement,
             emphasised: true,
           ),
@@ -68,12 +89,14 @@ class _StepButton extends StatelessWidget {
   const _StepButton({
     required this.icon,
     required this.size,
+    this.iconSize = 17,
     this.onTap,
     this.emphasised = false,
   });
 
   final IconData icon;
   final double size;
+  final double iconSize;
   final VoidCallback? onTap;
   final bool emphasised;
 
@@ -90,7 +113,7 @@ class _StepButton extends StatelessWidget {
           dimension: size,
           child: Icon(
             icon,
-            size: 17,
+            size: iconSize,
             color: !enabled
                 ? AppColors.neutral400
                 : emphasised

@@ -6,8 +6,8 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_section.dart';
+import '../../../../shared/widgets/back_disc_button.dart';
 import '../../../../shared/widgets/map_placeholder.dart';
-import '../../../../shared/widgets/selectable_option.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
 import '../../domain/entities/address.dart';
 import '../providers/address_providers.dart';
@@ -75,9 +75,7 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
       isDefault: _makeDefault,
     );
 
-    final saved = await ref
-        .read(addressBookProvider.notifier)
-        .save(address);
+    final saved = await ref.read(addressBookProvider.notifier).save(address);
 
     if (!mounted) return;
     setState(() => _saving = false);
@@ -100,104 +98,73 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
     final area = _editing?.area ?? 'Gulberg III, Lahore';
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.addressId == null ? 'Drag to your gate' : 'Edit address'),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
+      // The map runs to the edges with the controls floating on it, so the
+      // pin has as much room as the screen can give.
+      body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-            child: MapPlaceholder(
-              height: 220,
-              showCentrePin: true,
-              caption: 'drag the map to move the pin',
-            ),
+          _MapPane(
+            area: area,
+            hint: widget.addressId == null
+                ? 'Drag to your gate'
+                : 'Edit address',
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.gutter,
-              AppSpacing.md,
-              AppSpacing.gutter,
-              0,
-            ),
-            child: Row(
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.xl,
+                AppSpacing.gutter,
+                AppSpacing.xxl,
+              ),
               children: [
-                const Icon(
-                  Icons.place_rounded,
-                  size: 18,
-                  color: AppColors.accent,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  area,
-                  style: AppTypography.body(size: 14, weight: FontWeight.w700),
-                ),
-              ],
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.gutter,
-              AppSpacing.xl,
-              AppSpacing.gutter,
-              0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const FieldLabel('Save as'),
+                const FieldLabel('SAVE AS'),
                 Row(
                   children: [
                     for (final label in AddressLabel.values) ...[
                       Expanded(
-                        child: ChoiceTag(
-                          label: label.text,
+                        child: _LabelChoice(
+                          label: label,
                           selected: _label == label,
                           onTap: () => setState(() => _label = label),
                         ),
                       ),
                       if (label != AddressLabel.values.last)
-                        const SizedBox(width: AppSpacing.sm),
+                        const SizedBox(width: AppSpacing.md),
                     ],
                   ],
                 ),
 
                 const SizedBox(height: AppSpacing.xl),
-                const FieldLabel('House / flat number'),
+                const FieldLabel('HOUSE / FLAT NUMBER'),
                 TextField(
                   controller: _houseController,
                   onChanged: (_) => setState(() {}),
+                  style: AppTypography.body(size: 19, weight: FontWeight.w700),
                   decoration: const InputDecoration(hintText: '42-B'),
                 ),
 
                 const SizedBox(height: AppSpacing.xl),
-                const FieldLabel('Note for the rider — optional'),
+                const FieldLabel('NOTE FOR THE RIDER — OPTIONAL'),
                 TextField(
                   controller: _noteController,
                   maxLines: 3,
-                  decoration: const InputDecoration(
+                  style: AppTypography.body(size: 17),
+                  decoration: InputDecoration(
+                    // Square-ish rather than pill: a three-line box cannot
+                    // carry a full pill without the text fouling the curve.
+                    border: _noteBorder(AppColors.divider),
+                    enabledBorder: _noteBorder(AppColors.divider),
+                    focusedBorder: _noteBorder(AppColors.accent, width: 1.5),
                     hintText:
                         'Near Hafeez Centre. Ring the bell twice — gate is on '
                         'the side street.',
                   ),
                 ),
 
-                const SizedBox(height: AppSpacing.lg),
-                SwitchListTile.adaptive(
+                const SizedBox(height: AppSpacing.xl),
+                _DefaultToggle(
                   value: _makeDefault,
                   onChanged: (v) => setState(() => _makeDefault = v),
-                  title: Text(
-                    'Make this my default',
-                    style: AppTypography.body(
-                      size: 14,
-                      weight: FontWeight.w600,
-                    ),
-                  ),
-                  contentPadding: EdgeInsets.zero,
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: AppColors.accent2,
                 ),
               ],
             ),
@@ -211,4 +178,222 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
       ),
     );
   }
+
+  /// The rider note is the one multi-line field in the app, so it gets its
+  /// own softer-cornered box instead of the themed pill.
+  OutlineInputBorder _noteBorder(Color color, {double width = 1}) =>
+      OutlineInputBorder(
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        borderSide: BorderSide(color: color, width: width),
+      );
+}
+
+/// "Make this my default", on its own tinted panel.
+///
+/// The switch is drawn rather than taken from Material, whose track is thinner
+/// than the thumb; here the thumb sits inside a fully rounded track.
+class _DefaultToggle extends StatelessWidget {
+  const _DefaultToggle({required this.value, required this.onChanged});
+
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  static const _trackWidth = 50.0;
+  static const _trackHeight = 29.0;
+  static const _inset = 3.0;
+
+  @override
+  Widget build(BuildContext context) {
+    // Round, and sized to sit inside the track rather than overflow it.
+    const thumb = _trackHeight - _inset * 2;
+
+    return Material(
+      color: AppColors.accent2_100,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => onChanged(!value),
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.lg),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                width: _trackWidth,
+                height: _trackHeight,
+                padding: const EdgeInsets.all(_inset),
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
+                decoration: BoxDecoration(
+                  color: value ? AppColors.accent2 : AppColors.neutral300,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
+                child: Container(
+                  width: thumb,
+                  height: thumb,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Text(
+                  'Make this my default',
+                  style: AppTypography.heading(size: 15.5),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The map, with the back button and the area search floating over it.
+class _MapPane extends StatelessWidget {
+  const _MapPane({required this.area, required this.hint});
+
+  final String area;
+
+  /// What the pin is for — "Drag to your gate" while placing a new address.
+  final String hint;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: MediaQuery.sizeOf(context).height * 0.34,
+    child: Stack(
+      children: [
+        Positioned.fill(
+          child: MapPlaceholder(radius: 0, showCentrePin: true, height: null),
+        ),
+        Positioned(
+          left: AppSpacing.gutter,
+          right: AppSpacing.gutter,
+          top: MediaQuery.paddingOf(context).top + AppSpacing.sm,
+          child: Row(
+            children: [
+              const BackDiscButton(),
+              const SizedBox(width: AppSpacing.md),
+              // The area, presented as a search field — the pin is placed by
+              // dragging, but the area is how you get to the right part of town.
+              Expanded(
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.lg,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.pill),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.search_rounded,
+                        size: 22,
+                        color: AppColors.textMuted(0.5),
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          area,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.body(size: 17),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Sits just above the pin, telling you what the drag is for.
+        Align(
+          alignment: const Alignment(0, -0.16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.text.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+            ),
+            child: Text(
+              hint,
+              style: AppTypography.body(
+                size: 15,
+                weight: FontWeight.w700,
+                color: AppColors.surface,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// One of Home / Office / Other — an icon over its name, in a card that
+/// tints and outlines when chosen.
+class _LabelChoice extends StatelessWidget {
+  const _LabelChoice({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AddressLabel label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  IconData get _icon => switch (label) {
+    AddressLabel.home => Icons.home_outlined,
+    AddressLabel.office => Icons.business_outlined,
+    AddressLabel.other => Icons.location_on_outlined,
+  };
+
+  @override
+  Widget build(BuildContext context) => Material(
+    type: MaterialType.transparency,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.onTint : AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(
+            color: selected ? AppColors.accent : Colors.transparent,
+            width: 1.8,
+          ),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _icon,
+              size: 22,
+              color: selected ? AppColors.accent : AppColors.textMuted(0.7),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              label.text,
+              style: AppTypography.heading(
+                size: 14,
+                color: selected ? AppColors.text : AppColors.textMuted(0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

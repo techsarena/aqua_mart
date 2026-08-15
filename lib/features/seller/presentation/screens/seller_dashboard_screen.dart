@@ -39,10 +39,7 @@ class SellerDashboardScreen extends ConsumerWidget {
                 color: AppColors.textMuted(0.55),
               ),
             ),
-            Text(
-              'Chashma Pure Water',
-              style: AppTypography.heading(size: 19),
-            ),
+            Text('Chashma Pure Water', style: AppTypography.heading(size: 19)),
           ],
         ),
         actions: [

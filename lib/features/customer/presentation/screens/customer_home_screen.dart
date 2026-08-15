@@ -235,10 +235,7 @@ class _UsualOrderCard extends StatelessWidget {
                   const SizedBox(height: AppSpacing.sm),
                   Text(
                     usual.itemsSummary,
-                    style: AppTypography.heading(
-                      size: 26,
-                      color: Colors.white,
-                    ),
+                    style: AppTypography.heading(size: 26, color: Colors.white),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -300,7 +297,9 @@ class _NoSellersHere extends StatelessWidget {
         "We're signing up plants every week.",
     primaryLabel: 'Tell me when someone does',
     onPrimary: () => ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("We'll notify you the moment one goes live.")),
+      const SnackBar(
+        content: Text("We'll notify you the moment one goes live."),
+      ),
     ),
     secondaryLabel: 'Try a different address',
     onSecondary: () => context.pushNamed(AppRoutes.addressBook),

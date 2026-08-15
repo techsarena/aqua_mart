@@ -39,7 +39,8 @@ class OrderRejectedScreen extends ConsumerWidget {
     final cheapest = alternatives.isEmpty
         ? null
         : alternatives.reduce(
-            (a, b) => (a.cheapestRefillPrice ?? 9999) <=
+            (a, b) =>
+                (a.cheapestRefillPrice ?? 9999) <=
                     (b.cheapestRefillPrice ?? 9999)
                 ? a
                 : b,
@@ -178,7 +179,10 @@ class _AlternativeCard extends StatelessWidget {
               children: [
                 Text(
                   seller.name,
-                  style: AppTypography.body(size: 14.5, weight: FontWeight.w700),
+                  style: AppTypography.body(
+                    size: 14.5,
+                    weight: FontWeight.w700,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -199,10 +203,7 @@ class _AlternativeCard extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: AppColors.neutral400,
-          ),
+          const Icon(Icons.chevron_right_rounded, color: AppColors.neutral400),
         ],
       ),
     );

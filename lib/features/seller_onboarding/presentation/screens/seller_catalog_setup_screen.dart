@@ -54,8 +54,7 @@ class SellerCatalogSetupScreen extends ConsumerWidget {
                   .where((b) => b.size == size)
                   .firstOrNull,
               onToggle: () => notifier.toggleSize(size),
-              onRefillChanged: (v) =>
-                  notifier.setPrice(size, refillPrice: v),
+              onRefillChanged: (v) => notifier.setPrice(size, refillPrice: v),
               onNewChanged: (v) => notifier.setPrice(size, newPrice: v),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -97,9 +96,7 @@ class _SizeCard extends StatelessWidget {
                 height: 46,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: _selected
-                      ? AppColors.accent100
-                      : AppColors.neutral100,
+                  color: _selected ? AppColors.accent100 : AppColors.neutral100,
                   borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 child: Text(

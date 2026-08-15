@@ -254,10 +254,7 @@ class _RunView extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: AppSpacing.lg),
-            Text(
-              'What happened?',
-              style: AppTypography.heading(size: 20),
-            ),
+            Text('What happened?', style: AppTypography.heading(size: 20)),
             const SizedBox(height: AppSpacing.sm),
             for (final reason in reasons)
               ListTile(
@@ -388,9 +385,7 @@ class _NextStopCard extends StatelessWidget {
         FilledButton(
           onPressed: onDelivered,
           style: FilledButton.styleFrom(backgroundColor: AppColors.accent2),
-          child: Text(
-            stop.isCash ? 'Delivered · cash taken' : 'Delivered',
-          ),
+          child: Text(stop.isCash ? 'Delivered · cash taken' : 'Delivered'),
         ),
         TextButton(
           onPressed: onFailed,
@@ -441,10 +436,7 @@ class _QueuedStopRow extends StatelessWidget {
                 '${stop.customerName} · ${stop.address}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTypography.body(
-                  size: 14,
-                  weight: FontWeight.w700,
-                ),
+                style: AppTypography.body(size: 14, weight: FontWeight.w700),
               ),
               const SizedBox(height: 2),
               Text(

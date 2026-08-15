@@ -165,9 +165,7 @@ class ChoiceTag extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected ? accent : AppColors.surface,
             borderRadius: BorderRadius.circular(AppRadius.pill),
-            border: Border.all(
-              color: selected ? accent : AppColors.divider,
-            ),
+            border: Border.all(color: selected ? accent : AppColors.divider),
           ),
           child: Text(
             label,

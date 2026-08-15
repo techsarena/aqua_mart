@@ -99,7 +99,11 @@ class DeliveryHeader extends StatelessWidget {
 }
 
 class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({required this.icon, required this.onTap, this.badge = 0});
+  const _HeaderButton({
+    required this.icon,
+    required this.onTap,
+    this.badge = 0,
+  });
 
   final IconData icon;
   final VoidCallback onTap;

@@ -79,7 +79,8 @@ class OrderListNotifier extends AsyncNotifier<List<Order>> {
     String id, {
     required String reason,
     String? note,
-  }) => ref.read(orderRepositoryProvider).report(id, reason: reason, note: note);
+  }) =>
+      ref.read(orderRepositoryProvider).report(id, reason: reason, note: note);
 }
 
 final orderListProvider = AsyncNotifierProvider<OrderListNotifier, List<Order>>(
@@ -95,9 +96,7 @@ final activeOrderProvider = Provider<Order?>((ref) {
 /// The most recent delivered order, used to seed "Your usual".
 final usualOrderProvider = Provider<Order?>((ref) {
   final orders = ref.watch(orderListProvider).value ?? const [];
-  return orders
-      .where((o) => o.status == OrderStatus.delivered)
-      .firstOrNull;
+  return orders.where((o) => o.status == OrderStatus.delivered).firstOrNull;
 });
 
 /// Past orders, for the history list.
@@ -106,10 +105,7 @@ final pastOrdersProvider = Provider<List<Order>>((ref) {
   return orders.where((o) => o.status.isTerminal).toList();
 });
 
-final orderByIdProvider = FutureProvider.family<Order, String>((
-  ref,
-  id,
-) async {
+final orderByIdProvider = FutureProvider.family<Order, String>((ref, id) async {
   final result = await ref.watch(orderRepositoryProvider).orderById(id);
   return result.when(success: (o) => o, failure: (f) => throw f);
 });

@@ -54,7 +54,9 @@ class ApiClient {
   );
 
   Future<T> put<T>(String path, {Object? body, CancelToken? cancelToken}) =>
-      _request<T>(() => _dio.put<T>(path, data: body, cancelToken: cancelToken));
+      _request<T>(
+        () => _dio.put<T>(path, data: body, cancelToken: cancelToken),
+      );
 
   Future<T> patch<T>(String path, {Object? body, CancelToken? cancelToken}) =>
       _request<T>(

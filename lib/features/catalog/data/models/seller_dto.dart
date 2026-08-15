@@ -107,13 +107,15 @@ class SellerDto {
     isRegular: isRegular,
     latitude: latitude,
     longitude: longitude,
-    businessType: SellerBusinessType.values
-        .where((t) => t.name == businessType)
-        .firstOrNull ??
+    businessType:
+        SellerBusinessType.values
+            .where((t) => t.name == businessType)
+            .firstOrNull ??
         SellerBusinessType.roPlant,
-    verificationStatus: SellerVerificationStatus.values
-        .where((s) => s.name == verificationStatus)
-        .firstOrNull ??
+    verificationStatus:
+        SellerVerificationStatus.values
+            .where((s) => s.name == verificationStatus)
+            .firstOrNull ??
         SellerVerificationStatus.approved,
   );
 

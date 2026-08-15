@@ -8,7 +8,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/app_section.dart';
+import '../../../../shared/widgets/back_disc_button.dart';
+import '../../../../shared/widgets/bottle_glyph.dart';
 import '../../../../shared/widgets/map_placeholder.dart';
 import '../../../../shared/widgets/quantity_stepper.dart';
 import '../../../../shared/widgets/state_views.dart';
@@ -41,172 +42,167 @@ class CartScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Your order')),
       body: ListView(
         padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
         children: [
+          const _CartTitle(),
+
           // ── Where it goes ───────────────────────────────────────────────
+          // Map and address read as one object: the map's bottom corners are
+          // square so the card below butts straight onto it.
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.gutter),
-            child: MapPlaceholder(
-              height: 160,
-              showCentrePin: true,
-              caption: 'drag pin to set exact spot',
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppSpacing.gutter,
-              AppSpacing.md,
-              AppSpacing.gutter,
-              0,
-            ),
-            child: AppCard(
-              padding: const EdgeInsets.all(AppSpacing.md),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Icon(
-                    Icons.location_on_rounded,
-                    size: 19,
-                    color: AppColors.accent,
+            child: Column(
+              children: [
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(AppRadius.lg),
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Column(
+                  child: MapPlaceholder(
+                    height: 190,
+                    radius: 0,
+                    showCentrePin: true,
+                    caption: 'drag pin to set exact spot',
+                  ),
+                ),
+                // Square on top to meet the map, rounded below to close the
+                // pair off.
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(AppRadius.lg),
+                  ),
+                  child: AppCard(
+                    radius: 0,
+                    padding: const EdgeInsets.all(AppSpacing.lg),
+                    child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          address?.shortLine ?? 'Choose an address',
-                          style: AppTypography.body(
-                            size: 14,
-                            weight: FontWeight.w700,
+                        const Padding(
+                          padding: EdgeInsets.only(top: 2),
+                          child: Icon(
+                            Icons.location_on_rounded,
+                            size: 26,
+                            color: AppColors.accent,
                           ),
                         ),
-                        if (address?.riderNote.isNotEmpty ?? false) ...[
-                          const SizedBox(height: 2),
+                        const SizedBox(width: AppSpacing.md),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                address?.shortLine ?? 'Choose an address',
+                                style: AppTypography.heading(size: 16),
+                              ),
+                              if (address?.riderNote.isNotEmpty ?? false) ...[
+                                const SizedBox(height: 3),
+                                Text(
+                                  address!.riderNote,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTypography.body(
+                                    size: 13,
+                                    color: AppColors.textMuted(0.6),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.sm),
+                        TextButton(
+                          onPressed: () =>
+                              context.pushNamed(AppRoutes.addressBook),
+                          style: TextButton.styleFrom(
+                            minimumSize: Size.zero,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppSpacing.xs,
+                            ),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            textStyle: AppTypography.body(
+                              size: 13.5,
+                              weight: FontWeight.w700,
+                            ),
+                          ),
+                          child: const Text('Change'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // ── What's in it ────────────────────────────────────────────────
+          // Each line is its own card; the seller's name already sits on the
+          // screen you came from, so no section header is needed.
+          for (final line in cart.orderedLines)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                AppSpacing.lg,
+                AppSpacing.gutter,
+                0,
+              ),
+              child: AppCard(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Row(
+                  children: [
+                    BottleGlyph(size: line.size, compact: true),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
-                            address!.riderNote,
+                            line.name,
+                            style: AppTypography.heading(size: 15.5),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            line.unitLabel,
                             style: AppTypography.body(
                               size: 12.5,
                               color: AppColors.textMuted(0.6),
                             ),
                           ),
                         ],
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => context.pushNamed(AppRoutes.addressBook),
-                    style: TextButton.styleFrom(
-                      minimumSize: Size.zero,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.sm,
                       ),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
-                    child: const Text('Change'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // ── What's in it ────────────────────────────────────────────────
-          AppSection(
-            title: 'Bottles',
-            subtitle: cart.sellerName,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.gutter,
-              ),
-              child: AppCard(
-                child: Column(
-                  children: [
-                    for (final line in cart.orderedLines) ...[
-                      Row(
-                        children: [
-                          Container(
-                            width: 42,
-                            height: 42,
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              color: AppColors.accent100,
-                              borderRadius: BorderRadius.circular(AppRadius.md),
-                            ),
-                            child: Text(
-                              line.size.label,
-                              style: AppTypography.body(
-                                size: 11.5,
-                                weight: FontWeight.w800,
-                                color: AppColors.accent700,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.md),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  line.name,
-                                  style: AppTypography.body(
-                                    size: 14,
-                                    weight: FontWeight.w700,
-                                  ),
-                                ),
-                                Text(
-                                  line.unitLabel,
-                                  style: AppTypography.body(
-                                    size: 12,
-                                    color: AppColors.textMuted(0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          QuantityStepper(
-                            quantity: line.quantity,
-                            compact: true,
-                            onIncrement: () => ref
-                                .read(cartProvider.notifier)
-                                .adjustLine(line, 1),
-                            onDecrement: () => ref
-                                .read(cartProvider.notifier)
-                                .adjustLine(line, -1),
-                          ),
-                        ],
-                      ),
-                      if (line != cart.orderedLines.last)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(
-                            vertical: AppSpacing.md,
-                          ),
-                          child: Divider(),
-                        ),
-                    ],
+                    const SizedBox(width: AppSpacing.sm),
+                    QuantityStepper(
+                      quantity: line.quantity,
+                      onIncrement: () =>
+                          ref.read(cartProvider.notifier).adjustLine(line, 1),
+                      onDecrement: () =>
+                          ref.read(cartProvider.notifier).adjustLine(line, -1),
+                    ),
                   ],
                 ),
               ),
             ),
-          ),
 
           // ── What it costs ───────────────────────────────────────────────
+          // Tinted, so the money reads as a distinct block rather than one
+          // more white card in the stack.
           Padding(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.gutter,
-              AppSpacing.lg,
+              AppSpacing.xl,
               AppSpacing.gutter,
               0,
             ),
             child: AppCard(
+              color: AppColors.accent2_100,
+              padding: const EdgeInsets.all(AppSpacing.xl),
               child: Column(
                 children: [
-                  SummaryRow(
+                  _CartSummaryRow(
                     label: 'Bottles',
                     value: Formatters.rupees(cart.subtotal),
                   ),
-                  SummaryRow(
+                  _CartSummaryRow(
                     label: 'Delivery',
                     value: cart.deliveryFee == 0
                         ? 'Free'
@@ -216,15 +212,15 @@ class CartScreen extends ConsumerWidget {
                         : null,
                   ),
                   if (cart.emptiesReturned > 0)
-                    SummaryRow(
+                    _CartSummaryRow(
                       label: 'Empties you return',
                       value: '${cart.emptiesReturned} bottles',
                     ),
                   const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
-                    child: Divider(),
+                    padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
+                    child: Divider(height: 1),
                   ),
-                  SummaryRow(
+                  _CartSummaryRow(
                     label: 'Total',
                     value: Formatters.rupees(cart.total),
                     isTotal: true,
@@ -235,16 +231,92 @@ class CartScreen extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: StickyActionBar(
+      // The same bar as the shelf, carrying the next step of the flow.
+      bottomNavigationBar: StickyCartBar(
+        count: cart.bottleCount,
+        total: Formatters.rupees(cart.total),
         label: 'Choose payment',
-        enabled: address != null,
-        onPressed: () {
-          if (address != null) {
-            ref.read(cartProvider.notifier).setAddress(address);
-          }
-          context.pushNamed(AppRoutes.checkout);
-        },
+        onPressed: address == null
+            ? null
+            : () {
+                ref.read(cartProvider.notifier).setAddress(address);
+                context.pushNamed(AppRoutes.checkout);
+              },
       ),
     );
   }
+}
+
+/// "Your order", with the back button on its own disc — the same head the
+/// seller's shelf uses, so the flow keeps one shape.
+class _CartTitle extends StatelessWidget {
+  const _CartTitle();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      AppSpacing.gutter,
+      MediaQuery.paddingOf(context).top + AppSpacing.sm,
+      AppSpacing.gutter,
+      AppSpacing.lg,
+    ),
+    child: Row(
+      children: [
+        const BackDiscButton(),
+        const SizedBox(width: AppSpacing.lg),
+        Expanded(
+          child: Text(
+            'Your order',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.heading(size: 28),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// A money line in the tinted summary — bigger than the shared [SummaryRow],
+/// which is tuned for denser cards elsewhere.
+class _CartSummaryRow extends StatelessWidget {
+  const _CartSummaryRow({
+    required this.label,
+    required this.value,
+    this.isTotal = false,
+    this.valueColor,
+  });
+
+  final String label;
+  final String value;
+  final bool isTotal;
+  final Color? valueColor;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 7),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: isTotal
+                ? AppTypography.heading(size: 19)
+                : AppTypography.body(size: 15, color: AppColors.textMuted(0.7)),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        Text(
+          value,
+          style: isTotal
+              ? AppTypography.heading(size: 25, color: valueColor)
+              : AppTypography.body(
+                  size: 15,
+                  weight: FontWeight.w800,
+                  color: valueColor,
+                ),
+        ),
+      ],
+    ),
+  );
 }

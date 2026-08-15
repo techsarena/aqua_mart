@@ -20,7 +20,9 @@ class MapPlaceholder extends StatelessWidget {
     this.route,
   });
 
-  final double height;
+  /// Null lets the map fill whatever its parent gives it — used by the
+  /// full-bleed picker, where the map is the screen.
+  final double? height;
 
   /// A dashed rider-to-destination line, in the same fractional `Alignment`
   /// space as [pins]. Drawn under the markers.
@@ -53,23 +55,16 @@ class MapPlaceholder extends StatelessWidget {
               alignment: Alignment(pin.x, pin.y),
               child: _PinBubble(pin: pin),
             ),
-          if (showCentrePin)
-            const Center(
-              child: Icon(
-                Icons.location_on,
-                size: 40,
-                color: AppColors.accent,
-                shadows: [
-                  Shadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 3)),
-                ],
-              ),
-            ),
+          if (showCentrePin) const Center(child: _CentrePin()),
           if (caption != null)
             Positioned(
               left: AppSpacing.md,
               bottom: AppSpacing.md,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -87,6 +82,43 @@ class MapPlaceholder extends StatelessWidget {
         ],
       ),
     ),
+  );
+}
+
+/// The draggable "you are here" marker: a solid disc in a white collar, on a
+/// short stalk that points at the exact spot it marks.
+class _CentrePin extends StatelessWidget {
+  const _CentrePin();
+
+  @override
+  Widget build(BuildContext context) => Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        padding: const EdgeInsets.all(5),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: const SizedBox.square(
+          dimension: 26,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.accent,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      ),
+      Container(width: 4, height: 18, color: AppColors.accent),
+    ],
   );
 }
 
@@ -121,8 +153,7 @@ class MapPin {
       other.isDestination == isDestination;
 
   @override
-  int get hashCode =>
-      Object.hash(x, y, label, isPrimary, icon, isDestination);
+  int get hashCode => Object.hash(x, y, label, isPrimary, icon, isDestination);
 }
 
 class _PinBubble extends StatelessWidget {
@@ -194,7 +225,11 @@ class _PinBubble extends StatelessWidget {
       ),
       child: Text(
         pin.label!,
-        style: AppTypography.body(size: 11.5, weight: FontWeight.w700, color: fg),
+        style: AppTypography.body(
+          size: 11.5,
+          weight: FontWeight.w700,
+          color: fg,
+        ),
       ),
     );
   }
@@ -211,10 +246,8 @@ class _RoutePainter extends CustomPainter {
   final MapPin to;
 
   /// `Alignment` space (-1..1) → pixels.
-  Offset _resolve(MapPin pin, Size size) => Offset(
-    (pin.x + 1) / 2 * size.width,
-    (pin.y + 1) / 2 * size.height,
-  );
+  Offset _resolve(MapPin pin, Size size) =>
+      Offset((pin.x + 1) / 2 * size.width, (pin.y + 1) / 2 * size.height);
 
   @override
   void paint(Canvas canvas, Size size) {

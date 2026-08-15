@@ -7,7 +7,12 @@ import '../../core/theme/app_typography.dart';
 ///
 /// Ripples and the hub droplet drop out below 48px: they silt up.
 class AquaLogoMark extends StatelessWidget {
-  const AquaLogoMark({super.key, this.size = 64, this.color, this.onDark = false});
+  const AquaLogoMark({
+    super.key,
+    this.size = 64,
+    this.color,
+    this.onDark = false,
+  });
 
   final double size;
 
@@ -29,7 +34,11 @@ class AquaLogoMark extends StatelessWidget {
 }
 
 class _FluidCartPainter extends CustomPainter {
-  _FluidCartPainter({this.color, required this.onDark, required this.showDetails});
+  _FluidCartPainter({
+    this.color,
+    required this.onDark,
+    required this.showDetails,
+  });
 
   final Color? color;
   final bool onDark;
@@ -106,7 +115,11 @@ class _FluidCartPainter extends CustomPainter {
       canvas
         ..drawLine(Offset(11 * s, 47 * s), Offset(15.5 * s, 47 * s), ripple)
         ..drawLine(Offset(8.5 * s, 53.5 * s), Offset(13 * s, 53.5 * s), ripple)
-        ..drawLine(Offset(56 * s, 53.5 * s), Offset(60.5 * s, 53.5 * s), ripple);
+        ..drawLine(
+          Offset(56 * s, 53.5 * s),
+          Offset(60.5 * s, 53.5 * s),
+          ripple,
+        );
     }
 
     // Wheels.

@@ -14,10 +14,8 @@ class RiderShell extends StatelessWidget {
     body: shell,
     bottomNavigationBar: NavigationBar(
       selectedIndex: shell.currentIndex,
-      onDestinationSelected: (index) => shell.goBranch(
-        index,
-        initialLocation: index == shell.currentIndex,
-      ),
+      onDestinationSelected: (index) =>
+          shell.goBranch(index, initialLocation: index == shell.currentIndex),
       // The rider bar sits on white; everything else comes from the theme.
       backgroundColor: AppColors.surface,
       destinations: const [

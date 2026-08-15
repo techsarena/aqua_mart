@@ -205,12 +205,7 @@ class _RiderCard extends StatelessWidget {
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: Text(
-                      '${[
-                        if (rider.lateDeliveries > 0)
-                          '${rider.lateDeliveries} late deliveries',
-                        if (rider.complaints > 0)
-                          '${rider.complaints} complaint',
-                      ].join(' and ')} this week',
+                      '${[if (rider.lateDeliveries > 0) '${rider.lateDeliveries} late deliveries', if (rider.complaints > 0) '${rider.complaints} complaint'].join(' and ')} this week',
                       style: AppTypography.body(
                         size: 12.5,
                         weight: FontWeight.w600,

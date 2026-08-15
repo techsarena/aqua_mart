@@ -30,8 +30,9 @@ class SessionExpiredNotifier extends Notifier<bool> {
   void reset() => state = false;
 }
 
-final sessionExpiredProvider =
-    NotifierProvider<SessionExpiredNotifier, bool>(SessionExpiredNotifier.new);
+final sessionExpiredProvider = NotifierProvider<SessionExpiredNotifier, bool>(
+  SessionExpiredNotifier.new,
+);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   final tokens = ref.watch(tokenStorageProvider);

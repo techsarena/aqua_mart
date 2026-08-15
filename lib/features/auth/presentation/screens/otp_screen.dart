@@ -334,7 +334,9 @@ class _Keypad extends StatelessWidget {
               ),
             ),
             const SizedBox(width: _spacing),
-            Expanded(child: _Key(label: '0', onTap: () => onDigit('0'))),
+            Expanded(
+              child: _Key(label: '0', onTap: () => onDigit('0')),
+            ),
             const SizedBox(width: _spacing),
             Expanded(
               child: _FlatKey(

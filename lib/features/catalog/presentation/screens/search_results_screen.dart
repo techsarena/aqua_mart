@@ -28,7 +28,9 @@ class SearchResultsScreen extends ConsumerStatefulWidget {
 }
 
 class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
-  late final _controller = TextEditingController(text: widget.initialQuery ?? '');
+  late final _controller = TextEditingController(
+    text: widget.initialQuery ?? '',
+  );
 
   @override
   void initState() {
@@ -111,57 +113,61 @@ class _SearchResultsScreenState extends ConsumerState<SearchResultsScreen> {
           const SizedBox(height: AppSpacing.lg),
           Expanded(
             child: switch (async) {
-              AsyncLoading() => const SkeletonList(itemCount: 4, itemHeight: 90),
+              AsyncLoading() => const SkeletonList(
+                itemCount: 4,
+                itemHeight: 90,
+              ),
               AsyncError(:final error) => ErrorView(
                 failure: asFailure(error),
                 onRetry: () => ref.invalidate(searchResultsProvider),
               ),
-              AsyncValue(value: final sellers) => (sellers?.isEmpty ?? true)
-                  ? const Center(
-                      child: EmptyView(
-                        icon: Icons.search_off_rounded,
-                        title: 'No sellers matched',
-                        message: 'Try a different size or clear the filters.',
-                      ),
-                    )
-                  : ListView(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.gutter,
-                        0,
-                        AppSpacing.gutter,
-                        AppSpacing.xxl,
-                      ),
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(
-                            bottom: AppSpacing.md,
-                            left: 4,
-                          ),
-                          child: Text(
-                            '${sellers!.length} sellers deliver to $area',
-                            style: AppTypography.body(
-                              size: 12.5,
-                              color: AppColors.textMuted(0.55),
-                            ),
-                          ),
+              AsyncValue(value: final sellers) =>
+                (sellers?.isEmpty ?? true)
+                    ? const Center(
+                        child: EmptyView(
+                          icon: Icons.search_off_rounded,
+                          title: 'No sellers matched',
+                          message: 'Try a different size or clear the filters.',
                         ),
-                        for (final seller in sellers) ...[
-                          SellerCard(
-                            seller: seller,
-                            highlight: _highlightFor(
-                              seller,
-                              sellers,
-                              query.sort,
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.fromLTRB(
+                          AppSpacing.gutter,
+                          0,
+                          AppSpacing.gutter,
+                          AppSpacing.xxl,
+                        ),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: AppSpacing.md,
+                              left: 4,
                             ),
-                            onTap: () => context.pushNamed(
-                              AppRoutes.sellerStore,
-                              pathParameters: {'sellerId': seller.id},
+                            child: Text(
+                              '${sellers!.length} sellers deliver to $area',
+                              style: AppTypography.body(
+                                size: 12.5,
+                                color: AppColors.textMuted(0.55),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.md),
+                          for (final seller in sellers) ...[
+                            SellerCard(
+                              seller: seller,
+                              highlight: _highlightFor(
+                                seller,
+                                sellers,
+                                query.sort,
+                              ),
+                              onTap: () => context.pushNamed(
+                                AppRoutes.sellerStore,
+                                pathParameters: {'sellerId': seller.id},
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.md),
+                          ],
                         ],
-                      ],
-                    ),
+                      ),
             },
           ),
         ],

@@ -317,7 +317,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: AppRoutes.topUpPending,
         parentNavigatorKey: _rootKey,
         builder: (_, state) => TopUpPendingScreen(
-          amount: int.tryParse(state.uri.queryParameters['amount'] ?? '') ?? 1000,
+          amount:
+              int.tryParse(state.uri.queryParameters['amount'] ?? '') ?? 1000,
           topUpId: state.uri.queryParameters['id'],
         ),
       ),
@@ -326,7 +327,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: AppRoutes.topUpResult,
         parentNavigatorKey: _rootKey,
         builder: (_, state) => TopUpResultScreen(
-          amount: int.tryParse(state.uri.queryParameters['amount'] ?? '') ?? 1000,
+          amount:
+              int.tryParse(state.uri.queryParameters['amount'] ?? '') ?? 1000,
           succeeded: state.uri.queryParameters['status'] != 'failed',
         ),
       ),

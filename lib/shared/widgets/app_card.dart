@@ -116,17 +116,15 @@ class AppNote extends StatelessWidget {
             child: richText != null
                 ? Text.rich(
                     richText!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: fg,
-                      height: 1.4,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: fg, height: 1.4),
                   )
                 : Text(
                     text,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: fg,
-                      height: 1.4,
-                    ),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: fg, height: 1.4),
                   ),
           ),
         ],

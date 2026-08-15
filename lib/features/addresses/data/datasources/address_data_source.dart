@@ -17,7 +17,9 @@ class AddressApiDataSource implements AddressRemoteDataSource {
 
   @override
   Future<List<AddressDto>> fetchAddresses() async {
-    final json = await _client.get<Map<String, dynamic>>(ApiEndpoints.addresses);
+    final json = await _client.get<Map<String, dynamic>>(
+      ApiEndpoints.addresses,
+    );
     final items = (json['data'] ?? json['addresses']) as List? ?? const [];
     return items
         .map((e) => AddressDto.fromJson(e as Map<String, dynamic>))
@@ -98,9 +100,7 @@ class MockAddressDataSource implements AddressRemoteDataSource {
   /// Exactly one address carries the default flag.
   void _applyDefault(String id) {
     for (var i = 0; i < _addresses.length; i++) {
-      _addresses[i] = _addresses[i].copyWith(
-        isDefault: _addresses[i].id == id,
-      );
+      _addresses[i] = _addresses[i].copyWith(isDefault: _addresses[i].id == id);
     }
   }
 }

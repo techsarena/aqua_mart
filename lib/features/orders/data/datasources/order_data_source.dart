@@ -36,7 +36,12 @@ abstract interface class OrderRemoteDataSource {
   Future<OrderDto> fetchOrder(String id);
   Future<OrderDto> placeOrder(PlaceOrderRequest request);
   Future<OrderDto> cancelOrder(String id, String reason);
-  Future<void> rateOrder(String id, {required int stars, List<String> tags, String? comment});
+  Future<void> rateOrder(
+    String id, {
+    required int stars,
+    List<String> tags,
+    String? comment,
+  });
   Future<void> reportOrder(String id, {required String reason, String? note});
 }
 
@@ -59,7 +64,9 @@ class OrderApiDataSource implements OrderRemoteDataSource {
 
   @override
   Future<OrderDto> fetchOrder(String id) async {
-    final json = await _client.get<Map<String, dynamic>>(ApiEndpoints.order(id));
+    final json = await _client.get<Map<String, dynamic>>(
+      ApiEndpoints.order(id),
+    );
     return OrderDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
   }
 
@@ -89,18 +96,19 @@ class OrderApiDataSource implements OrderRemoteDataSource {
     String? comment,
   }) => _client.post<void>(
     ApiEndpoints.rateOrder(id),
-    body: {'stars': stars, 'tags': tags, if (comment != null) 'comment': comment},
+    body: {
+      'stars': stars,
+      'tags': tags,
+      if (comment != null) 'comment': comment,
+    },
   );
 
   @override
-  Future<void> reportOrder(
-    String id, {
-    required String reason,
-    String? note,
-  }) => _client.post<void>(
-    ApiEndpoints.reportOrder(id),
-    body: {'reason': reason, if (note != null) 'note': note},
-  );
+  Future<void> reportOrder(String id, {required String reason, String? note}) =>
+      _client.post<void>(
+        ApiEndpoints.reportOrder(id),
+        body: {'reason': reason, if (note != null) 'note': note},
+      );
 }
 
 /// Keeps orders in memory for the session so the whole flow — place, track,
@@ -128,7 +136,9 @@ class MockOrderDataSource implements OrderRemoteDataSource {
   Future<OrderDto> fetchOrder(String id) async {
     await Future<void>.delayed(_latency);
     final order = _orders.where((o) => o.id == id).firstOrNull;
-    if (order == null) throw const ServerFailure('That order no longer exists.');
+    if (order == null) {
+      throw const ServerFailure('That order no longer exists.');
+    }
     return order;
   }
 

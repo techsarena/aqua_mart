@@ -34,8 +34,9 @@ final class ServerFailure extends Failure {
 
 /// 401/403 — the session is gone or the caller lacks permission.
 final class AuthFailure extends Failure {
-  const AuthFailure([super.message = 'Your session has expired. Sign in again.'])
-    : super(code: 'unauthorized');
+  const AuthFailure([
+    super.message = 'Your session has expired. Sign in again.',
+  ]) : super(code: 'unauthorized');
 }
 
 /// 422 — the server rejected the payload, usually per-field.

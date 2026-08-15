@@ -22,8 +22,9 @@ class CatalogRepositoryImpl implements CatalogRepository {
   });
 
   @override
-  Future<Result<Seller>> sellerById(String sellerId) =>
-      Result.guard(() async => (await _remote.fetchSeller(sellerId)).toDomain());
+  Future<Result<Seller>> sellerById(String sellerId) => Result.guard(
+    () async => (await _remote.fetchSeller(sellerId)).toDomain(),
+  );
 
   @override
   Future<Result<List<Bottle>>> bottlesFor(String sellerId) =>

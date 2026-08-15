@@ -55,7 +55,8 @@ class MockNotificationDataSource implements NotificationRemoteDataSource {
   @override
   Future<void> markRead(String id) async {
     _items = [
-      for (final n in _items) if (n.id == id) n.copyWith(isRead: true) else n,
+      for (final n in _items)
+        if (n.id == id) n.copyWith(isRead: true) else n,
     ];
   }
 
@@ -69,8 +70,7 @@ class MockNotificationDataSource implements NotificationRemoteDataSource {
           id: 'n-1',
           kind: 'riderOnTheWay',
           title: 'Imran is on the way',
-          body:
-              '2 × 25L refill · about 14 minutes away. Keep 2 empties ready.',
+          body: '2 × 25L refill · about 14 minutes away. Keep 2 empties ready.',
           createdAt: iso(const Duration(minutes: 12)),
           deepLink: '/customer/order/o-1/track',
         ),
@@ -113,8 +113,7 @@ class MockNotificationDataSource implements NotificationRemoteDataSource {
           id: 's-n1',
           kind: 'orderUpdate',
           title: 'New order from Ayesha K.',
-          body:
-              '2 × 25L refill · Rs 220 · Gulberg III. Accept within 5 min.',
+          body: '2 × 25L refill · Rs 220 · Gulberg III. Accept within 5 min.',
           createdAt: iso(const Duration(minutes: 2)),
           deepLink: '/seller/orders',
         ),

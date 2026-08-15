@@ -43,15 +43,16 @@ class NotificationsScreen extends ConsumerWidget {
           failure: asFailure(error),
           onRetry: () => ref.invalidate(notificationsProvider),
         ),
-        AsyncValue(value: final items) => (items?.isEmpty ?? true)
-            ? const Center(
-                child: EmptyView(
-                  icon: Icons.notifications_none_rounded,
-                  title: 'Nothing new',
-                  message: 'Order updates and reminders will show up here.',
-                ),
-              )
-            : _Feed(items: items!),
+        AsyncValue(value: final items) =>
+          (items?.isEmpty ?? true)
+              ? const Center(
+                  child: EmptyView(
+                    icon: Icons.notifications_none_rounded,
+                    title: 'Nothing new',
+                    message: 'Order updates and reminders will show up here.',
+                  ),
+                )
+              : _Feed(items: items!),
       },
     );
   }
@@ -80,7 +81,10 @@ class _Feed extends ConsumerWidget {
       children: [
         Text(
           'Order updates, price changes and reorder reminders.',
-          style: AppTypography.body(size: 12.5, color: AppColors.textMuted(0.55)),
+          style: AppTypography.body(
+            size: 12.5,
+            color: AppColors.textMuted(0.55),
+          ),
         ),
         const SizedBox(height: AppSpacing.lg),
         if (today.isNotEmpty) ...[

@@ -33,8 +33,9 @@ class AuthRepositoryImpl implements AuthRepository {
   });
 
   @override
-  Future<Result<AppUser>> completeProfile(SignUpDraft draft) =>
-      Result.guard(() async => (await _remote.completeProfile(draft)).toDomain());
+  Future<Result<AppUser>> completeProfile(SignUpDraft draft) => Result.guard(
+    () async => (await _remote.completeProfile(draft)).toDomain(),
+  );
 
   @override
   Future<Result<AppUser?>> currentUser() => Result.guard(() async {

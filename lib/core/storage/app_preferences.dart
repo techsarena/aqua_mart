@@ -29,7 +29,8 @@ class AppPreferences {
     return UserRole.values.where((r) => r.name == name).firstOrNull;
   }
 
-  Future<void> setRole(UserRole value) => _prefs.setString(_roleKey, value.name);
+  Future<void> setRole(UserRole value) =>
+      _prefs.setString(_roleKey, value.name);
 
   bool get hasOnboarded => _prefs.getBool(_onboardedKey) ?? false;
 

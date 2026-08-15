@@ -38,8 +38,10 @@ class CustomerShell extends ConsumerWidget {
           // navigationBarTheme, so all three role shells stay identical.
           NavigationBar(
             selectedIndex: shell.currentIndex,
-            onDestinationSelected: (index) =>
-                shell.goBranch(index, initialLocation: index == shell.currentIndex),
+            onDestinationSelected: (index) => shell.goBranch(
+              index,
+              initialLocation: index == shell.currentIndex,
+            ),
             destinations: [
               const NavigationDestination(
                 icon: Icon(Icons.home_outlined),

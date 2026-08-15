@@ -25,5 +25,9 @@ abstract interface class OrderRepository {
     String? comment,
   });
 
-  Future<Result<void>> report(String id, {required String reason, String? note});
+  Future<Result<void>> report(
+    String id, {
+    required String reason,
+    String? note,
+  });
 }

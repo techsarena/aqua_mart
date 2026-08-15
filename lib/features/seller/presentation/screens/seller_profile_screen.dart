@@ -24,8 +24,7 @@ class SellerProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionProvider);
     final riders = ref.watch(sellerRidersProvider).value ?? const <Rider>[];
-    final nextPayout =
-        ref.watch(sellerPayoutsProvider).value?.firstOrNull;
+    final nextPayout = ref.watch(sellerPayoutsProvider).value?.firstOrNull;
     final sync = ref.watch(sellerDashboardProvider).value?.sync;
 
     return Scaffold(
@@ -81,10 +80,7 @@ class SellerProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 Expanded(
-                  child: StatTile(
-                    value: '${riders.length}',
-                    label: 'riders',
-                  ),
+                  child: StatTile(value: '${riders.length}', label: 'riders'),
                 ),
               ],
             ),

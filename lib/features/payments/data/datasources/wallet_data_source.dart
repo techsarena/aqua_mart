@@ -44,7 +44,8 @@ class WalletApiDataSource implements WalletRemoteDataSource {
                   id: '${e['id']}',
                   label: e['label'] as String? ?? '',
                   amount: (e['amount'] as num?)?.toInt() ?? 0,
-                  at: DateTime.tryParse(e['at'] as String? ?? '') ??
+                  at:
+                      DateTime.tryParse(e['at'] as String? ?? '') ??
                       DateTime.now(),
                   isCredit: e['is_credit'] as bool? ?? true,
                 ),

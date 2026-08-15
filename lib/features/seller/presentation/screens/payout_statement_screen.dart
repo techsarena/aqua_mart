@@ -29,8 +29,8 @@ class PayoutStatementScreen extends ConsumerWidget {
           failure: asFailure(error),
           onRetry: () => ref.invalidate(sellerPayoutsProvider),
         ),
-        AsyncValue(value: final payouts) when payouts != null &&
-                payouts.isNotEmpty =>
+        AsyncValue(value: final payouts)
+            when payouts != null && payouts.isNotEmpty =>
           ListView(
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.gutter,

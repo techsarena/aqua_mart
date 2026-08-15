@@ -67,8 +67,11 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
           for (final method in PaymentMethod.values) ...[
             SelectableOption(
               title: method.label,
-              subtitle: _subtitleFor(method, user?.walletBalance ?? 0,
-                  user?.khataDue ?? 0),
+              subtitle: _subtitleFor(
+                method,
+                user?.walletBalance ?? 0,
+                user?.khataDue ?? 0,
+              ),
               icon: _iconFor(method),
               selected: cart.paymentMethod == method,
               enabled: _isEnabled(method, user?.walletBalance ?? 0, cart.total),
@@ -107,9 +110,9 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                     final code = _promoController.text.trim();
                     if (code.isEmpty) return;
                     ref.read(cartProvider.notifier).applyPromo(code);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Applied $code')),
-                    );
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(SnackBar(content: Text('Applied $code')));
                   },
                   child: const Text('Apply'),
                 ),
@@ -126,10 +129,7 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   value: Formatters.rupees(cart.total),
                   isTotal: true,
                 ),
-                SummaryRow(
-                  label: 'Arrives',
-                  value: 'in about 25 min',
-                ),
+                SummaryRow(label: 'Arrives', value: 'in about 25 min'),
               ],
             ),
           ),

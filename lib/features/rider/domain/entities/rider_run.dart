@@ -100,8 +100,9 @@ class RiderRun extends Equatable {
       .fold(0, (sum, s) => sum + s.amountToCollect);
 
   /// Cash still to come on the remaining stops.
-  int get cashOutstanding =>
-      pending.where((s) => s.isCash).fold(0, (sum, s) => sum + s.amountToCollect);
+  int get cashOutstanding => pending
+      .where((s) => s.isCash)
+      .fold(0, (sum, s) => sum + s.amountToCollect);
 
   int get emptiesCollected =>
       delivered.fold(0, (sum, s) => sum + s.emptiesToCollect);
@@ -168,7 +169,12 @@ class RiderEarnings extends Equatable {
   }
 
   @override
-  List<Object?> get props => [deliveries, perDelivery, onTimeBonus, fuelAdvance];
+  List<Object?> get props => [
+    deliveries,
+    perDelivery,
+    onTimeBonus,
+    fuelAdvance,
+  ];
 }
 
 /// The invitation a seller sends a rider.

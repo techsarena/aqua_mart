@@ -16,8 +16,7 @@ class EmptyBottlesScreen extends ConsumerStatefulWidget {
   const EmptyBottlesScreen({super.key});
 
   @override
-  ConsumerState<EmptyBottlesScreen> createState() =>
-      _EmptyBottlesScreenState();
+  ConsumerState<EmptyBottlesScreen> createState() => _EmptyBottlesScreenState();
 }
 
 /// How the customer wants their empties handled.
@@ -35,8 +34,7 @@ class _EmptyBottlesScreenState extends ConsumerState<EmptyBottlesScreen> {
   final _selected = <String>{'e-25'};
   _Handling _handling = _Handling.swap;
 
-  int get _totalDeposit =>
-      _holdings.fold(0, (sum, h) => sum + h.deposit);
+  int get _totalDeposit => _holdings.fold(0, (sum, h) => sum + h.deposit);
 
   int get _selectedDeposit => _holdings
       .where((h) => _selected.contains(h.id))

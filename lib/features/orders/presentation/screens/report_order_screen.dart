@@ -62,9 +62,7 @@ class _ReportOrderScreenState extends ConsumerState<ReportOrderScreen> {
     result.when(
       success: (_) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Reported. We'll reply within a day."),
-          ),
+          const SnackBar(content: Text("Reported. We'll reply within a day.")),
         );
         context.pop();
       },
@@ -171,7 +169,9 @@ class _ReportOrderScreenState extends ConsumerState<ReportOrderScreen> {
             text: '',
             richText: TextSpan(
               children: [
-                const TextSpan(text: 'If we agree it was the seller\'s fault, '),
+                const TextSpan(
+                  text: 'If we agree it was the seller\'s fault, ',
+                ),
                 TextSpan(
                   text: order != null
                       ? Formatters.rupees(order.total)

@@ -126,15 +126,16 @@ class _AssignRiderScreenState extends ConsumerState<AssignRiderScreen> {
 
           // ── Who can take it ─────────────────────────────────────────────
           const SizedBox(height: AppSpacing.xl),
-          Text('Your riders', style: AppTypography.body(
-            size: 15,
-            weight: FontWeight.w700,
-          )),
+          Text(
+            'Your riders',
+            style: AppTypography.body(size: 15, weight: FontWeight.w700),
+          ),
           const SizedBox(height: AppSpacing.md),
           for (final rider in riders) ...[
             SelectableOption(
               title: rider.name,
-              subtitle: rider.id == bestFitId && rider.distanceFromCustomer != null
+              subtitle:
+                  rider.id == bestFitId && rider.distanceFromCustomer != null
                   ? '${rider.stopsLeft} stops · closest, '
                         '${Formatters.distance(rider.distanceFromCustomer!)} away'
                   : rider.statusLine,

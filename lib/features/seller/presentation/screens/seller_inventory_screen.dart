@@ -53,35 +53,36 @@ class SellerInventoryScreen extends ConsumerWidget {
           failure: asFailure(error),
           onRetry: () => ref.invalidate(sellerInventoryProvider),
         ),
-        AsyncValue(value: final bottles) => (bottles?.isEmpty ?? true)
-            ? const Center(
-                child: EmptyView(
-                  icon: Icons.water_drop_outlined,
-                  title: 'No bottles listed',
-                  message: 'Add the sizes you sell so customers can order.',
-                ),
-              )
-            : ListView.separated(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.gutter,
-                  0,
-                  AppSpacing.gutter,
-                  AppSpacing.xxl,
-                ),
-                itemCount: bottles!.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(height: AppSpacing.md),
-                itemBuilder: (context, i) => _InventoryCard(
-                  bottle: bottles[i],
-                  onTap: () => context.pushNamed(
-                    AppRoutes.sellerEditBottle,
-                    pathParameters: {'bottleId': bottles[i].id},
+        AsyncValue(value: final bottles) =>
+          (bottles?.isEmpty ?? true)
+              ? const Center(
+                  child: EmptyView(
+                    icon: Icons.water_drop_outlined,
+                    title: 'No bottles listed',
+                    message: 'Add the sizes you sell so customers can order.',
                   ),
-                  onHide: () => ref
-                      .read(sellerInventoryProvider.notifier)
-                      .save(bottles[i].copyWith(isVisible: false)),
+                )
+              : ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.gutter,
+                    0,
+                    AppSpacing.gutter,
+                    AppSpacing.xxl,
+                  ),
+                  itemCount: bottles!.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: AppSpacing.md),
+                  itemBuilder: (context, i) => _InventoryCard(
+                    bottle: bottles[i],
+                    onTap: () => context.pushNamed(
+                      AppRoutes.sellerEditBottle,
+                      pathParameters: {'bottleId': bottles[i].id},
+                    ),
+                    onHide: () => ref
+                        .read(sellerInventoryProvider.notifier)
+                        .save(bottles[i].copyWith(isVisible: false)),
+                  ),
                 ),
-              ),
       },
     );
   }

@@ -162,7 +162,9 @@ class OrderDto {
       lines: lines.map((l) => l.toDomain()).toList(),
       address: address.toDomain(),
       paymentMethod:
-          PaymentMethod.values.where((p) => p.name == paymentMethod).firstOrNull ??
+          PaymentMethod.values
+              .where((p) => p.name == paymentMethod)
+              .firstOrNull ??
           PaymentMethod.cash,
       status: domainStatus,
       placedAt: DateTime.tryParse(placedAt) ?? DateTime.now(),

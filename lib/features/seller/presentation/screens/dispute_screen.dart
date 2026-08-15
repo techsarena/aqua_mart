@@ -42,14 +42,12 @@ class _DisputeScreenState extends ConsumerState<DisputeScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          switch (_resolution!) {
-            DisputeResolution.replacement =>
-              'Replacement added to your next run.',
-            DisputeResolution.refund => 'Refund will come off your next payout.',
-            DisputeResolution.escalate => 'Sent to Aqua Mart for review.',
-          },
-        ),
+        content: Text(switch (_resolution!) {
+          DisputeResolution.replacement =>
+            'Replacement added to your next run.',
+          DisputeResolution.refund => 'Refund will come off your next payout.',
+          DisputeResolution.escalate => 'Sent to Aqua Mart for review.',
+        }),
       ),
     );
     context.pop();
@@ -202,9 +200,8 @@ class _DisputeScreenState extends ConsumerState<DisputeScreen> {
                   '1 × 25L on your next run · costs you '
                   '${Formatters.rupees(dispute.amount)}',
               selected: _resolution == DisputeResolution.replacement,
-              onTap: () => setState(
-                () => _resolution = DisputeResolution.replacement,
-              ),
+              onTap: () =>
+                  setState(() => _resolution = DisputeResolution.replacement),
             ),
             const SizedBox(height: AppSpacing.sm),
             SelectableOption(

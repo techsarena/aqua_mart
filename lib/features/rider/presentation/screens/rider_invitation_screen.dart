@@ -23,11 +23,13 @@ class RiderInvitationScreen extends ConsumerStatefulWidget {
       _RiderInvitationScreenState();
 }
 
-class _RiderInvitationScreenState
-    extends ConsumerState<RiderInvitationScreen> {
+class _RiderInvitationScreenState extends ConsumerState<RiderInvitationScreen> {
   bool _responding = false;
 
-  Future<void> _respond(RiderInvitation invitation, {required bool accept}) async {
+  Future<void> _respond(
+    RiderInvitation invitation, {
+    required bool accept,
+  }) async {
     setState(() => _responding = true);
     await ref
         .read(riderDataSourceProvider)

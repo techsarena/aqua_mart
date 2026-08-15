@@ -94,7 +94,10 @@ class _SignUpPhoneScreenState extends ConsumerState<SignUpPhoneScreen> {
                   const SizedBox(width: 6),
                   Text(
                     '+92',
-                    style: AppTypography.body(size: 14.5, weight: FontWeight.w700),
+                    style: AppTypography.body(
+                      size: 14.5,
+                      weight: FontWeight.w700,
+                    ),
                   ),
                 ],
               ),

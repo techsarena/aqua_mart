@@ -114,7 +114,9 @@ class _TopUpScreenState extends ConsumerState<TopUpScreen> {
               text: '',
               richText: TextSpan(
                 children: [
-                  TextSpan(text: 'Top up ${Formatters.rupees(_amount)} and get '),
+                  TextSpan(
+                    text: 'Top up ${Formatters.rupees(_amount)} and get ',
+                  ),
                   TextSpan(
                     text: 'Rs $_bonusAmount free',
                     style: const TextStyle(fontWeight: FontWeight.w800),
@@ -163,9 +165,7 @@ class _TopUpScreenState extends ConsumerState<TopUpScreen> {
         ],
       ),
       bottomNavigationBar: StickyActionBar(
-        label: _starting
-            ? 'Starting…'
-            : 'Top up ${Formatters.rupees(_amount)}',
+        label: _starting ? 'Starting…' : 'Top up ${Formatters.rupees(_amount)}',
         enabled: !_starting && _amount > 0,
         onPressed: _start,
       ),

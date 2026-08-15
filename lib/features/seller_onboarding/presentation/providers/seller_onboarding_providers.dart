@@ -67,9 +67,8 @@ class SellerApplication {
       ownerName.trim().isNotEmpty &&
       businessType != null;
 
-  bool get documentsComplete => KycDocument.values
-      .where((d) => d.isRequired)
-      .every(uploaded.contains);
+  bool get documentsComplete =>
+      KycDocument.values.where((d) => d.isRequired).every(uploaded.contains);
 
   bool get catalogComplete =>
       bottles.isNotEmpty && bottles.every((b) => b.isPriced);

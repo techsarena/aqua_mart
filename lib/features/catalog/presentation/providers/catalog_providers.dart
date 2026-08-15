@@ -26,17 +26,16 @@ final nearbySellersProvider = FutureProvider.family<List<Seller>, String>((
   final result = await ref
       .watch(catalogRepositoryProvider)
       .nearbySellers(addressId: addressId);
-  return result.when(
-    success: (sellers) => sellers,
-    failure: (f) => throw f,
-  );
+  return result.when(success: (sellers) => sellers, failure: (f) => throw f);
 });
 
 final sellerProvider = FutureProvider.family<Seller, String>((
   ref,
   sellerId,
 ) async {
-  final result = await ref.watch(catalogRepositoryProvider).sellerById(sellerId);
+  final result = await ref
+      .watch(catalogRepositoryProvider)
+      .sellerById(sellerId);
   return result.when(success: (s) => s, failure: (f) => throw f);
 });
 
@@ -44,7 +43,9 @@ final sellerBottlesProvider = FutureProvider.family<List<Bottle>, String>((
   ref,
   sellerId,
 ) async {
-  final result = await ref.watch(catalogRepositoryProvider).bottlesFor(sellerId);
+  final result = await ref
+      .watch(catalogRepositoryProvider)
+      .bottlesFor(sellerId);
   return result.when(success: (b) => b, failure: (f) => throw f);
 });
 
@@ -85,10 +86,6 @@ final searchResultsProvider = FutureProvider<List<Seller>>((ref) async {
   final query = ref.watch(searchQueryProvider);
   final result = await ref
       .watch(catalogRepositoryProvider)
-      .search(
-        query: query.text,
-        sort: query.sort,
-        openOnly: query.openOnly,
-      );
+      .search(query: query.text, sort: query.sort, openOnly: query.openOnly);
   return result.when(success: (s) => s, failure: (f) => throw f);
 });

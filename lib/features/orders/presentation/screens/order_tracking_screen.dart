@@ -183,32 +183,32 @@ class _TrackingView extends ConsumerWidget {
           0,
         ),
         child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (order.status == OrderStatus.onTheWay)
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        '${order.etaMinutes}',
-                        style: AppTypography.heading(size: 42),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'min away',
-                        style: AppTypography.body(
-                          size: 15,
-                          color: AppColors.textMuted(0.6),
-                        ),
-                      ),
-                    ],
-                  )
-                else
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (order.status == OrderStatus.onTheWay)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
                   Text(
-                    order.status.customerLabel,
-                    style: AppTypography.heading(size: 26),
+                    '${order.etaMinutes}',
+                    style: AppTypography.heading(size: 42),
                   ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'min away',
+                    style: AppTypography.body(
+                      size: 15,
+                      color: AppColors.textMuted(0.6),
+                    ),
+                  ),
+                ],
+              )
+            else
+              Text(
+                order.status.customerLabel,
+                style: AppTypography.heading(size: 26),
+              ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               rider != null

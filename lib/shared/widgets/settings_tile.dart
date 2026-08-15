@@ -53,9 +53,9 @@ class SettingsTile extends StatelessWidget {
             Icon(
               icon,
               size: prominent ? 25 : 20,
-              color: tone ?? (prominent
-                  ? AppColors.accent
-                  : AppColors.textMuted(0.65)),
+              color:
+                  tone ??
+                  (prominent ? AppColors.accent : AppColors.textMuted(0.65)),
             ),
             SizedBox(width: prominent ? AppSpacing.lg : AppSpacing.md),
             Expanded(

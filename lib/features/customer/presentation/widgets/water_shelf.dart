@@ -243,10 +243,7 @@ class _EmptyBottle extends StatelessWidget {
       borderRadius: _ShelfBottleTile._shape,
     ),
     child: CustomPaint(
-      painter: _DashedBottlePainter(
-        color: AppColors.accent,
-        strokeWidth: 2.5,
-      ),
+      painter: _DashedBottlePainter(color: AppColors.accent, strokeWidth: 2.5),
       child: Center(
         child: Icon(
           selected ? Icons.check_rounded : Icons.refresh_rounded,
@@ -292,11 +289,12 @@ class _DashedBottlePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path()..addRRect(
-      _ShelfBottleTile._shape
-          .toRRect(Offset.zero & size)
-          .deflate(strokeWidth / 2),
-    );
+    final path = Path()
+      ..addRRect(
+        _ShelfBottleTile._shape
+            .toRRect(Offset.zero & size)
+            .deflate(strokeWidth / 2),
+      );
 
     final paint = Paint()
       ..color = color

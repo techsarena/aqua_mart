@@ -130,10 +130,7 @@ class _SellerMapScreenState extends ConsumerState<SellerMapScreen> {
                           ),
                           const SizedBox(width: AppSpacing.sm),
                           if (selected.sizes.isNotEmpty)
-                            AppTag(
-                              selected.subtitle,
-                              tone: TagTone.neutral,
-                            ),
+                            AppTag(selected.subtitle, tone: TagTone.neutral),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.md),

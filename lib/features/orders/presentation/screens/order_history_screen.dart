@@ -55,20 +55,21 @@ class OrderHistoryScreen extends ConsumerWidget {
           failure: asFailure(error),
           onRetry: () => ref.invalidate(orderListProvider),
         ),
-        AsyncValue(value: final orders) => (orders?.isEmpty ?? true)
-            ? Center(
-                child: EmptyView(
-                  icon: Icons.receipt_long_outlined,
-                  title: 'No orders yet',
-                  message: 'Your first order will show up here.',
-                  primaryLabel: 'Order water',
-                  onPrimary: () => context.goNamed(AppRoutes.customerHome),
+        AsyncValue(value: final orders) =>
+          (orders?.isEmpty ?? true)
+              ? Center(
+                  child: EmptyView(
+                    icon: Icons.receipt_long_outlined,
+                    title: 'No orders yet',
+                    message: 'Your first order will show up here.',
+                    primaryLabel: 'Order water',
+                    onPrimary: () => context.goNamed(AppRoutes.customerHome),
+                  ),
+                )
+              : OrderHistoryBody(
+                  orders: orders!,
+                  onRefresh: () async => ref.invalidate(orderListProvider),
                 ),
-              )
-            : OrderHistoryBody(
-                orders: orders!,
-                onRefresh: () async => ref.invalidate(orderListProvider),
-              ),
       },
     );
   }

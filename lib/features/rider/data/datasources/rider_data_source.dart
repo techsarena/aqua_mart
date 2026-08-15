@@ -88,11 +88,8 @@ class RiderApiDataSource implements RiderRemoteDataSource {
   }
 
   @override
-  Future<void> respondToInvitation(String id, {required bool accept}) =>
-      _client.post<void>(
-        ApiEndpoints.respondInvitation(id),
-        body: {'accept': accept},
-      );
+  Future<void> respondToInvitation(String id, {required bool accept}) => _client
+      .post<void>(ApiEndpoints.respondInvitation(id), body: {'accept': accept});
 
   RiderRun _runFrom(Map<String, dynamic> json) => RiderRun(
     id: '${json['id']}',

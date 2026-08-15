@@ -110,10 +110,7 @@ class _SellerServiceAreaScreenState
               onPressed: () => _addArea(context),
               backgroundColor: Colors.transparent,
               side: const BorderSide(color: AppColors.divider),
-              labelStyle: AppTypography.body(
-                size: 13,
-                weight: FontWeight.w600,
-              ),
+              labelStyle: AppTypography.body(size: 13, weight: FontWeight.w600),
             ),
           ],
         ),
@@ -121,9 +118,9 @@ class _SellerServiceAreaScreenState
     ),
     bottomNavigationBar: StickyActionBar(
       label: 'Save service area',
-      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Service area saved.')),
-      ),
+      onPressed: () => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Service area saved.'))),
     ),
   );
 

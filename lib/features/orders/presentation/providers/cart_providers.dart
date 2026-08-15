@@ -87,8 +87,8 @@ class CartController extends Notifier<CartState> {
     required String sellerName,
     int delta = 1,
   }) {
-    final startingFresh = state.sellerId != null &&
-        state.sellerId != bottle.sellerId;
+    final startingFresh =
+        state.sellerId != null && state.sellerId != bottle.sellerId;
     final lines = startingFresh
         ? <String, OrderLine>{}
         : Map<String, OrderLine>.from(state.lines);

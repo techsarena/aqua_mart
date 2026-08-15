@@ -24,47 +24,65 @@ class StickyCartBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => _BarShell(
-    child: Row(
-      children: [
-        Container(
-          width: 34,
-          height: 34,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.accent100,
-            borderRadius: BorderRadius.circular(AppRadius.pill),
-          ),
-          child: Text(
-            '$count',
-            style: AppTypography.body(
-              size: 14,
-              weight: FontWeight.w800,
-              color: AppColors.accent700,
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Text(
-          total,
-          style: AppTypography.heading(size: 19),
-        ),
-        const Spacer(),
-        FilledButton(
-          onPressed: onPressed,
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 48),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
-          ),
+    // The whole bar is the button — count, action and total read as one
+    // target, so there is no dead white space beside it to aim at.
+    child: Material(
+      // Greyed when there is nothing to go to yet, so the bar never looks
+      // live while ignoring taps.
+      color: onPressed == null ? AppColors.neutral300 : AppColors.accent,
+      shape: const StadiumBorder(),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onPressed,
+        child: Container(
+          height: 62,
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label),
-              const SizedBox(width: 6),
-              const Icon(Icons.arrow_forward_rounded, size: 17),
+              // A lighter disc, so the count sits on the blue without
+              // punching a white hole in it.
+              Container(
+                width: 34,
+                height: 34,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withValues(alpha: 0.22),
+                  shape: BoxShape.circle,
+                ),
+                child: Text(
+                  '$count',
+                  style: AppTypography.body(
+                    size: 15,
+                    weight: FontWeight.w800,
+                    color: AppColors.surface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.heading(
+                    size: 18,
+                    color: AppColors.surface,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Text(
+                total,
+                style: AppTypography.heading(
+                  size: 18,
+                  color: AppColors.surface,
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
             ],
           ),
         ),
-      ],
+      ),
     ),
   );
 }

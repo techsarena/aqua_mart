@@ -88,10 +88,7 @@ class TopUpResultScreen extends ConsumerWidget {
                   value: Formatters.rupees(balance),
                   isTotal: true,
                 ),
-                const SummaryRow(
-                  label: 'JazzCash ref',
-                  value: 'JC-84120397',
-                ),
+                const SummaryRow(label: 'JazzCash ref', value: 'JC-84120397'),
                 SummaryRow(
                   label: 'Time',
                   value: 'Today, ${Formatters.time(DateTime.now())}',
@@ -163,10 +160,7 @@ class TopUpResultScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.sm),
         Text(
           'JazzCash said the request timed out.',
-          style: AppTypography.body(
-            size: 14,
-            color: AppColors.textMuted(0.65),
-          ),
+          style: AppTypography.body(size: 14, color: AppColors.textMuted(0.65)),
         ),
 
         const SizedBox(height: AppSpacing.lg),
@@ -222,8 +216,7 @@ class TopUpResultScreen extends ConsumerWidget {
         const SizedBox(height: AppSpacing.lg),
         const AppNote(
           icon: Icons.payments_outlined,
-          text:
-              'In a hurry? Order now and pay the rider in cash instead.',
+          text: 'In a hurry? Order now and pay the rider in cash instead.',
         ),
       ],
     ),

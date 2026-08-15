@@ -39,7 +39,9 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
     }
 
     final draft = ref.read(sessionProvider).draft;
-    final result = await ref.read(authRepositoryProvider).completeProfile(draft);
+    final result = await ref
+        .read(authRepositoryProvider)
+        .completeProfile(draft);
     if (!mounted) return;
 
     result.when(
@@ -323,9 +325,7 @@ class _WheelState extends State<_Wheel> {
           style: AppTypography.body(
             size: isSelected ? 19 : 17,
             weight: isSelected ? FontWeight.w700 : FontWeight.w400,
-            color: isSelected
-                ? AppColors.text
-                : AppColors.textMuted(0.45),
+            color: isSelected ? AppColors.text : AppColors.textMuted(0.45),
           ),
         ),
       );

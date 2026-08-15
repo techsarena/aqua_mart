@@ -75,7 +75,9 @@ class UserDto {
     walletBalance: walletBalance,
     khataDue: khataDue,
     khataSellerName: khataSellerName,
-    khataDueDate: khataDueDate == null ? null : DateTime.tryParse(khataDueDate!),
+    khataDueDate: khataDueDate == null
+        ? null
+        : DateTime.tryParse(khataDueDate!),
     isVerified: isVerified,
   );
 
