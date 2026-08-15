@@ -1,0 +1,160 @@
+/// Every named route in the app, in one registry.
+///
+/// Paths are grouped by role. Names are what the app navigates by
+/// (`context.goNamed(AppRoutes.customerHome)`), so screens never hard-code
+/// path strings.
+abstract final class AppRoutes {
+  // ── Onboarding & auth ───────────────────────────────────────────────────
+  static const splash = 'splash';
+  static const splashPath = '/';
+
+  static const languagePicker = 'language';
+  static const languagePath = '/language';
+
+  static const rolePicker = 'role';
+  static const rolePath = '/role';
+
+  static const signUpName = 'signup-name';
+  static const signUpNamePath = '/signup/name';
+
+  static const signUpPhone = 'signup-phone';
+  static const signUpPhonePath = '/signup/phone';
+
+  static const otp = 'otp';
+  static const otpPath = '/signup/otp';
+
+  static const signUpDetails = 'signup-details';
+  static const signUpDetailsPath = '/signup/details';
+
+  // ── Customer ────────────────────────────────────────────────────────────
+  static const customerHome = 'customer-home';
+  static const customerHomePath = '/customer/home';
+
+  static const customerOrders = 'customer-orders';
+  static const customerOrdersPath = '/customer/orders';
+
+  static const customerTrack = 'customer-track';
+  static const customerTrackPath = '/customer/track';
+
+  static const customerProfile = 'customer-profile';
+  static const customerProfilePath = '/customer/profile';
+
+  static const sellerStore = 'seller-store';
+  static const sellerStorePath = '/customer/seller/:sellerId';
+
+  static const cart = 'cart';
+  static const cartPath = '/customer/cart';
+
+  static const checkout = 'checkout';
+  static const checkoutPath = '/customer/checkout';
+
+  static const addCard = 'add-card';
+  static const addCardPath = '/customer/checkout/card';
+
+  static const orderTracking = 'order-tracking';
+  static const orderTrackingPath = '/customer/order/:orderId/track';
+
+  static const rateOrder = 'rate-order';
+  static const rateOrderPath = '/customer/order/:orderId/rate';
+
+  static const reportOrder = 'report-order';
+  static const reportOrderPath = '/customer/order/:orderId/report';
+
+  static const cancelOrder = 'cancel-order';
+  static const cancelOrderPath = '/customer/order/:orderId/cancel';
+
+  static const orderRejected = 'order-rejected';
+  static const orderRejectedPath = '/customer/order/:orderId/rejected';
+
+  static const searchResults = 'search';
+  static const searchPath = '/customer/search';
+
+  static const sellerMap = 'seller-map';
+  static const sellerMapPath = '/customer/map';
+
+  static const addressBook = 'addresses';
+  static const addressBookPath = '/customer/addresses';
+
+  static const addAddress = 'add-address';
+  static const addAddressPath = '/customer/addresses/new';
+
+  static const notifications = 'notifications';
+  static const notificationsPath = '/customer/notifications';
+
+  static const wallet = 'wallet';
+  static const walletPath = '/customer/wallet';
+
+  static const topUp = 'top-up';
+  static const topUpPath = '/customer/wallet/top-up';
+
+  static const topUpPending = 'top-up-pending';
+  static const topUpPendingPath = '/customer/wallet/top-up/pending';
+
+  static const topUpResult = 'top-up-result';
+  static const topUpResultPath = '/customer/wallet/top-up/result';
+
+  static const emptyBottles = 'empties';
+  static const emptyBottlesPath = '/customer/empties';
+
+  // ── Seller ──────────────────────────────────────────────────────────────
+  static const sellerOnboarding = 'seller-onboarding';
+  static const sellerOnboardingPath = '/seller/onboarding';
+
+  static const sellerKyc = 'seller-kyc';
+  static const sellerKycPath = '/seller/onboarding/kyc';
+
+  static const sellerCatalogSetup = 'seller-catalog-setup';
+  static const sellerCatalogSetupPath = '/seller/onboarding/catalog';
+
+  static const sellerVerification = 'seller-verification';
+  static const sellerVerificationPath = '/seller/onboarding/verification';
+
+  static const sellerDashboard = 'seller-dashboard';
+  static const sellerDashboardPath = '/seller/today';
+
+  static const sellerOrderQueue = 'seller-orders';
+  static const sellerOrderQueuePath = '/seller/orders';
+
+  static const sellerInventory = 'seller-inventory';
+  static const sellerInventoryPath = '/seller/bottles';
+
+  static const sellerEditBottle = 'seller-edit-bottle';
+  static const sellerEditBottlePath = '/seller/bottles/:bottleId';
+
+  static const sellerServiceArea = 'seller-area';
+  static const sellerServiceAreaPath = '/seller/area';
+
+  static const sellerProfile = 'seller-profile';
+  static const sellerProfilePath = '/seller/profile';
+
+  static const sellerAlerts = 'seller-alerts';
+  static const sellerAlertsPath = '/seller/alerts';
+
+  static const sellerDispute = 'seller-dispute';
+  static const sellerDisputePath = '/seller/disputes/:disputeId';
+
+  static const assignRider = 'assign-rider';
+  static const assignRiderPath = '/seller/orders/:orderId/assign';
+
+  static const businessHours = 'business-hours';
+  static const businessHoursPath = '/seller/hours';
+
+  static const payoutStatement = 'payout';
+  static const payoutStatementPath = '/seller/payouts';
+
+  static const riderPerformance = 'rider-performance';
+  static const riderPerformancePath = '/seller/riders';
+
+  // ── Rider ───────────────────────────────────────────────────────────────
+  static const riderRun = 'rider-run';
+  static const riderRunPath = '/rider/run';
+
+  static const riderCashHandover = 'rider-cash';
+  static const riderCashHandoverPath = '/rider/cash';
+
+  static const riderEarnings = 'rider-earnings';
+  static const riderEarningsPath = '/rider/earnings';
+
+  static const riderInvitation = 'rider-invitation';
+  static const riderInvitationPath = '/rider/invitation';
+}

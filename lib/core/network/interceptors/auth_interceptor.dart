@@ -1,0 +1,85 @@
+import 'package:dio/dio.dart';
+
+import '../../storage/token_storage.dart';
+import '../api_endpoints.dart';
+
+/// Attaches the bearer token to every request and refreshes it once on a 401.
+///
+/// [onSessionExpired] fires when the refresh itself fails — the app listens and
+/// kicks the user back to the sign-in flow.
+class AuthInterceptor extends Interceptor {
+  AuthInterceptor({
+    required TokenStorage tokenStorage,
+    required Dio refreshDio,
+    this.onSessionExpired,
+  }) : _tokens = tokenStorage,
+       _refreshDio = refreshDio;
+
+  final TokenStorage _tokens;
+  final Dio _refreshDio;
+  final void Function()? onSessionExpired;
+
+  bool _isRefreshing = false;
+
+  @override
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    final token = await _tokens.readAccessToken();
+    if (token != null && token.isNotEmpty) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
+    handler.next(options);
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    final isAuthCall = err.requestOptions.path.startsWith('/auth');
+    if (err.response?.statusCode != 401 || isAuthCall || _isRefreshing) {
+      return handler.next(err);
+    }
+
+    final refreshToken = await _tokens.readRefreshToken();
+    if (refreshToken == null || refreshToken.isEmpty) {
+      onSessionExpired?.call();
+      return handler.next(err);
+    }
+
+    _isRefreshing = true;
+    try {
+      final response = await _refreshDio.post<Map<String, dynamic>>(
+        '${ApiEndpoints.baseUrl}${ApiEndpoints.refreshToken}',
+        data: {'refresh_token': refreshToken},
+      );
+      final data = response.data ?? const {};
+      final newAccess = data['access_token'] as String?;
+      final newRefresh = data['refresh_token'] as String? ?? refreshToken;
+
+      if (newAccess == null) {
+        onSessionExpired?.call();
+        return handler.next(err);
+      }
+
+      await _tokens.saveTokens(
+        accessToken: newAccess,
+        refreshToken: newRefresh,
+      );
+
+      // Replay the original request with the fresh token.
+      final retryOptions = err.requestOptions
+        ..headers['Authorization'] = 'Bearer $newAccess';
+      final retried = await _refreshDio.fetch<dynamic>(retryOptions);
+      return handler.resolve(retried);
+    } on DioException {
+      await _tokens.clear();
+      onSessionExpired?.call();
+      return handler.next(err);
+    } finally {
+      _isRefreshing = false;
+    }
+  }
+}
