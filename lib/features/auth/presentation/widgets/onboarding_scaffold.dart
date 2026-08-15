@@ -110,7 +110,10 @@ class OnboardingScaffold extends StatelessWidget {
               ],
             ),
           ),
-          if (primaryLabel != null)
+          // A footer with no primary button still gets its own strip — the
+          // role step is chosen by tapping a card, so its reassurance note
+          // sits alone at the foot of the screen.
+          if (primaryLabel != null || footer != null)
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.gutter,
@@ -122,19 +125,19 @@ class OnboardingScaffold extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (footer != null) ...[
-                    footer!,
-                    const SizedBox(height: AppSpacing.lg),
-                  ],
-                  FilledButton(
-                    onPressed: primaryEnabled ? onPrimary : null,
-                    child: Text(primaryLabel!),
-                  ),
-                  if (secondaryLabel != null)
-                    TextButton(
-                      onPressed: onSecondary,
-                      child: Text(secondaryLabel!),
+                  if (footer != null) footer!,
+                  if (primaryLabel != null) ...[
+                    if (footer != null) const SizedBox(height: AppSpacing.lg),
+                    FilledButton(
+                      onPressed: primaryEnabled ? onPrimary : null,
+                      child: Text(primaryLabel!),
                     ),
+                    if (secondaryLabel != null)
+                      TextButton(
+                        onPressed: onSecondary,
+                        child: Text(secondaryLabel!),
+                      ),
+                  ],
                 ],
               ),
             ),

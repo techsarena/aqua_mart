@@ -146,10 +146,10 @@ void main() {
 
     expect(find.text('2 of 4'), findsOneWidget);
 
-    final button = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Continue'),
-    );
-    expect(button.onPressed, isNull, reason: 'no role chosen yet');
+    // Choosing a role is the whole step, so the tap advances on its own —
+    // there is no Continue button to confirm against.
+    expect(find.widgetWithText(FilledButton, 'Continue'), findsNothing);
+    expect(find.text('I need water'), findsOneWidget);
   });
 
   testWidgets('a customer continues from the role to the name step', (
@@ -159,8 +159,6 @@ void main() {
     await _reachRolePicker(tester);
 
     await tester.tap(find.text('I need water'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     expect(find.text('What should we call you?'), findsOneWidget);
@@ -175,8 +173,6 @@ void main() {
 
     await tester.tap(find.text('I deliver'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
 
     // Previously bounced straight back to the role picker.
     expect(find.text('Who are you?'), findsNothing);
@@ -190,8 +186,6 @@ void main() {
     await _reachRolePicker(tester);
 
     await tester.tap(find.text('I sell water'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     // Step 3 — the name.
@@ -222,8 +216,6 @@ void main() {
     // session can be inspected without pumping into a screen that animates
     // or counts down forever.
     await tester.tap(find.text('I deliver'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
     await tester.pumpAndSettle();
 
     expect(container.read(sessionProvider).pendingRole?.name, 'rider');

@@ -48,7 +48,7 @@ class _SignUpNameScreenState extends ConsumerState<SignUpNameScreen> {
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const FieldLabel('Full name'),
+        const FieldLabel('FULL NAME'),
         TextField(
           controller: _controller,
           autofocus: true,
