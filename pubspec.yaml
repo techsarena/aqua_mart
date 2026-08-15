@@ -92,6 +92,11 @@ flutter:
           weight: 700
         - asset: assets/fonts/Figtree-800.ttf
           weight: 800
+    # Nastaliq ships as a single variable file covering 400–700; there are no
+    # static instances published for it.
+    - family: Noto Nastaliq Urdu
+      fonts:
+        - asset: assets/fonts/NotoNastaliqUrdu-Variable.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

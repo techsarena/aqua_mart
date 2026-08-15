@@ -43,197 +43,163 @@ class _IntroScreenState extends ConsumerState<IntroScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    // The hero is a fixed 430px, so on a short viewport the page scrolls
-    // rather than overflowing.
-    body: LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: IntrinsicHeight(
-            child: Column(
-              children: [
-                _IntroHero(
-                  language: _language,
-                  onLanguage: (l) => setState(() => _language = l),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(26, 26, 26, 22),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Water at your door,\nin one tap',
-                        style: AppTypography.heading(size: 34, height: 1.06),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Order 6L, 10L and 25L bottles from the filter plants '
-                        'already delivering on your street.',
-                        style: AppTypography.body(
-                          size: 16,
-                          height: 1.5,
-                          color: AppColors.textMuted(0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Pushes the actions to the bottom when there is room to
-                // spare, and simply yields when there is not.
-                const Spacer(),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(26, 0, 26, 28),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FilledButton(
-                        onPressed: _start,
-                        child: const Text('Get started'),
-                      ),
-                      const SizedBox(height: 14),
-                      // One rich line so "Log in" always sits with the
-                      // question and wraps with it rather than overflowing.
-                      Text.rich(
-                        TextSpan(
-                          children: [
-                            const TextSpan(text: 'Already have an account? '),
-                            TextSpan(
-                              text: 'Log in',
-                              style: AppTypography.body(
-                                size: 15,
-                                weight: FontWeight.w700,
-                                color: AppColors.accent700,
-                              ),
-                              recognizer: _loginTap,
-                            ),
-                          ],
-                        ),
-                        textAlign: TextAlign.center,
-                        style: AppTypography.body(
-                          size: 15,
-                          color: AppColors.textMuted(0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+    // The gradient owns the whole screen here — the brand gets the full
+    // frame before the app's white surfaces take over.
+    body: Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFF0F6FA8), Color(0xFF062B44)],
         ),
       ),
-    ),
-  );
-}
-
-/// The gradient panel: the wordmark and the three promises, over the
-/// falling water ribbons.
-class _IntroHero extends StatelessWidget {
-  const _IntroHero({required this.language, required this.onLanguage});
-
-  final AppLanguage language;
-  final ValueChanged<AppLanguage> onLanguage;
-
-  static const _promises = [
-    (Icons.water_drop_outlined, 'Every filter plant that delivers to you'),
-    (Icons.sort_rounded, 'Prices and ETA before you order'),
-    (Icons.refresh_rounded, 'Your usual, again, in one tap'),
-  ];
-
-  @override
-  Widget build(BuildContext context) => Container(
-    // The design draws this at 430px. It is a minimum rather than a fixed
-    // height: the promise rows wrap to two lines on narrow phones and in
-    // Urdu, and a hard height would clip them.
-    constraints: const BoxConstraints(minHeight: 430),
-    clipBehavior: Clip.antiAlias,
-    decoration: const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF3AA6D8), Color(0xFF0D5C88)],
-      ),
-      borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
-    ),
-    child: Stack(
-      children: [
-        const Positioned.fill(child: CustomPaint(painter: _RibbonPainter())),
-        SafeArea(
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(26, 18, 26, 34),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Language rides at the very top of the hero, on the dark.
-                _LanguageBar(selected: language, onSelect: onLanguage),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    const AquaLogoMark(size: 48, color: Colors.white),
-                    const SizedBox(width: 13),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Aqua Mart',
-                          style: AppTypography.heading(
-                            size: 30,
-                            height: 1,
-                            color: Colors.white,
+      child: Stack(
+        children: [
+          const Positioned.fill(child: CustomPaint(painter: _RibbonPainter())),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(26, 14, 26, 20),
+                      child: Column(
+                        children: [
+                          _LanguageBar(
+                            selected: _language,
+                            onSelect: (l) => setState(() => _language = l),
                           ),
-                        ),
-                        Text(
-                          'ایکوا مارٹ',
-                          style: AppTypography.body(
-                            size: 17,
-                            color: const Color(0xFFBFE4F3),
-                            height: 1.6,
-                          ).copyWith(fontFamily: AppTypography.urduFamily),
-                        ),
-                      ],
+
+                          // The mark and name sit in the middle of whatever
+                          // room is left after the bars top and bottom.
+                          const Spacer(flex: 3),
+                          const AquaLogoMark(size: 96, color: Colors.white),
+                          const SizedBox(height: 20),
+                          const AquaWordmark(fontSize: 44, onDark: true),
+                          const SizedBox(height: 10),
+                          Text(
+                            'ایکوا مارٹ',
+                            style: AppTypography.urdu(
+                              AppTypography.body(
+                                size: 20,
+                                color: const Color(0xFFCFE9F5),
+                                height: 1.6,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 26),
+                          Text(
+                            'Clean water from the plant nearest you, at a '
+                            'price you can see first.',
+                            textAlign: TextAlign.center,
+                            style: AppTypography.body(
+                              size: 17,
+                              height: 1.5,
+                              color: Colors.white.withValues(alpha: 0.9),
+                            ),
+                          ),
+                          const Spacer(flex: 4),
+
+                          Row(
+                            children: [
+                              for (final (index, (value, label))
+                                  in _stats.indexed) ...[
+                                if (index > 0) const SizedBox(width: 12),
+                                Expanded(
+                                  child: _StatTile(value: value, label: label),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 22),
+                          FilledButton(
+                            onPressed: _start,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: AppColors.accent700,
+                              minimumSize: const Size.fromHeight(64),
+                              textStyle: AppTypography.heading(size: 21),
+                            ),
+                            child: const Text('Get started'),
+                          ),
+                          const SizedBox(height: 14),
+                          // One rich line so "Log in" always sits with the
+                          // question and wraps with it rather than overflowing.
+                          Text.rich(
+                            TextSpan(
+                              children: [
+                                const TextSpan(
+                                  text: 'Already have an account? ',
+                                ),
+                                TextSpan(
+                                  text: 'Log in',
+                                  style: AppTypography.body(
+                                    size: 16,
+                                    weight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                  recognizer: _loginTap,
+                                ),
+                              ],
+                            ),
+                            textAlign: TextAlign.center,
+                            style: AppTypography.body(
+                              size: 16,
+                              color: Colors.white.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 34),
-                for (final (index, (icon, text)) in _promises.indexed) ...[
-                  if (index > 0) const SizedBox(height: 12),
-                  _PromiseRow(icon: icon, text: text),
-                ],
-              ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     ),
   );
+
+  /// The three proof points along the bottom.
+  static const _stats = [
+    ('120+', 'plants listed'),
+    ('28 min', 'average drop'),
+    ('Rs 95', '25L refill from'),
+  ];
 }
 
-class _PromiseRow extends StatelessWidget {
-  const _PromiseRow({required this.icon, required this.text});
+/// One of the three frosted proof tiles above the button.
+class _StatTile extends StatelessWidget {
+  const _StatTile({required this.value, required this.label});
 
-  final IconData icon;
-  final String text;
+  final String value;
+  final String label;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+    padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
     decoration: BoxDecoration(
-      color: Colors.white.withValues(alpha: 0.16),
+      color: Colors.white.withValues(alpha: 0.13),
       borderRadius: BorderRadius.circular(22),
     ),
-    child: Row(
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 21, color: Colors.white),
-        const SizedBox(width: 11),
-        Expanded(
+        FittedBox(
           child: Text(
-            text,
-            // These read as one line each in the design; allow a second
-            // only when a translation genuinely needs it.
-            style: AppTypography.body(size: 15, color: Colors.white),
+            value,
+            style: AppTypography.heading(size: 26, color: Colors.white),
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          textAlign: TextAlign.center,
+          style: AppTypography.body(
+            size: 13,
+            color: Colors.white.withValues(alpha: 0.75),
           ),
         ),
       ],
@@ -241,25 +207,26 @@ class _PromiseRow extends StatelessWidget {
   );
 }
 
-/// The pale ribbons falling from the top of the hero — water in motion,
+/// The pale ribbons falling from the top of the screen — water in motion,
 /// the same idea as the logo's mark.
 class _RibbonPainter extends CustomPainter {
   const _RibbonPainter();
 
-  /// `left, width, height fraction, opacity` — straight from the design.
+  /// `left fraction, width, height fraction, opacity`. The x positions are
+  /// fractional so the ribbons stay spread across any screen width.
   static const _ribbons = [
-    (30.0, 18.0, 0.52, 0.32),
-    (66.0, 11.0, 0.38, 0.20),
-    (236.0, 24.0, 0.58, 0.26),
-    (284.0, 13.0, 0.42, 0.18),
-    (322.0, 20.0, 0.50, 0.24),
+    (0.07, 18.0, 0.30, 0.26),
+    (0.16, 11.0, 0.22, 0.16),
+    (0.58, 24.0, 0.34, 0.20),
+    (0.70, 13.0, 0.24, 0.14),
+    (0.80, 20.0, 0.29, 0.18),
   ];
 
   @override
   void paint(Canvas canvas, Size size) {
-    for (final (left, width, heightFactor, opacity) in _ribbons) {
+    for (final (leftFactor, width, heightFactor, opacity) in _ribbons) {
       final height = size.height * heightFactor;
-      final rect = Rect.fromLTWH(left, 0, width, height);
+      final rect = Rect.fromLTWH(size.width * leftFactor, 0, width, height);
       canvas.drawRRect(
         RRect.fromRectAndCorners(
           rect,
@@ -278,14 +245,21 @@ class _RibbonPainter extends CustomPainter {
       );
     }
 
-    // The glow pooling at the base of the panel.
-    final glow = Rect.fromLTWH(-40, size.height - 130, size.width + 80, 200);
+    // A soft pool of light behind the mark, lifting it off the gradient.
+    // Kept above the lower third so it never washes out the tiles or the
+    // button sitting there.
+    final glow = Rect.fromLTWH(
+      -40,
+      size.height * 0.22,
+      size.width + 80,
+      size.height * 0.36,
+    );
     canvas.drawOval(
       glow,
       Paint()
         ..shader = RadialGradient(
           colors: [
-            Colors.white.withValues(alpha: 0.28),
+            Colors.white.withValues(alpha: 0.16),
             Colors.white.withValues(alpha: 0),
           ],
         ).createShader(glow),
@@ -296,9 +270,9 @@ class _RibbonPainter extends CustomPainter {
   bool shouldRepaint(_RibbonPainter oldDelegate) => false;
 }
 
-/// "🌐 LANGUAGE" and the three choices, as a segmented control on the hero.
+/// "🌐 LANGUAGE" and the three choices, as a segmented control.
 ///
-/// Sits on the dark panel, so the whole thing is tinted white rather than
+/// Sits on the dark gradient, so the whole thing is tinted white rather than
 /// using the light-theme surface colours.
 class _LanguageBar extends StatelessWidget {
   const _LanguageBar({required this.selected, required this.onSelect});
@@ -316,30 +290,11 @@ class _LanguageBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
+    mainAxisAlignment: MainAxisAlignment.spaceBetween,
     children: [
-      Icon(
-        Icons.language_rounded,
-        size: 16,
-        color: Colors.white.withValues(alpha: 0.75),
-      ),
-      const SizedBox(width: 7),
-      // The label yields first: the segmented control must never be clipped.
-      Flexible(
-        child: Text(
-          'LANGUAGE',
-          maxLines: 1,
-          overflow: TextOverflow.clip,
-          style: AppTypography.body(
-            size: 11,
-            weight: FontWeight.w700,
-            letterSpacing: 1,
-            color: Colors.white.withValues(alpha: 0.75),
-          ),
-        ),
-      ),
       const SizedBox(width: 8),
       Container(
-        padding: const EdgeInsets.all(4),
+        padding: const EdgeInsets.all(5),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.16),
           borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -377,7 +332,7 @@ class _LanguageSegment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = AppTypography.body(
-      size: urdu ? 13 : 12.5,
+      size: urdu ? 15 : 14.5,
       weight: FontWeight.w700,
       color: selected ? AppColors.accent700 : Colors.white,
     );
@@ -386,17 +341,12 @@ class _LanguageSegment extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
         decoration: BoxDecoration(
           color: selected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.pill),
         ),
-        child: Text(
-          label,
-          style: urdu
-              ? style.copyWith(fontFamily: AppTypography.urduFamily)
-              : style,
-        ),
+        child: Text(label, style: urdu ? AppTypography.urdu(style) : style),
       ),
     );
   }

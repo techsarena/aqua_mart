@@ -131,10 +131,14 @@ class MapPin {
     this.isPrimary = false,
     this.icon,
     this.isDestination = false,
+    this.isMuted = false,
   });
 
   /// The trip's end point — a solid teal dot in a white collar, no icon.
   final bool isDestination;
+
+  /// Fades the marker back — a seller who is closed right now.
+  final bool isMuted;
 
   final double x;
   final double y;
@@ -150,10 +154,12 @@ class MapPin {
       other.label == label &&
       other.isPrimary == isPrimary &&
       other.icon == icon &&
-      other.isDestination == isDestination;
+      other.isDestination == isDestination &&
+      other.isMuted == isMuted;
 
   @override
-  int get hashCode => Object.hash(x, y, label, isPrimary, icon, isDestination);
+  int get hashCode =>
+      Object.hash(x, y, label, isPrimary, icon, isDestination, isMuted);
 }
 
 class _PinBubble extends StatelessWidget {
@@ -210,29 +216,95 @@ class _PinBubble extends StatelessWidget {
       );
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
+    // A labelled marker is a speech bubble: the body carries the price and
+    // the tail points at the spot it belongs to.
+    return Opacity(
+      opacity: pin.isMuted ? 0.55 : 1,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.14),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Text(
+              pin.label!,
+              style: AppTypography.body(
+                size: 15,
+                weight: FontWeight.w800,
+                color: fg,
+              ),
+            ),
+          ),
+          CustomPaint(
+            size: const Size(16, 9),
+            painter: _BubbleTailPainter(color: bg),
           ),
         ],
       ),
-      child: Text(
-        pin.label!,
-        style: AppTypography.body(
-          size: 11.5,
-          weight: FontWeight.w700,
-          color: fg,
-        ),
-      ),
     );
   }
+}
+
+/// The little triangle under a pin bubble.
+class _BubbleTailPainter extends CustomPainter {
+  const _BubbleTailPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant _BubbleTailPainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+/// "You are here" — a dark dot in a white collar, distinct from the seller
+/// bubbles so it never reads as one of them.
+class UserLocationDot extends StatelessWidget {
+  const UserLocationDot({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(5),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      shape: BoxShape.circle,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.18),
+          blurRadius: 8,
+          offset: const Offset(0, 3),
+        ),
+      ],
+    ),
+    child: const SizedBox.square(
+      dimension: 26,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.text,
+          shape: BoxShape.circle,
+        ),
+      ),
+    ),
+  );
 }
 
 /// The dashed rider→destination route.

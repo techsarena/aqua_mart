@@ -48,22 +48,26 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
           const SizedBox(height: 6),
           Text(
             'ایکوا مارٹ',
-            style: AppTypography.body(
-              size: 17,
-              color: AppColors.textMuted(0.55),
-              height: 2.1,
-            ).copyWith(fontFamily: AppTypography.urduFamily),
+            style: AppTypography.urdu(
+              AppTypography.body(
+                size: 17,
+                color: AppColors.textMuted(0.55),
+                height: 2.1,
+              ),
+            ),
           ),
           const SizedBox(height: AppSpacing.xxl),
           Text('Choose your language', style: AppTypography.heading(size: 24)),
           const SizedBox(height: 4),
           Text(
             'اپنی زبان چنیں',
-            style: AppTypography.body(
-              size: 15,
-              color: AppColors.textMuted(0.6),
-              height: 2.1,
-            ).copyWith(fontFamily: AppTypography.urduFamily),
+            style: AppTypography.urdu(
+              AppTypography.body(
+                size: 15,
+                color: AppColors.textMuted(0.6),
+                height: 2.1,
+              ),
+            ),
           ),
           const SizedBox(height: AppSpacing.xl),
           Expanded(

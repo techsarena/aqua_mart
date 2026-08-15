@@ -24,6 +24,16 @@ abstract final class AppTypography {
   /// localisation layer when the active locale is Urdu.
   static const urduFamily = 'Noto Nastaliq Urdu';
 
+  /// `Noto Nastaliq Urdu, serif` — serif rather than the sans stack, since a
+  /// device without the bundled face renders Urdu far better in its serif.
+  static const urduFallback = <String>['serif'];
+
+  /// Applies the Urdu face and its fallback to an existing style. Use this
+  /// rather than setting `fontFamily` alone, which leaves the sans fallback
+  /// in place underneath.
+  static TextStyle urdu(TextStyle style) =>
+      style.copyWith(fontFamily: urduFamily, fontFamilyFallback: urduFallback);
+
   /// `Bricolage Grotesque, Figtree, system-ui, sans-serif`
   static const _headingFallback = <String>[
     brandBodyFamily,
