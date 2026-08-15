@@ -15,6 +15,8 @@ class SettingsTile extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.tone,
+    this.prominent = false,
+    this.showChevron = true,
   });
 
   final IconData icon;
@@ -29,20 +31,33 @@ class SettingsTile extends StatelessWidget {
   /// Tints the icon — used for verification and warning rows.
   final Color? tone;
 
+  /// The roomier treatment used on the customer's "Me" tab: an accent icon
+  /// and larger label, for a short list that is the whole screen.
+  final bool prominent;
+
+  /// Drops the trailing chevron on rows whose status text already sits there.
+  final bool showChevron;
+
   @override
   Widget build(BuildContext context) => Material(
     type: MaterialType.transparency,
     child: InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg,
-          vertical: 14,
+        padding: EdgeInsets.symmetric(
+          horizontal: prominent ? AppSpacing.xl : AppSpacing.lg,
+          vertical: prominent ? 19 : 14,
         ),
         child: Row(
           children: [
-            Icon(icon, size: 20, color: tone ?? AppColors.textMuted(0.65)),
-            const SizedBox(width: AppSpacing.md),
+            Icon(
+              icon,
+              size: prominent ? 25 : 20,
+              color: tone ?? (prominent
+                  ? AppColors.accent
+                  : AppColors.textMuted(0.65)),
+            ),
+            SizedBox(width: prominent ? AppSpacing.lg : AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -50,8 +65,8 @@ class SettingsTile extends StatelessWidget {
                   Text(
                     title,
                     style: AppTypography.body(
-                      size: 14.5,
-                      weight: FontWeight.w600,
+                      size: prominent ? 17 : 14.5,
+                      weight: prominent ? FontWeight.w700 : FontWeight.w600,
                     ),
                   ),
                   if (subtitle != null) ...[
@@ -73,12 +88,12 @@ class SettingsTile extends StatelessWidget {
               Text(
                 trailingText!,
                 style: AppTypography.body(
-                  size: 13,
-                  weight: FontWeight.w600,
+                  size: prominent ? 16 : 13,
+                  weight: prominent ? FontWeight.w400 : FontWeight.w600,
                   color: tone ?? AppColors.textMuted(0.5),
                 ),
               ),
-            if (onTap != null) ...[
+            if (onTap != null && showChevron) ...[
               const SizedBox(width: 4),
               Icon(
                 Icons.chevron_right_rounded,
@@ -95,10 +110,19 @@ class SettingsTile extends StatelessWidget {
 
 /// Wraps settings rows in one card with hairline dividers between them.
 class SettingsGroup extends StatelessWidget {
-  const SettingsGroup({super.key, required this.children, this.title});
+  const SettingsGroup({
+    super.key,
+    required this.children,
+    this.title,
+    this.prominent = false,
+  });
 
   final List<Widget> children;
   final String? title;
+
+  /// Matches the divider inset to [SettingsTile.prominent] rows, whose icon
+  /// gutter is wider.
+  final bool prominent;
 
   @override
   Widget build(BuildContext context) => Column(
@@ -128,9 +152,9 @@ class SettingsGroup extends StatelessWidget {
             for (var i = 0; i < children.length; i++) ...[
               children[i],
               if (i != children.length - 1)
-                const Padding(
-                  padding: EdgeInsets.only(left: 52),
-                  child: Divider(height: 1),
+                Padding(
+                  padding: EdgeInsets.only(left: prominent ? 65 : 52),
+                  child: const Divider(height: 1),
                 ),
             ],
           ],

@@ -8,9 +8,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/result.dart';
-import '../../../../shared/widgets/app_avatar.dart';
 import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/app_tag.dart';
 import '../../../../shared/widgets/state_views.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
 import '../../../orders/presentation/providers/cart_providers.dart';
@@ -46,16 +44,10 @@ class SellerStoreScreen extends ConsumerWidget {
           slivers: [
             SliverAppBar(
               pinned: true,
-              expandedHeight: 168,
-              backgroundColor: AppColors.bg,
-              flexibleSpace: FlexibleSpaceBar(
-                background: _StoreHeader(seller: seller),
-                collapseMode: CollapseMode.parallax,
-              ),
-              title: Text(
-                seller.name,
-                style: AppTypography.heading(size: 17),
-              ),
+              expandedHeight: _CollapsingStoreHeader.expandedHeight,
+              backgroundColor: AppColors.accent2_200,
+              automaticallyImplyLeading: false,
+              flexibleSpace: _CollapsingStoreHeader(seller: seller),
             ),
             SliverToBoxAdapter(child: _RefillExplainer()),
             switch (bottlesAsync) {
@@ -117,6 +109,94 @@ class SellerStoreScreen extends ConsumerWidget {
   }
 }
 
+/// The header as it collapses: the tall band fades out on scroll and the
+/// compact bar — back arrow and store name on one line — fades in behind it.
+///
+/// The two never show at once, so the name is never drawn twice.
+class _CollapsingStoreHeader extends StatelessWidget {
+  const _CollapsingStoreHeader({required this.seller});
+
+  final Seller seller;
+
+  /// Tall enough for the back button, the 34pt name and the chip row.
+  static const expandedHeight = 250.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final topPadding = MediaQuery.paddingOf(context).top;
+    final collapsedHeight = topPadding + kToolbarHeight;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 1 fully expanded → 0 fully collapsed.
+        final range = expandedHeight - collapsedHeight;
+        final t = range <= 0
+            ? 0.0
+            : ((constraints.maxHeight - collapsedHeight) / range).clamp(
+                0.0,
+                1.0,
+              );
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            // The compact bar leads the swap so the name is legible before
+            // the big header has finished going.
+            IgnorePointer(
+              ignoring: t > 0.25,
+              child: Opacity(
+                opacity: (1 - t * 4).clamp(0.0, 1.0),
+                child: _CompactStoreBar(seller: seller),
+              ),
+            ),
+            IgnorePointer(
+              ignoring: t < 0.25,
+              child: Opacity(
+                opacity: t.clamp(0.0, 1.0),
+                child: _StoreHeader(seller: seller),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// The pinned bar once the band is gone.
+class _CompactStoreBar extends StatelessWidget {
+  const _CompactStoreBar({required this.seller});
+
+  final Seller seller;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    color: AppColors.accent2_200,
+    padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+    alignment: Alignment.topLeft,
+    child: SizedBox(
+      height: kToolbarHeight,
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => context.pop(),
+            icon: const Icon(Icons.chevron_left_rounded, size: 30),
+          ),
+          Expanded(
+            child: Text(
+              seller.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.heading(size: 18),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.gutter),
+        ],
+      ),
+    ),
+  );
+}
+
 class _StoreHeader extends StatelessWidget {
   const _StoreHeader({required this.seller});
 
@@ -124,53 +204,94 @@ class _StoreHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
+    color: AppColors.accent2_200,
     padding: EdgeInsets.fromLTRB(
       AppSpacing.gutter,
-      MediaQuery.paddingOf(context).top + 56,
+      MediaQuery.paddingOf(context).top + AppSpacing.sm,
       AppSpacing.gutter,
-      AppSpacing.lg,
+      AppSpacing.xl,
     ),
-    alignment: Alignment.bottomLeft,
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        SellerAvatar(size: 56, isOpen: seller.isOpen),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  RatingChip(seller.rating, count: seller.ratingCount, compact: false),
-                  const SizedBox(width: AppSpacing.md),
-                  Icon(
-                    Icons.schedule_rounded,
-                    size: 14,
-                    color: AppColors.textMuted(0.5),
-                  ),
-                  const SizedBox(width: 3),
-                  Text(
-                    Formatters.eta(seller.etaMinutes),
-                    style: AppTypography.body(
-                      size: 12.5,
-                      color: AppColors.textMuted(0.6),
-                    ),
-                  ),
-                ],
-              ),
-              if (seller.freeDeliveryOver != null) ...[
-                const SizedBox(height: 6),
-                AppTag(
-                  seller.freeDeliveryOver == 0
-                      ? 'Free delivery'
-                      : 'Free over ${Formatters.rupees(seller.freeDeliveryOver!)}',
-                  tone: TagTone.accent2,
-                ),
-              ],
-            ],
+        // A back button big enough to hit without looking, on its own white
+        // disc so it reads against the band.
+        Material(
+          color: AppColors.surface,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => context.pop(),
+            child: const SizedBox(
+              width: 48,
+              height: 48,
+              child: Icon(Icons.chevron_left_rounded, size: 30),
+            ),
           ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(
+          seller.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: AppTypography.heading(size: 34),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        // Rating, ETA and delivery terms as one uniform row of facts.
+        Wrap(
+          spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.sm,
+          children: [
+            _HeaderChip(
+              label:
+                  '${seller.rating.toStringAsFixed(1)} (${seller.ratingCount})',
+              icon: Icons.star_rounded,
+              iconColor: AppColors.text,
+            ),
+            _HeaderChip(label: Formatters.eta(seller.etaMinutes)),
+            if (seller.freeDeliveryOver != null)
+              _HeaderChip(
+                label: seller.freeDeliveryOver == 0
+                    ? 'Free delivery'
+                    : 'Free over ${Formatters.rupees(seller.freeDeliveryOver!)}',
+              ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+/// One white fact pill in the store header.
+class _HeaderChip extends StatelessWidget {
+  const _HeaderChip({required this.label, this.icon, this.iconColor});
+
+  final String label;
+  final IconData? icon;
+  final Color? iconColor;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpacing.lg,
+      vertical: AppSpacing.md,
+    ),
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.pill),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          Icon(icon, size: 18, color: iconColor ?? AppColors.text),
+          const SizedBox(width: 6),
+        ],
+        Text(
+          label,
+          style: AppTypography.body(size: 16, weight: FontWeight.w700),
         ),
       ],
     ),
@@ -190,37 +311,45 @@ class _RefillExplainer extends StatelessWidget {
     ),
     child: AppCard(
       color: AppColors.accent100,
-      padding: const EdgeInsets.all(AppSpacing.md),
-      child: Column(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          for (final kind in PurchaseKind.values)
-            Padding(
-              padding: EdgeInsets.only(
-                bottom: kind == PurchaseKind.values.last ? 0 : 5,
-              ),
-              child: Text.rich(
-                TextSpan(
-                  children: [
+          const Icon(
+            Icons.info_outline_rounded,
+            size: 22,
+            color: AppColors.accent800,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          // Both definitions run as one paragraph — they are two halves of a
+          // single distinction, and reading them together is the point.
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                children: [
+                  for (final kind in PurchaseKind.values) ...[
                     TextSpan(
                       text: kind.label,
                       style: AppTypography.body(
-                        size: 12.5,
+                        size: 15,
                         weight: FontWeight.w800,
                         color: AppColors.accent800,
                       ),
                     ),
                     TextSpan(
-                      text: ' = ${kind.explainer}.',
+                      text:
+                          ' = ${kind.explainer}.'
+                          '${kind == PurchaseKind.values.last ? '' : ' '}',
                       style: AppTypography.body(
-                        size: 12.5,
+                        size: 15,
                         color: AppColors.accent800,
                       ),
                     ),
                   ],
-                ),
+                ],
               ),
             ),
+          ),
         ],
       ),
     ),

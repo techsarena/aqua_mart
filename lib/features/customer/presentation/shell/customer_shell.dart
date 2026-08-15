@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/nav_avatar.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
 import '../../../orders/presentation/providers/cart_providers.dart';
 import '../../../../core/utils/formatters.dart';
@@ -39,25 +40,27 @@ class CustomerShell extends ConsumerWidget {
             selectedIndex: shell.currentIndex,
             onDestinationSelected: (index) =>
                 shell.goBranch(index, initialLocation: index == shell.currentIndex),
-            destinations: const [
-              NavigationDestination(
+            destinations: [
+              const NavigationDestination(
                 icon: Icon(Icons.home_outlined),
                 selectedIcon: Icon(Icons.home_rounded),
                 label: 'Home',
               ),
-              NavigationDestination(
+              const NavigationDestination(
                 icon: Icon(Icons.receipt_long_outlined),
                 selectedIcon: Icon(Icons.receipt_long_rounded),
                 label: 'Orders',
               ),
-              NavigationDestination(
+              const NavigationDestination(
                 icon: Icon(Icons.location_on_outlined),
                 selectedIcon: Icon(Icons.location_on_rounded),
                 label: 'Track',
               ),
+              // Your own face rather than a generic person glyph — the ring
+              // carries the selected state.
               NavigationDestination(
-                icon: Icon(Icons.person_outline_rounded),
-                selectedIcon: Icon(Icons.person_rounded),
+                icon: const NavAvatar(),
+                selectedIcon: const NavAvatar(isSelected: true),
                 label: 'Me',
               ),
             ],

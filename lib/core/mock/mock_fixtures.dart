@@ -151,7 +151,7 @@ abstract final class MockFixtures {
       name: '25L Cooler Bottle',
       refillPrice: 110,
       newPrice: 420,
-      description: 'Standard dispenser size · in stock',
+      description: 'Standard dispenser size',
       filledStock: 62,
       emptiesInYard: 18,
     ),

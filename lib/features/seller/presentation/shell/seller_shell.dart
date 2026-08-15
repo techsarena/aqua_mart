@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../shared/widgets/nav_avatar.dart';
 
 /// The seller's five tabs — one thumb, on the move.
 class SellerShell extends StatelessWidget {
@@ -20,30 +21,32 @@ class SellerShell extends StatelessWidget {
       ),
       // The seller bar sits on white; everything else comes from the theme.
       backgroundColor: AppColors.surface,
-      destinations: const [
-        NavigationDestination(
+      destinations: [
+        const NavigationDestination(
           icon: Icon(Icons.today_outlined),
           selectedIcon: Icon(Icons.today_rounded),
           label: 'Today',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.receipt_long_outlined),
           selectedIcon: Icon(Icons.receipt_long_rounded),
           label: 'Orders',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.water_drop_outlined),
           selectedIcon: Icon(Icons.water_drop_rounded),
           label: 'Bottles',
         ),
-        NavigationDestination(
+        const NavigationDestination(
           icon: Icon(Icons.map_outlined),
           selectedIcon: Icon(Icons.map_rounded),
           label: 'Area',
         ),
+        // Your own face rather than a generic person glyph — the ring
+        // carries the selected state.
         NavigationDestination(
-          icon: Icon(Icons.person_outline_rounded),
-          selectedIcon: Icon(Icons.person_rounded),
+          icon: const NavAvatar(),
+          selectedIcon: const NavAvatar(isSelected: true),
           label: 'Me',
         ),
       ],
