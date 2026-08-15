@@ -256,33 +256,9 @@ abstract final class MockFixtures {
       rating: 4.9,
       stopsBefore: 2,
     ),
-    timeline: [
-      OrderEvent(
-        status: OrderStatus.accepted,
-        title: 'Order confirmed',
-        subtitle: 'seller accepted',
-        at: DateTime(2026, 8, 15, 8, 12),
-        isComplete: true,
-      ),
-      OrderEvent(
-        status: OrderStatus.packed,
-        title: 'Bottles loaded',
-        subtitle: 'sealed and checked',
-        at: DateTime(2026, 8, 15, 8, 19),
-        isComplete: true,
-      ),
-      OrderEvent(
-        status: OrderStatus.onTheWay,
-        title: 'On the way',
-        subtitle: '2 stops before you',
-        isComplete: true,
-      ),
-      OrderEvent(
-        status: OrderStatus.delivered,
-        title: 'Delivered',
-        subtitle: 'Pay Rs 220 cash · keep 2 empties ready',
-      ),
-    ],
+    // No `timeline` here on purpose: the tracking steps are derived from the
+    // order's status (`Order.trackingSteps`), so there is nothing to keep in
+    // sync — and the DTO never carried this field across anyway.
   );
 
   static final pastOrders = <Order>[

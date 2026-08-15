@@ -26,6 +26,11 @@ enum OrderStatus {
 
   bool get isActive => !isTerminal;
 
+  /// Ended without a delivery — cancelled or rejected.
+  bool get isTerminalUnhappy =>
+      this == OrderStatus.cancelledByCustomer ||
+      this == OrderStatus.rejectedBySeller;
+
   /// The seller queue is grouped by these four buckets.
   String get sellerBucket => switch (this) {
     OrderStatus.pending => 'New',

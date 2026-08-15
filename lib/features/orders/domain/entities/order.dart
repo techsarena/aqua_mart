@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import '../../../../core/utils/formatters.dart';
 import '../../../addresses/domain/entities/address.dart';
 import 'order_line.dart';
 import 'order_status.dart';
@@ -108,6 +109,82 @@ class Order extends Equatable {
       status == OrderStatus.accepted ||
       status == OrderStatus.packed ||
       status == OrderStatus.onTheWay;
+
+  /// The four stages the customer follows on the tracking screen.
+  ///
+  /// Derived from [status] rather than read from [timeline], because the
+  /// backend sends a status, not prose — only the stage the order has reached
+  /// is real data. A stored [timeline] still wins when one is present, which
+  /// is what carries the exact timestamps on an order that has them.
+  List<OrderEvent> get trackingSteps {
+    if (timeline.isNotEmpty) return timeline;
+
+    // Unhappy paths never reach the delivery stages, so the rail stops at the
+    // point the order actually died rather than showing steps that won't come.
+    if (status == OrderStatus.cancelledByCustomer ||
+        status == OrderStatus.rejectedBySeller) {
+      return [
+        OrderEvent(
+          status: OrderStatus.pending,
+          title: 'Order placed',
+          subtitle: 'sent to the seller',
+          at: placedAt,
+          isComplete: true,
+        ),
+        OrderEvent(
+          status: status,
+          title: status == OrderStatus.cancelledByCustomer
+              ? 'You cancelled this order'
+              : 'Seller could not take this order',
+          subtitle:
+              cancellationReason ?? rejectionReason ?? 'No charge was made.',
+          isComplete: true,
+        ),
+      ];
+    }
+
+    /// A stage counts as reached once the order is at or past it.
+    bool reached(OrderStatus stage) =>
+        status.index >= stage.index && !status.isTerminalUnhappy;
+
+    final cashLine = paymentMethod.isCollectedByRider
+        ? 'Pay ${Formatters.rupees(total)} cash'
+        : '${paymentMethod.label} · already paid';
+    final emptiesLine = emptiesReturned > 0
+        ? ' · keep $emptiesReturned empties ready'
+        : '';
+
+    return [
+      OrderEvent(
+        status: OrderStatus.accepted,
+        title: 'Order confirmed',
+        subtitle: 'seller accepted',
+        at: reached(OrderStatus.accepted) ? placedAt : null,
+        isComplete: reached(OrderStatus.accepted),
+      ),
+      OrderEvent(
+        status: OrderStatus.packed,
+        title: 'Bottles loaded',
+        subtitle: 'sealed and checked',
+        isComplete: reached(OrderStatus.packed),
+      ),
+      OrderEvent(
+        status: OrderStatus.onTheWay,
+        title: 'On the way',
+        subtitle: switch (rider?.stopsBefore) {
+          null || 0 => 'heading to you now',
+          final stops => '$stops stops before you',
+        },
+        isComplete: reached(OrderStatus.onTheWay),
+      ),
+      OrderEvent(
+        status: OrderStatus.delivered,
+        title: 'Delivered',
+        subtitle: '$cashLine$emptiesLine',
+        isComplete: reached(OrderStatus.delivered),
+      ),
+    ];
+  }
 
   Order copyWith({
     OrderStatus? status,

@@ -17,9 +17,14 @@ class MapPlaceholder extends StatelessWidget {
     this.pins = const [],
     this.radius = AppRadius.lg,
     this.overlay,
+    this.route,
   });
 
   final double height;
+
+  /// A dashed rider-to-destination line, in the same fractional `Alignment`
+  /// space as [pins]. Drawn under the markers.
+  final (MapPin, MapPin)? route;
 
   /// Developer-facing hint carried over from the design, e.g.
   /// "drag pin to set exact spot".
@@ -41,6 +46,8 @@ class MapPlaceholder extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           CustomPaint(painter: _MapPainter()),
+          if (route != null)
+            CustomPaint(painter: _RoutePainter(route!.$1, route!.$2)),
           for (final pin in pins)
             Align(
               alignment: Alignment(pin.x, pin.y),
@@ -91,13 +98,31 @@ class MapPin {
     this.label,
     this.isPrimary = false,
     this.icon,
+    this.isDestination = false,
   });
+
+  /// The trip's end point — a solid teal dot in a white collar, no icon.
+  final bool isDestination;
 
   final double x;
   final double y;
   final String? label;
   final bool isPrimary;
   final IconData? icon;
+
+  @override
+  bool operator ==(Object other) =>
+      other is MapPin &&
+      other.x == x &&
+      other.y == y &&
+      other.label == label &&
+      other.isPrimary == isPrimary &&
+      other.icon == icon &&
+      other.isDestination == isDestination;
+
+  @override
+  int get hashCode =>
+      Object.hash(x, y, label, isPrimary, icon, isDestination);
 }
 
 class _PinBubble extends StatelessWidget {
@@ -109,6 +134,32 @@ class _PinBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final bg = pin.isPrimary ? AppColors.accent : Colors.white;
     final fg = pin.isPrimary ? Colors.white : AppColors.text;
+
+    if (pin.isDestination) {
+      return Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: const SizedBox.square(
+          dimension: 20,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.accent2,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      );
+    }
 
     if (pin.label == null) {
       return Container(
@@ -147,6 +198,54 @@ class _PinBubble extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The dashed rider→destination route.
+///
+/// Drawn as an L — down from the rider, then across to the door — because a
+/// straight diagonal reads as a flight path rather than a trip through streets.
+class _RoutePainter extends CustomPainter {
+  const _RoutePainter(this.from, this.to);
+
+  final MapPin from;
+  final MapPin to;
+
+  /// `Alignment` space (-1..1) → pixels.
+  Offset _resolve(MapPin pin, Size size) => Offset(
+    (pin.x + 1) / 2 * size.width,
+    (pin.y + 1) / 2 * size.height,
+  );
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final start = _resolve(from, size);
+    final end = _resolve(to, size);
+    final corner = Offset(start.dx, end.dy);
+
+    final path = Path()
+      ..moveTo(start.dx, start.dy)
+      ..lineTo(corner.dx, corner.dy)
+      ..lineTo(end.dx, end.dy);
+
+    final paint = Paint()
+      ..color = AppColors.accent
+      ..strokeWidth = 5
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final end = (distance + 11).clamp(0.0, metric.length);
+        canvas.drawPath(metric.extractPath(distance, end), paint);
+        distance = end + 9;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _RoutePainter oldDelegate) =>
+      oldDelegate.from != from || oldDelegate.to != to;
 }
 
 /// Draws a stylised street grid so the placeholder reads as a map rather than
