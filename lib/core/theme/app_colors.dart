@@ -41,6 +41,12 @@ abstract final class AppColors {
   static const accent2_600 = Color(0xFF347A72);
   static const accent2_700 = Color(0xFF27605A);
 
+  /// The deep teal the design uses for text and icons on `accent2` tints.
+  static const accent2Deep = Color(0xFF2B6B64);
+
+  /// The label under a full bottle on the water shelf.
+  static const shelfFullLabel = Color(0xFF1F4F4A);
+
   // Brand logo colours
   static const brandAqua = Color(0xFF49B6DD);
   static const brandMart = Color(0xFF0A3A5A);

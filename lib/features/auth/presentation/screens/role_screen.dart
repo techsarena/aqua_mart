@@ -11,7 +11,10 @@ import '../../domain/entities/user_role.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/onboarding_scaffold.dart';
 
-/// Step two: who are you? Switchable later in settings.
+/// Sign-up 2 of 4 — who are you? Switchable later in settings.
+///
+/// Riders divert to their invitation from here; everyone else carries on to
+/// the name step. The profile itself is created at the end of step 4.
 class RoleScreen extends ConsumerStatefulWidget {
   const RoleScreen({super.key});
 
@@ -30,16 +33,19 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
     if (!mounted) return;
 
     // Riders are invited by a seller, so they land on the invitation rather
-    // than a self-serve sign-up.
+    // than in an app of their own.
     if (role == UserRole.rider) {
       context.goNamed(AppRoutes.riderInvitation);
-    } else {
-      context.goNamed(AppRoutes.signUpName);
+      return;
     }
+
+    context.pushNamed(AppRoutes.signUpName);
   }
 
   @override
   Widget build(BuildContext context) => OnboardingScaffold(
+    step: 2,
+    totalSteps: 4,
     title: 'Who are you?',
     subtitle: 'You can switch later in settings.',
     primaryLabel: 'Continue',

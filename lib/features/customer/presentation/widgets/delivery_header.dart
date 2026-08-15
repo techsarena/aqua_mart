@@ -29,9 +29,10 @@ class DeliveryHeader extends StatelessWidget {
       AppSpacing.gutter,
       AppSpacing.sm,
       AppSpacing.gutter,
-      AppSpacing.md,
+      22,
     ),
     child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
           child: InkWell(
@@ -42,16 +43,24 @@ class DeliveryHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Deliver to',
-                    style: AppTypography.body(
-                      size: 11,
-                      weight: FontWeight.w600,
-                      letterSpacing: 0.4,
-                      color: AppColors.textMuted(0.5),
-                    ),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on_outlined,
+                        size: 15,
+                        color: AppColors.textMuted(0.55),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Deliver to',
+                        style: AppTypography.body(
+                          size: 12.5,
+                          color: AppColors.textMuted(0.55),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 1),
+                  const SizedBox(height: 3),
                   Row(
                     children: [
                       Flexible(
@@ -60,17 +69,13 @@ class DeliveryHeader extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTypography.body(
-                            size: 15,
+                            size: 18,
                             weight: FontWeight.w700,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 2),
-                      const Icon(
-                        Icons.expand_more_rounded,
-                        size: 19,
-                        color: AppColors.accent,
-                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.expand_more_rounded, size: 18),
                     ],
                   ),
                 ],
@@ -78,11 +83,11 @@ class DeliveryHeader extends StatelessWidget {
             ),
           ),
         ),
-        _HeaderButton(
-          icon: Icons.search_rounded,
-          onTap: onSearch ?? () => context.pushNamed(AppRoutes.searchResults),
-        ),
-        const SizedBox(width: AppSpacing.sm),
+        const SizedBox(width: AppSpacing.md),
+        if (onSearch != null) ...[
+          _HeaderButton(icon: Icons.search_rounded, onTap: onSearch!),
+          const SizedBox(width: AppSpacing.sm),
+        ],
         _HeaderButton(
           icon: Icons.notifications_none_rounded,
           badge: unreadCount,
@@ -111,32 +116,23 @@ class _HeaderButton extends StatelessWidget {
           onTap: onTap,
           customBorder: const CircleBorder(),
           child: SizedBox.square(
-            dimension: 42,
+            dimension: 44,
             child: Icon(icon, size: 21, color: AppColors.text),
           ),
         ),
       ),
+      // An unread dot, not a count — the design keeps the header quiet.
       if (badge > 0)
         Positioned(
-          right: 2,
-          top: 2,
+          right: 8,
+          top: 8,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-            constraints: const BoxConstraints(minWidth: 17),
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(
-              color: AppColors.danger,
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-              border: Border.all(color: AppColors.bg, width: 1.5),
-            ),
-            child: Text(
-              badge > 9 ? '9+' : '$badge',
-              textAlign: TextAlign.center,
-              style: AppTypography.body(
-                size: 9.5,
-                weight: FontWeight.w800,
-                color: Colors.white,
-                height: 1.3,
-              ),
+              color: AppColors.accent,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.bg, width: 2),
             ),
           ),
         ),

@@ -11,7 +11,10 @@ import '../../../../shared/widgets/aqua_logo.dart';
 import '../../../../shared/widgets/selectable_option.dart';
 import '../providers/auth_providers.dart';
 
-/// Step one of two taps into the app: choose your language.
+/// The language picker, reached from settings.
+///
+/// First-run language selection lives on the intro screen; this screen is
+/// how it gets changed afterwards.
 class LanguageScreen extends ConsumerStatefulWidget {
   const LanguageScreen({super.key});
 
@@ -24,7 +27,13 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
 
   Future<void> _continue() async {
     await ref.read(sessionProvider.notifier).setLanguage(_selected);
-    if (mounted) context.goNamed(AppRoutes.rolePicker);
+    if (!mounted) return;
+    // Reached from settings, so hand control back to wherever we came from.
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.goNamed(AppRoutes.intro);
+    }
   }
 
   @override

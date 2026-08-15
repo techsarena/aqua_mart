@@ -6,6 +6,7 @@ import '../../features/addresses/presentation/screens/add_address_screen.dart';
 import '../../features/addresses/presentation/screens/address_book_screen.dart';
 import '../../features/auth/domain/entities/user_role.dart';
 import '../../features/auth/presentation/providers/auth_providers.dart';
+import '../../features/auth/presentation/screens/intro_screen.dart';
 import '../../features/auth/presentation/screens/language_screen.dart';
 import '../../features/auth/presentation/screens/otp_screen.dart';
 import '../../features/auth/presentation/screens/role_screen.dart';
@@ -64,7 +65,7 @@ final _customerShellKey = GlobalKey<NavigatorState>(debugLabel: 'customer');
 /// The app's single [GoRouter].
 ///
 /// Structure:
-/// - a flat onboarding stack (language → role → name → phone → OTP → details)
+/// - a flat onboarding stack (intro → name → phone → OTP → details → role)
 /// - one `StatefulShellRoute` per role, so each role's tabs keep their own
 ///   navigation stack
 /// - detail routes pushed above the shells on the root navigator
@@ -88,6 +89,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final location = state.matchedLocation;
       final inOnboarding =
           location == AppRoutes.splashPath ||
+          location.startsWith('/intro') ||
           location.startsWith('/language') ||
           location.startsWith('/role') ||
           location.startsWith('/signup') ||
@@ -95,17 +97,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           // reachable before they have a session.
           location == AppRoutes.riderInvitationPath;
 
-      // Language is the very first gate.
+      // Language is chosen on the intro screen rather than at its own gate,
+      // so a first run starts there and registration follows in four steps.
       if (!session.hasLanguage) {
-        return location == AppRoutes.languagePath
-            ? null
-            : AppRoutes.languagePath;
+        return location == AppRoutes.introPath ? null : AppRoutes.introPath;
       }
 
       // Signed out: stay inside the onboarding stack.
       if (!session.isSignedIn) {
-        if (location == AppRoutes.splashPath) return AppRoutes.rolePath;
-        return inOnboarding ? null : AppRoutes.rolePath;
+        if (location == AppRoutes.splashPath) return AppRoutes.introPath;
+        return inOnboarding ? null : AppRoutes.introPath;
       }
 
       // Signed in but sitting on an onboarding screen — send them to their app.
@@ -125,6 +126,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
 
       // ── Onboarding ──────────────────────────────────────────────────────
+      GoRoute(
+        path: AppRoutes.introPath,
+        name: AppRoutes.intro,
+        builder: (_, _) => const IntroScreen(),
+      ),
+      // Still reachable from settings, where the language can be changed.
       GoRoute(
         path: AppRoutes.languagePath,
         name: AppRoutes.languagePicker,

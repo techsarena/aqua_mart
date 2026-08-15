@@ -34,12 +34,17 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  # Supplies the Material/Cupertino strings for ur — without it, selecting
+  # Urdu crashes every screen that builds an AppBar.
+  flutter_localizations:
+    sdk: flutter
   go_router: ^17.2.3
   flutter_riverpod: ^3.3.2
   dio: ^5.11.0
   shared_preferences: ^2.5.5
   equatable: ^2.1.0
-  intl: ^0.20.3
+  # Pinned by flutter_localizations, which depends on intl 0.20.2.
+  intl: ^0.20.2
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
 

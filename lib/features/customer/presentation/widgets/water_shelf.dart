@@ -49,62 +49,82 @@ class WaterShelf extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      SizedBox(
-        height: 148,
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            for (var i = 0; i < bottles.length; i++)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 5),
-                  child: _ShelfBottleTile(
-                    bottle: bottles[i],
-                    selected: selectedIndices.contains(i),
-                    onTap: bottles[i].level == ShelfLevel.empty
-                        ? () => onToggle(i)
-                        : null,
-                  ),
-                ),
+      // A four-up grid of bottles, each on the .6 aspect ratio of the spec.
+      Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (var i = 0; i < bottles.length; i++) ...[
+            if (i > 0) const SizedBox(width: 12),
+            Expanded(
+              child: _ShelfBottleTile(
+                bottle: bottles[i],
+                selected: selectedIndices.contains(i),
+                onTap: bottles[i].level == ShelfLevel.empty
+                    ? () => onToggle(i)
+                    : null,
               ),
+            ),
           ],
-        ),
-      ),
-      // The shelf plank the bottles stand on.
-      Container(
-        height: 5,
-        margin: const EdgeInsets.only(top: 2),
-        decoration: BoxDecoration(
-          color: AppColors.neutral300,
-          borderRadius: BorderRadius.circular(3),
-        ),
+        ],
       ),
       if (daysRemaining != null) ...[
-        const SizedBox(height: AppSpacing.md),
+        const SizedBox(height: 22),
+        _RunsOutPanel(days: daysRemaining!, fraction: 0.34),
+      ],
+    ],
+  );
+}
+
+/// "Runs out in ~3 days · from your usage" — the teal panel with the gauge.
+class _RunsOutPanel extends StatelessWidget {
+  const _RunsOutPanel({required this.days, required this.fraction});
+
+  final int days;
+  final double fraction;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+    decoration: BoxDecoration(
+      color: AppColors.accent2_100,
+      borderRadius: BorderRadius.circular(24),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Icon(
-              Icons.trending_down_rounded,
-              size: 15,
-              color: AppColors.textMuted(0.45),
+            Flexible(
+              child: Text(
+                'Runs out in ~$days days',
+                style: AppTypography.heading(size: 18),
+              ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: AppSpacing.sm),
             Text(
-              'Runs out in ~$daysRemaining days',
-              style: AppTypography.body(size: 12.5, weight: FontWeight.w700),
-            ),
-            const SizedBox(width: 5),
-            Text(
-              'based on your use',
+              'from your usage',
               style: AppTypography.body(
                 size: 12,
-                color: AppColors.textMuted(0.5),
+                weight: FontWeight.w700,
+                color: AppColors.accent2Deep,
               ),
             ),
           ],
         ),
+        const SizedBox(height: 9),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(AppRadius.pill),
+          child: LinearProgressIndicator(
+            value: fraction,
+            minHeight: 9,
+            backgroundColor: Colors.white.withValues(alpha: 0.6),
+            valueColor: const AlwaysStoppedAnimation(AppColors.accent2),
+          ),
+        ),
       ],
-    ],
+    ),
   );
 }
 
@@ -119,101 +139,182 @@ class _ShelfBottleTile extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
+  /// The bottle body: a solid teal vessel, or a dashed outline when empty.
+  ///
+  /// `14px 14px 18px 18px` in the spec — the shoulders are tighter than the
+  /// base, which is what reads as a bottle rather than a bar.
+  static const _shape = BorderRadius.vertical(
+    top: Radius.circular(14),
+    bottom: Radius.circular(18),
+  );
+
   @override
   Widget build(BuildContext context) {
     final isEmpty = bottle.level == ShelfLevel.empty;
 
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
         children: [
-          Expanded(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(14),
-                  bottom: Radius.circular(8),
-                ),
-                border: Border.all(
-                  color: selected ? AppColors.accent : AppColors.neutral300,
-                  width: selected ? 2 : 1.2,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  // The water itself, filling from the bottom.
-                  Align(
-                    alignment: Alignment.bottomCenter,
-                    child: FractionallySizedBox(
-                      heightFactor: bottle.level.fill.clamp(0.0, 1.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              AppColors.accent300.withValues(alpha: 0.85),
-                              AppColors.accent400,
-                            ],
-                          ),
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(6),
-                            bottom: Radius.circular(6),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  // Bottle neck.
-                  Align(
-                    alignment: Alignment.topCenter,
-                    child: Container(
-                      width: 20,
-                      height: 12,
-                      decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.accent
-                            : AppColors.neutral300,
-                        borderRadius: const BorderRadius.vertical(
-                          bottom: Radius.circular(4),
-                        ),
-                      ),
-                    ),
-                  ),
-                  if (isEmpty)
-                    Center(
-                      child: Icon(
-                        selected
-                            ? Icons.check_circle_rounded
-                            : Icons.touch_app_outlined,
-                        size: 20,
-                        color: selected
-                            ? AppColors.accent
-                            : AppColors.textMuted(0.35),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+          AspectRatio(
+            aspectRatio: 0.6,
+            child: isEmpty
+                ? _EmptyBottle(selected: selected)
+                : _FilledBottle(level: bottle.level),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 7),
           Text(
-            isEmpty && onTap != null && !selected
-                ? 'Empty · tap'
-                : '${bottle.level.label} · ${bottle.litres}L',
+            bottle.level.label,
             textAlign: TextAlign.center,
             style: AppTypography.body(
-              size: 10.5,
+              size: 11.5,
               weight: FontWeight.w700,
-              color: selected ? AppColors.accent : AppColors.textMuted(0.6),
+              color: switch (bottle.level) {
+                ShelfLevel.full => AppColors.shelfFullLabel,
+                ShelfLevel.half => AppColors.neutral600,
+                ShelfLevel.empty => AppColors.accent700,
+              },
             ),
           ),
         ],
       ),
     );
   }
+}
+
+/// A bottle with water in it — solid teal, with the ground showing through
+/// the top portion when it is only half full.
+class _FilledBottle extends StatelessWidget {
+  const _FilledBottle({required this.level});
+
+  final ShelfLevel level;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    fit: StackFit.expand,
+    children: [
+      ClipRRect(
+        borderRadius: _ShelfBottleTile._shape,
+        // The whole vessel stays visible as a pale tint; the water fills it
+        // from the base up, so a half bottle keeps its full silhouette.
+        child: ColoredBox(
+          color: AppColors.accent2_200,
+          child: Column(
+            children: [
+              // A full bottle has no airspace, so that flex child is dropped
+              // entirely — `Expanded` requires a flex of at least 1.
+              if (level.fill < 1)
+                Expanded(
+                  flex: ((1 - level.fill) * 100).round(),
+                  child: const SizedBox.expand(),
+                ),
+              if (level.fill > 0)
+                Expanded(
+                  flex: (level.fill * 100).round(),
+                  child: const ColoredBox(
+                    color: AppColors.accent2_300,
+                    child: SizedBox.expand(),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+      const _BottleNeck(),
+    ],
+  );
+}
+
+/// An empty bottle — a dashed accent outline with the refill glyph, and the
+/// affordance that it is the one thing on the shelf you can tap.
+class _EmptyBottle extends StatelessWidget {
+  const _EmptyBottle({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => AnimatedContainer(
+    duration: const Duration(milliseconds: 180),
+    width: double.infinity,
+    decoration: BoxDecoration(
+      color: selected ? AppColors.accent100 : Colors.transparent,
+      borderRadius: _ShelfBottleTile._shape,
+    ),
+    child: CustomPaint(
+      painter: _DashedBottlePainter(
+        color: AppColors.accent,
+        strokeWidth: 2.5,
+      ),
+      child: Center(
+        child: Icon(
+          selected ? Icons.check_rounded : Icons.refresh_rounded,
+          size: 22,
+          color: AppColors.accent,
+        ),
+      ),
+    ),
+  );
+}
+
+/// The moulded cap every bottle carries, sitting proud of the shoulders.
+class _BottleNeck extends StatelessWidget {
+  const _BottleNeck();
+
+  @override
+  Widget build(BuildContext context) => Positioned(
+    top: -7,
+    left: 0,
+    right: 0,
+    child: Center(
+      child: Container(
+        width: 19,
+        height: 11,
+        decoration: BoxDecoration(
+          color: AppColors.accent2_500,
+          borderRadius: BorderRadius.circular(5),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Strokes the bottle silhouette as a dashed line.
+class _DashedBottlePainter extends CustomPainter {
+  const _DashedBottlePainter({required this.color, required this.strokeWidth});
+
+  final Color color;
+  final double strokeWidth;
+
+  static const _dash = 6.0;
+  static const _gap = 4.5;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()..addRRect(
+      _ShelfBottleTile._shape
+          .toRRect(Offset.zero & size)
+          .deflate(strokeWidth / 2),
+    );
+
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth
+      ..strokeCap = StrokeCap.round;
+
+    for (final metric in path.computeMetrics()) {
+      for (var d = 0.0; d < metric.length; d += _dash + _gap) {
+        canvas.drawPath(
+          metric.extractPath(d, (d + _dash).clamp(0.0, metric.length)),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBottlePainter old) =>
+      old.color != color || old.strokeWidth != strokeWidth;
 }

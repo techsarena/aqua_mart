@@ -8,7 +8,6 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
-import '../../domain/entities/user_role.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/onboarding_scaffold.dart';
 
@@ -86,16 +85,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     setState(() => _verifying = false);
 
     result.when(
-      success: (user) {
-        ref.read(sessionProvider.notifier).signIn(user);
+      // Verifying the number does NOT sign the user in — the profile is
+      // only created at the end, and signing in here would let the router
+      // redirect straight past the remaining steps into the app.
+      success: (_) {
         if (!mounted) return;
-
-        // Sellers go through business registration and KYC before their app.
-        if (user.role == UserRole.seller) {
-          context.goNamed(AppRoutes.sellerOnboarding);
-        } else {
-          context.pushNamed(AppRoutes.signUpDetails);
-        }
+        context.pushNamed(AppRoutes.rolePicker);
       },
       failure: (f) => setState(() {
         _error = f.message;
@@ -115,8 +110,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final phone = ref.watch(sessionProvider).draft.phone;
 
     return OnboardingScaffold(
-      step: 2,
-      totalSteps: 3,
+      step: 1,
+      totalSteps: 4,
       title: 'Enter the 6-digit code',
       subtitle: null,
       child: Column(

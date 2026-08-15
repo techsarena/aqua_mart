@@ -95,53 +95,51 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
               DeliveryHeader(address: address, unreadCount: unread),
 
               // ── The shelf ───────────────────────────────────────────────
+              // Sits directly on the ground, not in a card: the shelf is the
+              // screen, so nothing should frame it.
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.gutter,
                 ),
-                child: AppCard(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Your water shelf',
-                        style: AppTypography.heading(size: 21),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Your water shelf',
+                      style: AppTypography.heading(size: 30, height: 1.08),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Tap an empty to send it back for a refill.',
+                      style: AppTypography.body(
+                        size: 14.5,
+                        color: AppColors.textMuted(0.6),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        'Tap an empty to send it back for a refill.',
-                        style: AppTypography.body(
-                          size: 12.5,
-                          color: AppColors.textMuted(0.6),
-                        ),
+                    ),
+                    const SizedBox(height: 18),
+                    WaterShelf(
+                      bottles: _shelf,
+                      selectedIndices: _selectedEmpties,
+                      daysRemaining: 3,
+                      onToggle: (i) => setState(() {
+                        _selectedEmpties.contains(i)
+                            ? _selectedEmpties.remove(i)
+                            : _selectedEmpties.add(i);
+                      }),
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton(
+                      onPressed: _selectedEmpties.isEmpty ? null : _sendEmpties,
+                      child: Text(
+                        _selectedEmpties.isEmpty
+                            ? 'Select an empty bottle'
+                            : 'Send ${_selectedEmpties.length} '
+                                  '${_selectedEmpties.length == 1 ? 'empty' : 'empties'} '
+                                  'for refill · '
+                                  '${Formatters.rupees(_selectedEmpties.length * _refillPrice)}',
                       ),
-                      const SizedBox(height: AppSpacing.lg),
-                      WaterShelf(
-                        bottles: _shelf,
-                        selectedIndices: _selectedEmpties,
-                        daysRemaining: 3,
-                        onToggle: (i) => setState(() {
-                          _selectedEmpties.contains(i)
-                              ? _selectedEmpties.remove(i)
-                              : _selectedEmpties.add(i);
-                        }),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      FilledButton(
-                        onPressed: _selectedEmpties.isEmpty
-                            ? null
-                            : _sendEmpties,
-                        child: Text(
-                          _selectedEmpties.isEmpty
-                              ? 'Select an empty bottle'
-                              : 'Send ${_selectedEmpties.length} '
-                                    '${_selectedEmpties.length == 1 ? 'empty' : 'empties'} '
-                                    'for refill · '
-                                    '${Formatters.rupees(_selectedEmpties.length * _refillPrice)}',
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
 
@@ -223,8 +221,8 @@ class _CustomerHomeScreenState extends ConsumerState<CustomerHomeScreen> {
 
               // ── Sellers near you ────────────────────────────────────────
               AppSection(
-                title: 'Sellers near you',
-                actionLabel: 'Map view',
+                title: 'Or try another seller',
+                actionLabel: 'Map',
                 onAction: () => context.pushNamed(AppRoutes.sellerMap),
                 child: switch (sellersAsync) {
                   AsyncLoading() => const SkeletonList(),

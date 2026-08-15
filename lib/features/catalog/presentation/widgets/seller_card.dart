@@ -34,12 +34,13 @@ class SellerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AppCard(
     onTap: onTap,
-    padding: const EdgeInsets.all(AppSpacing.md),
+    radius: 24,
+    padding: const EdgeInsets.all(15),
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SellerAvatar(isOpen: seller.isOpen),
-        const SizedBox(width: AppSpacing.md),
+        SellerAvatar(size: 64, isOpen: seller.isOpen),
+        const SizedBox(width: 13),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,7 +53,7 @@ class SellerCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTypography.body(
-                        size: 15,
+                        size: 16.5,
                         weight: FontWeight.w700,
                       ),
                     ),
@@ -70,44 +71,33 @@ class SellerCard extends StatelessWidget {
               const SizedBox(height: 2),
               Text(
                 seller.isOpen
-                    ? seller.subtitle
+                    ? [
+                        if (highlight != null) highlight!,
+                        seller.subtitle,
+                      ].join(' · ')
                     : 'Closed · opens ${seller.opensAt ?? 'later'}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTypography.body(
-                  size: 12.5,
-                  color: AppColors.textMuted(0.55),
+                  size: 13,
+                  color: AppColors.textMuted(0.6),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sm),
-              Row(
+              const SizedBox(height: 7),
+              // Rating and ETA read as pills, not as an icon row.
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
                 children: [
-                  RatingChip(seller.rating),
-                  if (seller.isOpen) ...[
-                    const SizedBox(width: AppSpacing.md),
-                    Icon(
-                      Icons.schedule_rounded,
-                      size: 13,
-                      color: AppColors.textMuted(0.45),
-                    ),
-                    const SizedBox(width: 3),
-                    Text(
+                  AppTag('★ ${seller.rating.toStringAsFixed(1)}',
+                      tone: TagTone.accent),
+                  if (seller.isOpen)
+                    AppTag(
                       Formatters.eta(seller.etaMinutes),
-                      style: AppTypography.body(
-                        size: 12.5,
-                        color: AppColors.textMuted(0.6),
-                      ),
+                      tone: TagTone.neutral,
                     ),
-                  ],
                 ],
               ),
-              if (highlight != null) ...[
-                const SizedBox(height: AppSpacing.sm),
-                AppTag(
-                  highlight!,
-                  tone: seller.isRegular ? TagTone.accent : TagTone.accent2,
-                ),
-              ],
             ],
           ),
         ),

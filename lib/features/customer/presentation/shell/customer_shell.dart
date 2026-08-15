@@ -32,11 +32,13 @@ class CustomerShell extends ConsumerWidget {
               label: 'View order',
               onPressed: () => context.pushNamed(AppRoutes.cart),
             ),
+          const Divider(height: 1, thickness: 1, color: AppColors.divider),
           NavigationBar(
             selectedIndex: shell.currentIndex,
             onDestinationSelected: (index) =>
                 shell.goBranch(index, initialLocation: index == shell.currentIndex),
-            backgroundColor: AppColors.surface,
+            // The bar sits on the page ground, separated by a hairline only.
+            backgroundColor: AppColors.bg,
             indicatorColor: AppColors.accent100,
             surfaceTintColor: Colors.transparent,
             height: 66,
@@ -45,7 +47,7 @@ class CustomerShell extends ConsumerWidget {
               NavigationDestination(
                 icon: Icon(Icons.home_outlined),
                 selectedIcon: Icon(Icons.home_rounded),
-                label: 'Home',
+                label: 'Shelf',
               ),
               NavigationDestination(
                 icon: Icon(Icons.receipt_long_outlined),

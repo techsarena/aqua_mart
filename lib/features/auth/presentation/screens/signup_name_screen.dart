@@ -10,7 +10,7 @@ import '../../../../shared/widgets/app_section.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/onboarding_scaffold.dart';
 
-/// Sign-up 1 of 3 — the name the rider will see at the door.
+/// Sign-up 3 of 4 — the name the rider will see at the door.
 class SignUpNameScreen extends ConsumerStatefulWidget {
   const SignUpNameScreen({super.key});
 
@@ -33,13 +33,13 @@ class _SignUpNameScreenState extends ConsumerState<SignUpNameScreen> {
     ref
         .read(sessionProvider.notifier)
         .updateDraft((d) => d.copyWith(fullName: _controller.text.trim()));
-    context.pushNamed(AppRoutes.signUpPhone);
+    context.pushNamed(AppRoutes.signUpDetails);
   }
 
   @override
   Widget build(BuildContext context) => OnboardingScaffold(
-    step: 1,
-    totalSteps: 3,
+    step: 3,
+    totalSteps: 4,
     title: 'What should we call you?',
     subtitle: 'Your rider will see this name at the door.',
     primaryLabel: 'Continue',

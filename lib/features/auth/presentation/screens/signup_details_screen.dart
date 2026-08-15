@@ -12,7 +12,7 @@ import '../../domain/entities/app_user.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/onboarding_scaffold.dart';
 
-/// Sign-up 3 of 3 — optional. Skipping lands you in the app just the same.
+/// Sign-up 3 of 4 — optional. Skipping lands you in the app just the same.
 class SignUpDetailsScreen extends ConsumerStatefulWidget {
   const SignUpDetailsScreen({super.key});
 
@@ -25,23 +25,15 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
   Gender _gender = Gender.unspecified;
   DateTime _dob = DateTime(1994, 4, 14);
 
-  Future<void> _finish({bool skipped = false}) async {
+  /// Records the optional details, then hands off to the role picker — the
+  /// last of the four steps. Signing in happens there, once the role is known.
+  void _finish({bool skipped = false}) {
     if (!skipped) {
       ref
           .read(sessionProvider.notifier)
           .updateDraft((d) => d.copyWith(gender: _gender, dateOfBirth: _dob));
-
-      final draft = ref.read(sessionProvider).draft;
-      final result = await ref
-          .read(authRepositoryProvider)
-          .completeProfile(draft);
-      if (!mounted) return;
-      result.when(
-        success: (user) => ref.read(sessionProvider.notifier).signIn(user),
-        failure: (_) {},
-      );
     }
-    if (mounted) context.goNamed(AppRoutes.customerHome);
+    context.pushNamed(AppRoutes.rolePicker);
   }
 
   Future<void> _pickDate() async {
@@ -57,7 +49,7 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
   @override
   Widget build(BuildContext context) => OnboardingScaffold(
     step: 3,
-    totalSteps: 3,
+    totalSteps: 4,
     title: 'A little about you',
     subtitle:
         "Optional — it helps sellers plan deliveries. Skip if you'd rather not.",

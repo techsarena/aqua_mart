@@ -17,9 +17,9 @@ class AppTag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (bg, fg) = switch (tone) {
-      TagTone.accent => (AppColors.accent100, AppColors.accent800),
+      TagTone.accent => (AppColors.accent200, AppColors.accent700),
       TagTone.accent2 => (AppColors.accent2_100, AppColors.accent2_700),
-      TagTone.neutral => (AppColors.neutral200, AppColors.neutral700),
+      TagTone.neutral => (AppColors.neutral200, AppColors.neutral600),
       TagTone.outline => (Colors.transparent, AppColors.accent),
       TagTone.warning => (AppColors.warningBg, AppColors.warning),
       TagTone.danger => (AppColors.dangerBg, AppColors.danger),
@@ -44,8 +44,8 @@ class AppTag extends StatelessWidget {
           Text(
             label,
             style: AppTypography.body(
-              size: 11,
-              weight: FontWeight.w700,
+              size: 11.5,
+              weight: FontWeight.w600,
               color: fg,
               height: 1.3,
             ),

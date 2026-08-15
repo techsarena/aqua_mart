@@ -8,6 +8,10 @@ abstract final class AppRoutes {
   static const splash = 'splash';
   static const splashPath = '/';
 
+  /// The intro — the hero, the three promises, and the language pills.
+  static const intro = 'intro';
+  static const introPath = '/intro';
+
   static const languagePicker = 'language';
   static const languagePath = '/language';
 

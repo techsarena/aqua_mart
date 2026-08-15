@@ -52,18 +52,19 @@ abstract final class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.neutral300,
           disabledForegroundColor: AppColors.neutral500,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size.fromHeight(58),
           shape: const StadiumBorder(),
-          textStyle: AppTypography.body(size: 15, weight: FontWeight.w700),
+          // The design sets primary actions in the heading face.
+          textStyle: AppTypography.heading(size: 18, height: 1.2),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.text,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size.fromHeight(58),
           side: const BorderSide(color: AppColors.divider),
           shape: const StadiumBorder(),
-          textStyle: AppTypography.body(size: 15, weight: FontWeight.w700),
+          textStyle: AppTypography.heading(size: 18, height: 1.2),
         ),
       ),
       textButtonTheme: TextButtonThemeData(

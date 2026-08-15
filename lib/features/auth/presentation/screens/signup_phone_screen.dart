@@ -12,7 +12,7 @@ import '../../../../shared/widgets/app_section.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/onboarding_scaffold.dart';
 
-/// Sign-up 2 of 3 — the number the OTP goes to, and the number the rider
+/// Sign-up 1 of 4 — the number the OTP goes to, and the number the rider
 /// reaches (through the app, never directly).
 class SignUpPhoneScreen extends ConsumerStatefulWidget {
   const SignUpPhoneScreen({super.key});
@@ -56,8 +56,8 @@ class _SignUpPhoneScreenState extends ConsumerState<SignUpPhoneScreen> {
 
   @override
   Widget build(BuildContext context) => OnboardingScaffold(
-    step: 2,
-    totalSteps: 3,
+    step: 1,
+    totalSteps: 4,
     title: 'Your mobile number',
     subtitle:
         'We send a 6-digit code to confirm it. This is also how the rider '

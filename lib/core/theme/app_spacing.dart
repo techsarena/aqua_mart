@@ -7,8 +7,8 @@ abstract final class AppSpacing {
   static const xl = 24.0;
   static const xxl = 32.0;
 
-  /// Standard horizontal page gutter.
-  static const gutter = 16.0;
+  /// Standard horizontal page gutter — `padding: … 22px` in the design.
+  static const gutter = 22.0;
 }
 
 abstract final class AppRadius {
