@@ -33,18 +33,28 @@ class SellerCatalogSetupScreen extends ConsumerWidget {
         notifier.submit();
         context.goNamed(AppRoutes.sellerVerification);
       },
-      footer: application.bottles.isEmpty
-          ? null
-          : Text(
-              '${application.bottles.length} '
-              '${application.bottles.length == 1 ? 'size' : 'sizes'} selected · '
-              'next: your delivery area',
-              textAlign: TextAlign.center,
-              style: AppTypography.body(
-                size: 12.5,
-                color: AppColors.textMuted(0.55),
-              ),
+      // The count on the left, what comes next on the right — the design
+      // uses the width rather than stacking the two.
+      footer: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '${application.bottles.length} '
+            '${application.bottles.length == 1 ? 'size' : 'sizes'} selected',
+            style: AppTypography.body(
+              size: 13.5,
+              color: AppColors.textMuted(0.55),
             ),
+          ),
+          Text(
+            'Next: your delivery area',
+            style: AppTypography.body(
+              size: 13.5,
+              color: AppColors.textMuted(0.55),
+            ),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           for (final size in BottleSize.values.reversed) ...[
@@ -59,6 +69,12 @@ class SellerCatalogSetupScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppSpacing.md),
           ],
+          // Not a size we trade in — recorded for the verification team to
+          // follow up, so it carries no prices.
+          _OtherSizesCard(
+            selected: application.sellsOtherSizes,
+            onToggle: notifier.toggleOtherSizes,
+          ),
         ],
       ),
     );
@@ -84,61 +100,35 @@ class _SizeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => AppCard(
+    onTap: onToggle,
+    padding: const EdgeInsets.all(AppSpacing.md),
+    color: _selected ? AppColors.accent100 : AppColors.surface,
     borderColor: _selected ? AppColors.accent : null,
     child: Column(
       children: [
-        InkWell(
-          onTap: onToggle,
-          child: Row(
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: _selected ? AppColors.accent100 : AppColors.neutral100,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: Text(
-                  size.label,
-                  style: AppTypography.body(
-                    size: 12.5,
-                    weight: FontWeight.w800,
-                    color: _selected
-                        ? AppColors.accent700
-                        : AppColors.textMuted(0.55),
-                  ),
+        Row(
+          children: [
+            _SelectionTick(selected: _selected),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                '${size.litres} L '
+                '${size == BottleSize.twentyFive ? 'cooler bottle' : 'bottle'}',
+                style: AppTypography.body(
+                  size: 16,
+                  weight: FontWeight.w700,
+                  color: _selected ? AppColors.text : AppColors.textMuted(0.75),
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Text(
-                  '${size.litres} L ${size == BottleSize.twentyFive ? 'cooler bottle' : 'bottle'}',
-                  style: AppTypography.body(
-                    size: 14.5,
-                    weight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              Checkbox.adaptive(
-                value: _selected,
-                onChanged: (_) => onToggle(),
-                activeColor: AppColors.accent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(6),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
 
         // Prices only appear once the size is taken — the form stays short.
         if (_selected) ...[
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-            child: Divider(),
-          ),
+          const SizedBox(height: AppSpacing.md),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _PriceField(
@@ -147,10 +137,10 @@ class _SizeCard extends StatelessWidget {
                   onChanged: onRefillChanged,
                 ),
               ),
-              const SizedBox(width: AppSpacing.md),
+              const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: _PriceField(
-                  label: 'New bottle',
+                  label: 'New',
                   value: draft!.newPrice,
                   onChanged: onNewChanged,
                 ),
@@ -158,6 +148,62 @@ class _SizeCard extends StatelessWidget {
             ],
           ),
         ],
+      ],
+    ),
+  );
+}
+
+/// The round tick that carries selection on every card in this step.
+class _SelectionTick extends StatelessWidget {
+  const _SelectionTick({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 30,
+    height: 30,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: selected ? AppColors.accent : Colors.transparent,
+      shape: BoxShape.circle,
+      border: selected
+          ? null
+          : Border.all(color: AppColors.textMuted(0.25), width: 1.8),
+    ),
+    child: selected
+        ? const Icon(Icons.check_rounded, size: 18, color: Colors.white)
+        : null,
+  );
+}
+
+/// "Something else" — selectable, but priced later with our team.
+class _OtherSizesCard extends StatelessWidget {
+  const _OtherSizesCard({required this.selected, required this.onToggle});
+
+  final bool selected;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    onTap: onToggle,
+    padding: const EdgeInsets.all(AppSpacing.md),
+    color: selected ? AppColors.accent100 : AppColors.surface,
+    borderColor: selected ? AppColors.accent : null,
+    child: Row(
+      children: [
+        _SelectionTick(selected: selected),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(
+          child: Text(
+            'Something else',
+            style: AppTypography.body(
+              size: 16,
+              weight: FontWeight.w700,
+              color: selected ? AppColors.text : AppColors.textMuted(0.75),
+            ),
+          ),
+        ),
       ],
     ),
   );
@@ -190,32 +236,46 @@ class _PriceFieldState extends State<_PriceField> {
   }
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        widget.label,
-        style: AppTypography.body(
-          size: 11.5,
-          weight: FontWeight.w600,
-          color: AppColors.textMuted(0.6),
-        ),
-      ),
-      const SizedBox(height: 5),
-      TextField(
-        controller: _controller,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        onChanged: (v) => widget.onChanged(int.tryParse(v) ?? 0),
-        decoration: const InputDecoration(
-          prefixText: 'Rs ',
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: 12,
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpacing.md,
+      vertical: 10,
+    ),
+    decoration: BoxDecoration(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.label,
+          style: AppTypography.body(
+            size: 13,
+            color: AppColors.textMuted(0.55),
           ),
         ),
-      ),
-    ],
+        const SizedBox(height: 2),
+        // The panel is the field's frame, so the input itself is bare —
+        // a bordered box inside a white card would read as a second edge.
+        TextField(
+          controller: _controller,
+          keyboardType: TextInputType.number,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          onChanged: (v) => widget.onChanged(int.tryParse(v) ?? 0),
+          style: AppTypography.heading(size: 21),
+          decoration: InputDecoration(
+            prefixText: 'Rs ',
+            prefixStyle: AppTypography.heading(size: 21),
+            isDense: true,
+            filled: false,
+            contentPadding: EdgeInsets.zero,
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+          ),
+        ),
+      ],
+    ),
   );
 }

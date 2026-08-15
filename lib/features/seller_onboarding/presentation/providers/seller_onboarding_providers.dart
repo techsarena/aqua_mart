@@ -57,6 +57,7 @@ class SellerApplication {
     this.businessType,
     this.uploaded = const {},
     this.bottles = const [],
+    this.sellsOtherSizes = false,
     this.status = SellerVerificationStatus.detailsReceived,
   });
 
@@ -65,6 +66,10 @@ class SellerApplication {
   final SellerBusinessType? businessType;
   final Set<KycDocument> uploaded;
   final List<DraftBottle> bottles;
+
+  /// "Something else" — a size we do not trade in yet. Flagged for the
+  /// verification team to follow up rather than priced here.
+  final bool sellsOtherSizes;
   final SellerVerificationStatus status;
 
   bool get detailsComplete =>
@@ -84,6 +89,7 @@ class SellerApplication {
     SellerBusinessType? businessType,
     Set<KycDocument>? uploaded,
     List<DraftBottle>? bottles,
+    bool? sellsOtherSizes,
     SellerVerificationStatus? status,
   }) => SellerApplication(
     businessName: businessName ?? this.businessName,
@@ -91,6 +97,7 @@ class SellerApplication {
     businessType: businessType ?? this.businessType,
     uploaded: uploaded ?? this.uploaded,
     bottles: bottles ?? this.bottles,
+    sellsOtherSizes: sellsOtherSizes ?? this.sellsOtherSizes,
     status: status ?? this.status,
   );
 }
@@ -145,6 +152,9 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
     }
     state = state.copyWith(bottles: bottles);
   }
+
+  void toggleOtherSizes() =>
+      state = state.copyWith(sellsOtherSizes: !state.sellsOtherSizes);
 
   void setPrice(BottleSize size, {int? refillPrice, int? newPrice}) {
     state = state.copyWith(
