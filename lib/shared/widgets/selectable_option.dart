@@ -19,6 +19,7 @@ class SelectableOption extends StatelessWidget {
     this.enabled = true,
     this.showRadio = true,
     this.tone,
+    this.large = false,
   });
 
   final String title;
@@ -35,6 +36,10 @@ class SelectableOption extends StatelessWidget {
   /// choices, for instance.
   final Color? tone;
 
+  /// Roomier type and padding, for screens where the choice is the whole
+  /// page rather than one field among many.
+  final bool large;
+
   @override
   Widget build(BuildContext context) {
     final accent = tone ?? AppColors.accent;
@@ -48,9 +53,9 @@ class SelectableOption extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppRadius.lg),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 160),
-            padding: const EdgeInsets.symmetric(
+            padding: EdgeInsets.symmetric(
               horizontal: AppSpacing.lg,
-              vertical: 14,
+              vertical: large ? AppSpacing.lg : 14,
             ),
             decoration: BoxDecoration(
               color: selected ? AppColors.onTint : AppColors.surface,
@@ -80,16 +85,16 @@ class SelectableOption extends StatelessWidget {
                       Text(
                         title,
                         style: AppTypography.body(
-                          size: 14.5,
+                          size: large ? 16.5 : 14.5,
                           weight: FontWeight.w700,
                         ),
                       ),
                       if (subtitle != null) ...[
-                        const SizedBox(height: 2),
+                        SizedBox(height: large ? 4 : 2),
                         Text(
                           subtitle!,
                           style: AppTypography.body(
-                            size: 12.5,
+                            size: large ? 13.5 : 12.5,
                             color: AppColors.textMuted(0.6),
                           ),
                         ),

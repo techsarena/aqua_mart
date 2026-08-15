@@ -8,6 +8,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_section.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
+import '../../../../shared/widgets/toggle_panel.dart';
 import '../providers/wallet_providers.dart';
 
 /// Add a debit or credit card, with a live preview of what is being typed.
@@ -156,23 +157,11 @@ class _AddCardScreenState extends ConsumerState<AddCardScreen> {
         ),
 
         const SizedBox(height: AppSpacing.lg),
-        SwitchListTile.adaptive(
+        TogglePanel(
+          title: 'Save for next time',
+          subtitle: 'Stored by our payment partner, never on your phone',
           value: _saveForNextTime,
           onChanged: (v) => setState(() => _saveForNextTime = v),
-          title: Text(
-            'Save for next time',
-            style: AppTypography.body(size: 14, weight: FontWeight.w600),
-          ),
-          subtitle: Text(
-            'Stored by our payment partner, never on your phone',
-            style: AppTypography.body(
-              size: 12,
-              color: AppColors.textMuted(0.55),
-            ),
-          ),
-          contentPadding: EdgeInsets.zero,
-          activeThumbColor: Colors.white,
-          activeTrackColor: AppColors.accent2,
         ),
       ],
     ),

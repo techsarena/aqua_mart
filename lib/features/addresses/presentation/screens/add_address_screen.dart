@@ -9,6 +9,7 @@ import '../../../../shared/widgets/app_section.dart';
 import '../../../../shared/widgets/back_disc_button.dart';
 import '../../../../shared/widgets/map_placeholder.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
+import '../../../../shared/widgets/toggle_panel.dart';
 import '../../domain/entities/address.dart';
 import '../providers/address_providers.dart';
 
@@ -162,7 +163,8 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
                 ),
 
                 const SizedBox(height: AppSpacing.xl),
-                _DefaultToggle(
+                TogglePanel(
+                  title: 'Make this my default',
                   value: _makeDefault,
                   onChanged: (v) => setState(() => _makeDefault = v),
                 ),
@@ -186,70 +188,6 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
         borderRadius: BorderRadius.circular(AppRadius.lg),
         borderSide: BorderSide(color: color, width: width),
       );
-}
-
-/// "Make this my default", on its own tinted panel.
-///
-/// The switch is drawn rather than taken from Material, whose track is thinner
-/// than the thumb; here the thumb sits inside a fully rounded track.
-class _DefaultToggle extends StatelessWidget {
-  const _DefaultToggle({required this.value, required this.onChanged});
-
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  static const _trackWidth = 50.0;
-  static const _trackHeight = 29.0;
-  static const _inset = 3.0;
-
-  @override
-  Widget build(BuildContext context) {
-    // Round, and sized to sit inside the track rather than overflow it.
-    const thumb = _trackHeight - _inset * 2;
-
-    return Material(
-      color: AppColors.accent2_100,
-      borderRadius: BorderRadius.circular(AppRadius.lg),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => onChanged(!value),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.lg),
-          child: Row(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOut,
-                width: _trackWidth,
-                height: _trackHeight,
-                padding: const EdgeInsets.all(_inset),
-                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  color: value ? AppColors.accent2 : AppColors.neutral300,
-                  borderRadius: BorderRadius.circular(AppRadius.pill),
-                ),
-                child: Container(
-                  width: thumb,
-                  height: thumb,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Text(
-                  'Make this my default',
-                  style: AppTypography.heading(size: 15.5),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 /// The map, with the back button and the area search floating over it.
