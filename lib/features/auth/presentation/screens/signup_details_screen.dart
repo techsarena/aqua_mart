@@ -1,15 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_section.dart';
 import '../../domain/entities/app_user.dart';
-import '../../domain/entities/user_role.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/onboarding_scaffold.dart';
 
@@ -29,8 +26,10 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
   Gender _gender = Gender.unspecified;
   DateTime _dob = DateTime(1994, 4, 14);
 
-  /// Creates the account and signs in. Sellers register their business
-  /// first, so they are routed there rather than to a customer home.
+  /// Creates the account and signs in. Only customers reach this step —
+  /// sellers branch to business registration at the role screen and riders to
+  /// their invitation — so signing in is enough, and the router's redirect
+  /// carries them out of the onboarding stack into the customer app.
   Future<void> _finish({bool skipped = false}) async {
     if (!skipped) {
       ref
@@ -45,15 +44,7 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
     if (!mounted) return;
 
     result.when(
-      success: (user) {
-        // Signing in first: the seller onboarding routes sit outside the
-        // onboarding stack, so a signed-out seller would be redirected
-        // straight back to the intro.
-        ref.read(sessionProvider.notifier).signIn(user);
-        if (draft.role == UserRole.seller) {
-          context.goNamed(AppRoutes.sellerOnboarding);
-        }
-      },
+      success: (user) => ref.read(sessionProvider.notifier).signIn(user),
       failure: (f) {
         if (!mounted) return;
         ScaffoldMessenger.of(

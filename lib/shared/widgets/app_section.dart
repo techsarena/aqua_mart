@@ -88,11 +88,14 @@ class FieldLabel extends StatelessWidget {
     child: Row(
       children: [
         Text(
-          text,
+          // Upper-cased here rather than at the call sites, which pass a mix
+          // of cases — the design sets every field label in tracked caps.
+          text.toUpperCase(),
           style: AppTypography.body(
             size: 12,
-            weight: FontWeight.w600,
+            weight: FontWeight.w700,
             color: AppColors.textMuted(0.7),
+            letterSpacing: 0.8,
           ),
         ),
         if (trailing != null) ...[const Spacer(), trailing!],

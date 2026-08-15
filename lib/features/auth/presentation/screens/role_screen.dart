@@ -16,8 +16,9 @@ import '../widgets/onboarding_scaffold.dart';
 /// Picking a role is the whole step, so the tap itself advances: there is no
 /// Continue button to confirm a choice the card already shows.
 ///
-/// Riders divert to their invitation from here; everyone else carries on to
-/// the name step. The profile itself is created at the end of step 4.
+/// Riders divert to their invitation from here and sellers divert to business
+/// registration; only customers carry on to the name step, where their profile
+/// is created at the end of step 4.
 class RoleScreen extends ConsumerStatefulWidget {
   const RoleScreen({super.key});
 
@@ -28,7 +29,12 @@ class RoleScreen extends ConsumerStatefulWidget {
 class _RoleScreenState extends ConsumerState<RoleScreen> {
   UserRole? _selected;
 
+  /// Guards against a second tap while the seller's account is being created.
+  bool _busy = false;
+
   Future<void> _select(UserRole role) async {
+    if (_busy) return;
+
     // Paint the selection before navigating, so the card is visibly chosen
     // on the way out and still chosen if the user comes back.
     setState(() => _selected = role);
@@ -43,7 +49,42 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
       return;
     }
 
+    // Sellers register their business instead of finishing the personal
+    // steps, so their account is created here rather than at step 4 — the
+    // seller onboarding routes sit outside the onboarding stack, and a
+    // signed-out seller would be redirected straight back to the intro.
+    if (role == UserRole.seller) {
+      await _startSellerRegistration();
+      return;
+    }
+
     context.pushNamed(AppRoutes.signUpName);
+  }
+
+  Future<void> _startSellerRegistration() async {
+    setState(() => _busy = true);
+
+    final draft = ref.read(sessionProvider).draft;
+    final result = await ref
+        .read(authRepositoryProvider)
+        .completeProfile(draft);
+    if (!mounted) return;
+
+    result.when(
+      success: (user) {
+        ref.read(sessionProvider.notifier).signIn(user);
+        context.goNamed(AppRoutes.sellerOnboarding);
+      },
+      failure: (f) {
+        setState(() {
+          _busy = false;
+          _selected = null;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(f.message)));
+      },
+    );
   }
 
   @override

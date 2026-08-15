@@ -179,33 +179,65 @@ void main() {
     expect(find.textContaining('wants you as their rider'), findsOneWidget);
   });
 
-  testWidgets('a seller finishing step 4 reaches business registration', (
+  testWidgets('picking the seller role opens business registration', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+    await _reachRolePicker(tester);
+
+    // Sellers skip the personal name and details steps — the business is what
+    // gets registered, and the owner name is collected there instead.
+    await tester.tap(find.text('I sell water'));
+    // The account is created here so the seller is signed in before the
+    // route, and the mock repository takes 600ms.
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    expect(find.text('What should we call you?'), findsNothing);
+    expect(find.text('A little about you'), findsNothing);
+    // Signed in before this route, or the redirect sends them to the intro.
+    expect(find.text('Your water business'), findsOneWidget);
+  });
+
+  testWidgets('the seller registration runs all four business steps', (
     tester,
   ) async {
     await _pumpApp(tester);
     await _reachRolePicker(tester);
 
     await tester.tap(find.text('I sell water'));
-    await tester.pumpAndSettle();
-
-    // Step 3 — the name.
-    await tester.enterText(find.byType(TextField).first, 'Imran Ali');
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Continue'));
-    await tester.pumpAndSettle();
-
-    // Step 4 — skip the optional details, which creates the account. The
-    // mock repository takes 600ms, so settle past it.
-    expect(find.text('A little about you'), findsOneWidget);
-    await tester.ensureVisible(find.text('Skip for now'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Skip for now'));
     await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
 
-    // Sellers must be signed in before this route, or the redirect sends
-    // them back to the intro.
-    expect(find.text('Your water business'), findsOneWidget);
+    // 1 of 4 — the business. Continue stays disabled until a type is picked.
+    await tester.enterText(find.byType(TextField).at(0), 'Chashma Pure Water');
+    await tester.enterText(find.byType(TextField).at(1), 'Imran Ali');
+    await tester.tap(find.text('RO plant'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // 2 of 4 — the required documents gate the step.
+    expect(find.text("Prove it's you"), findsOneWidget);
+    await tester.tap(find.text('CNIC — front & back'));
+    await tester.tap(find.text('Water testing certificate'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // 3 of 4 — a size seeds its own prices, so it is priced once selected.
+    expect(find.text('What do you sell?'), findsOneWidget);
+    await tester.tap(find.text('25 L cooler bottle'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // The waiting room, reflecting what was entered on step 1.
+    expect(find.text("We're checking your papers"), findsOneWidget);
+    expect(find.textContaining('Chashma Pure Water'), findsOneWidget);
   });
 
   testWidgets('the chosen role is recorded on the session', (tester) async {

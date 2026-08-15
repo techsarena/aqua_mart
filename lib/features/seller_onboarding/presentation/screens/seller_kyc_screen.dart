@@ -21,6 +21,12 @@ class SellerKycScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final application = ref.watch(sellerApplicationProvider);
 
+    // The design calls out one tile at a time — the next required document
+    // still missing — so the eye has a single obvious target.
+    final nextRequired = KycDocument.values
+        .where((d) => d.isRequired && !application.uploaded.contains(d))
+        .firstOrNull;
+
     return OnboardingScaffold(
       step: 2,
       totalSteps: 4,
@@ -41,6 +47,7 @@ class SellerKycScreen extends ConsumerWidget {
             _UploadTile(
               document: document,
               uploaded: application.uploaded.contains(document),
+              isNext: document == nextRequired,
               onTap: () => ref
                   .read(sellerApplicationProvider.notifier)
                   .toggleDocument(document),
@@ -53,86 +60,149 @@ class SellerKycScreen extends ConsumerWidget {
   }
 }
 
+/// One document row: a round badge, the document, and where it stands.
+///
+/// Three states, each carried by fill rather than by a trailing affordance —
+/// done (mint), next up (dashed accent outline), and waiting (plain white).
 class _UploadTile extends StatelessWidget {
   const _UploadTile({
     required this.document,
     required this.uploaded,
+    required this.isNext,
     required this.onTap,
   });
 
   final KycDocument document;
   final bool uploaded;
+
+  /// The next required document still missing — the one tile called out.
+  final bool isNext;
   final VoidCallback onTap;
 
+  /// Uploaded tiles all read as a tick; the rest keep their own icon so the
+  /// list is scannable before anything has been done.
+  IconData get _icon => switch (document) {
+    _ when uploaded => Icons.check_rounded,
+    KycDocument.cnic || KycDocument.waterTest => Icons.photo_camera_rounded,
+    KycDocument.licence => Icons.description_rounded,
+    KycDocument.plantPhoto => Icons.storefront_rounded,
+  };
+
+  Color get _badgeColor => uploaded
+      ? AppColors.accent2
+      : isNext
+      ? AppColors.accent200
+      : AppColors.neutral200;
+
+  Color get _iconColor => uploaded
+      ? Colors.white
+      : isNext
+      ? AppColors.accent700
+      : AppColors.textMuted(0.5);
+
   @override
-  Widget build(BuildContext context) => AppCard(
-    onTap: onTap,
-    padding: const EdgeInsets.all(AppSpacing.md),
-    borderColor: uploaded ? AppColors.accent2 : null,
-    child: Row(
-      children: [
-        Container(
-          width: 44,
-          height: 44,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: uploaded ? AppColors.accent2_100 : AppColors.neutral100,
-            borderRadius: BorderRadius.circular(AppRadius.md),
+  Widget build(BuildContext context) {
+    final tile = AppCard(
+      onTap: onTap,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.md,
+      ),
+      color: uploaded ? AppColors.accent2_100 : AppColors.surface,
+      borderColor: uploaded ? AppColors.accent2_300 : null,
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _badgeColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(_icon, size: 24, color: _iconColor),
           ),
-          child: Icon(
-            uploaded ? Icons.check_rounded : Icons.photo_camera_outlined,
-            size: 20,
-            color: uploaded ? AppColors.accent2_700 : AppColors.textMuted(0.5),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.md),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Flexible(
-                    child: Text(
-                      document.label,
-                      style: AppTypography.body(
-                        size: 14,
-                        weight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                  if (document.isRequired && !uploaded) ...[
-                    const SizedBox(width: 5),
-                    Text(
-                      '*',
-                      style: AppTypography.body(
-                        size: 14,
-                        weight: FontWeight.w800,
-                        color: AppColors.danger,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 2),
-              Text(
-                uploaded ? 'Uploaded' : document.hint,
-                style: AppTypography.body(
-                  size: 12.5,
-                  color: uploaded
-                      ? AppColors.accent2_700
-                      : AppColors.textMuted(0.55),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  document.label,
+                  style: AppTypography.body(size: 15, weight: FontWeight.w700),
                 ),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  uploaded ? document.uploadedHint : document.hint,
+                  style: AppTypography.body(
+                    size: 13.5,
+                    color: uploaded
+                        ? AppColors.accent2Deep
+                        : AppColors.textMuted(0.55),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        Icon(
-          uploaded ? Icons.edit_outlined : Icons.add_rounded,
-          size: 19,
-          color: AppColors.textMuted(0.45),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+
+    // The dashed outline is painted around the tile rather than being a
+    // border on it, since Flutter's BoxBorder has no dashed stroke.
+    return isNext
+        ? CustomPaint(
+            foregroundPainter: _DashedBorderPainter(
+              color: AppColors.accent,
+              radius: AppRadius.lg,
+            ),
+            child: tile,
+          )
+        : tile;
+  }
+}
+
+/// Draws a dashed rounded-rectangle stroke just inside the given bounds.
+class _DashedBorderPainter extends CustomPainter {
+  const _DashedBorderPainter({required this.color, required this.radius});
+
+  final Color color;
+  final double radius;
+
+  static const _dash = 7.0;
+  static const _gap = 5.0;
+  static const _width = 1.8;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final stroke = Paint()
+      ..color = color
+      ..strokeWidth = _width
+      ..style = PaintingStyle.stroke;
+
+    // Inset by half the stroke so the dashes sit inside the tile's bounds
+    // instead of being clipped in half at the edge.
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          Radius.circular(radius),
+        ).deflate(_width / 2),
+      );
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(
+          metric.extractPath(distance, distance + _dash),
+          stroke,
+        );
+        distance += _dash + _gap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter old) =>
+      old.color != color || old.radius != radius;
 }

@@ -37,11 +37,16 @@ enum KycDocument {
   final bool isRequired;
 
   String get hint => switch (this) {
-    KycDocument.cnic => 'Two photos, front and back',
+    KycDocument.cnic => 'Tap to photograph · required',
     KycDocument.waterTest => 'Tap to photograph · required',
     KycDocument.licence => 'Optional — speeds up approval',
     KycDocument.plantPhoto => 'Shown on your store page',
   };
+
+  /// What the tile reads once the photos are in. The CNIC needs both faces,
+  /// so it is the one document that reports a count.
+  String get uploadedHint =>
+      this == KycDocument.cnic ? 'Uploaded · 2 photos' : 'Uploaded';
 }
 
 /// Everything collected across the four seller sign-up steps.
