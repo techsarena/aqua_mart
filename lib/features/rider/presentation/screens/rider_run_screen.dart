@@ -7,17 +7,29 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/app_tag.dart';
+import '../../../../shared/widgets/segmented_switch.dart';
 import '../../../../shared/widgets/state_views.dart';
 import '../../domain/entities/rider_run.dart';
 import '../providers/rider_providers.dart';
+import '../widgets/run_map_view.dart';
 
-/// The rider's run: the next stop large and actionable, the rest queued below.
-class RiderRunScreen extends ConsumerWidget {
+/// The rider's run, as a list or as a map.
+///
+/// The list is the working view — the next stop large and actionable, the
+/// rest queued below. The map answers the other question a rider has: where
+/// the whole run goes, and in what order.
+class RiderRunScreen extends ConsumerStatefulWidget {
   const RiderRunScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RiderRunScreen> createState() => _RiderRunScreenState();
+}
+
+class _RiderRunScreenState extends ConsumerState<RiderRunScreen> {
+  bool _showMap = false;
+
+  @override
+  Widget build(BuildContext context) {
     final async = ref.watch(riderRunProvider);
 
     return Scaffold(
@@ -32,7 +44,16 @@ class RiderRunScreen extends ConsumerWidget {
             failure: asFailure(error),
             onRetry: () => ref.invalidate(riderRunProvider),
           ),
-          AsyncValue(value: final run) when run != null => _RunView(run: run),
+          AsyncValue(value: final run) when run != null =>
+            _showMap
+                ? _MapTab(
+                    run: run,
+                    onShowList: () => setState(() => _showMap = false),
+                  )
+                : _RunView(
+                    run: run,
+                    onShowMap: () => setState(() => _showMap = true),
+                  ),
           _ => const SizedBox.shrink(),
         },
       ),
@@ -40,10 +61,75 @@ class RiderRunScreen extends ConsumerWidget {
   }
 }
 
-class _RunView extends ConsumerWidget {
-  const _RunView({required this.run});
+/// The map view, with the switch floating over it.
+class _MapTab extends StatelessWidget {
+  const _MapTab({required this.run, required this.onShowList});
 
   final RiderRun run;
+  final VoidCallback onShowList;
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    fit: StackFit.expand,
+    children: [
+      // The switch is 50 high plus its own top margin, so the map's summary
+      // starts below it.
+      RunMapView(
+        run: run,
+        onNavigate: () {},
+        onCall: () {},
+        topInset: 58,
+      ),
+      // The switch sits above the map's own summary pill, which is why the
+      // map insets its content from the top.
+      Positioned(
+        left: AppSpacing.gutter,
+        right: AppSpacing.gutter,
+        top: AppSpacing.sm,
+        child: Row(
+          children: [
+            Expanded(
+              child: SegmentedSwitch(
+                labels: const ['List', 'Map'],
+                icons: const [
+                  Icons.format_list_bulleted_rounded,
+                  Icons.place_rounded,
+                ],
+                selectedIndex: 1,
+                onSelected: (i) {
+                  if (i == 0) onShowList();
+                },
+                onDark: true,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            // Recentre — inert until the Maps SDK is wired in.
+            Material(
+              color: AppColors.surface,
+              shape: const CircleBorder(),
+              elevation: 3,
+              shadowColor: AppColors.text.withValues(alpha: 0.2),
+              child: InkWell(
+                onTap: () {},
+                customBorder: const CircleBorder(),
+                child: const SizedBox.square(
+                  dimension: 50,
+                  child: Icon(Icons.my_location_rounded, size: 21),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
+
+class _RunView extends ConsumerWidget {
+  const _RunView({required this.run, required this.onShowMap});
+
+  final RiderRun run;
+  final VoidCallback onShowMap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -99,6 +185,27 @@ class _RunView extends ConsumerWidget {
                 ],
               ),
             ],
+          ),
+        ),
+
+        // ── List / Map ──────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.gutter,
+            0,
+            AppSpacing.gutter,
+            AppSpacing.lg,
+          ),
+          child: SegmentedSwitch(
+            labels: const ['List', 'Map'],
+            icons: const [
+              Icons.format_list_bulleted_rounded,
+              Icons.place_rounded,
+            ],
+            selectedIndex: 0,
+            onSelected: (i) {
+              if (i == 1) onShowMap();
+            },
           ),
         ),
 
@@ -284,99 +391,115 @@ class _NextStopCard extends StatelessWidget {
   final VoidCallback onDelivered;
   final VoidCallback onFailed;
 
+  /// "Collect Rs 220 cash · take back 2 empties", with the amount picked out
+  /// of the line — it is the one part that must be read exactly right.
+  InlineSpan get _collectionSpan {
+    final bold = AppTypography.body(
+      size: 15,
+      weight: FontWeight.w800,
+      color: Colors.white,
+    );
+    final plain = AppTypography.body(
+      size: 15,
+      color: Colors.white.withValues(alpha: 0.9),
+    );
+
+    if (!stop.isCash) {
+      return TextSpan(text: stop.collectionLine, style: plain);
+    }
+
+    return TextSpan(
+      style: plain,
+      children: [
+        const TextSpan(text: 'Collect '),
+        TextSpan(text: 'Rs ${stop.amountToCollect} cash', style: bold),
+        if (stop.emptiesToCollect > 0)
+          TextSpan(text: ' · take back ${stop.emptiesToCollect} empties'),
+      ],
+    );
+  }
+
   @override
-  Widget build(BuildContext context) => AppCard(
-    elevated: true,
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(AppSpacing.lg),
+    decoration: BoxDecoration(
+      color: AppColors.accent,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+      boxShadow: [
+        BoxShadow(
+          color: AppColors.accent.withValues(alpha: 0.28),
+          blurRadius: 20,
+          offset: const Offset(0, 8),
+        ),
+      ],
+    ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            AppTag(
-              'Next stop · ${Formatters.distance(stop.distanceMetres)}',
-              tone: TagTone.accent,
-              icon: Icons.navigation_rounded,
-            ),
-          ],
+        Text(
+          'NEXT STOP · ${Formatters.distance(stop.distanceMetres)}'
+              .toUpperCase(),
+          style: AppTypography.body(
+            size: 12,
+            weight: FontWeight.w800,
+            color: Colors.white.withValues(alpha: 0.75),
+            letterSpacing: 0.9,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
-        Text(stop.address, style: AppTypography.heading(size: 22)),
-        const SizedBox(height: 3),
+        Text(
+          stop.address,
+          style: AppTypography.heading(size: 24, color: Colors.white),
+        ),
+        const SizedBox(height: 4),
         Text(
           '${stop.customerName} · ${stop.items}',
           style: AppTypography.body(
-            size: 13.5,
-            color: AppColors.textMuted(0.6),
+            size: 14.5,
+            color: Colors.white.withValues(alpha: 0.85),
           ),
         ),
 
-        // What to collect is the thing the rider must not get wrong.
-        const SizedBox(height: AppSpacing.lg),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: stop.isCash ? AppColors.accent100 : AppColors.neutral100,
-            borderRadius: BorderRadius.circular(AppRadius.md),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                stop.isCash
-                    ? Icons.payments_rounded
-                    : Icons.check_circle_outline_rounded,
-                size: 20,
-                color: stop.isCash
-                    ? AppColors.accent700
-                    : AppColors.textMuted(0.5),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      stop.isCash ? 'Collect' : 'Already paid',
-                      style: AppTypography.body(
-                        size: 11.5,
-                        weight: FontWeight.w700,
-                        color: stop.isCash
-                            ? AppColors.accent700
-                            : AppColors.textMuted(0.55),
-                      ),
-                    ),
-                    Text(
-                      stop.collectionLine,
-                      style: AppTypography.body(
-                        size: 14,
-                        weight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+        // What to collect is the thing the rider must not get wrong, so it
+        // sits in the card's own body rather than in a panel of its own.
+        const SizedBox(height: AppSpacing.md),
+        Text.rich(_collectionSpan),
 
         const SizedBox(height: AppSpacing.lg),
         Row(
           children: [
             Expanded(
-              child: OutlinedButton.icon(
+              child: FilledButton(
                 onPressed: () {},
-                icon: const Icon(Icons.navigation_outlined, size: 18),
-                label: const Text('Navigate'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.accent,
+                ),
+                child: const Text('Navigate'),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            IconButton.filledTonal(
-              onPressed: () {},
-              icon: const Icon(Icons.call_rounded, size: 19),
-              style: IconButton.styleFrom(
-                minimumSize: const Size(52, 52),
-                backgroundColor: AppColors.accent100,
-                foregroundColor: AppColors.accent,
+            // Outlined rather than filled, so the call sits under the
+            // primary action without competing with it.
+            SizedBox.square(
+              dimension: 56,
+              child: Material(
+                color: Colors.transparent,
+                shape: CircleBorder(
+                  side: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.5),
+                    width: 1.5,
+                  ),
+                ),
+                child: InkWell(
+                  onTap: () {},
+                  customBorder: const CircleBorder(),
+                  child: const Icon(
+                    Icons.call_rounded,
+                    size: 20,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ],
@@ -390,7 +513,7 @@ class _NextStopCard extends StatelessWidget {
         TextButton(
           onPressed: onFailed,
           style: TextButton.styleFrom(
-            foregroundColor: AppColors.textMuted(0.7),
+            foregroundColor: Colors.white.withValues(alpha: 0.85),
           ),
           child: const Text("Couldn't deliver"),
         ),

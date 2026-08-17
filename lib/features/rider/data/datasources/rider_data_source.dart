@@ -2,6 +2,7 @@ import '../../../../core/error/failure.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../orders/domain/entities/order_status.dart';
+import '../../domain/entities/rider_application.dart';
 import '../../domain/entities/rider_run.dart';
 
 abstract interface class RiderRemoteDataSource {
@@ -12,6 +13,13 @@ abstract interface class RiderRemoteDataSource {
   Future<RiderEarnings> fetchEarnings();
   Future<RiderInvitation?> fetchInvitation();
   Future<void> respondToInvitation(String id, {required bool accept});
+
+  /// Resolves a 6-character rider code to the seller who issued it, or null
+  /// when no seller matches.
+  Future<RiderSellerMatch?> lookUpSellerCode(String code);
+
+  /// Sends the completed registration to the seller for approval.
+  Future<void> submitApplication(RiderApplication application);
 }
 
 class RiderApiDataSource implements RiderRemoteDataSource {
@@ -91,6 +99,36 @@ class RiderApiDataSource implements RiderRemoteDataSource {
   Future<void> respondToInvitation(String id, {required bool accept}) => _client
       .post<void>(ApiEndpoints.respondInvitation(id), body: {'accept': accept});
 
+  @override
+  Future<RiderSellerMatch?> lookUpSellerCode(String code) async {
+    final json = await _client.get<Map<String, dynamic>>(
+      ApiEndpoints.sellerCode(code),
+    );
+    final data = json['data'] as Map<String, dynamic>?;
+    if (data == null) return null;
+
+    return RiderSellerMatch(
+      code: code,
+      sellerName: data['seller_name'] as String? ?? '',
+      area: data['area'] as String? ?? '',
+      riderCount: (data['rider_count'] as num?)?.toInt() ?? 0,
+      joinedYear: (data['joined_year'] as num?)?.toInt() ?? DateTime.now().year,
+    );
+  }
+
+  @override
+  Future<void> submitApplication(RiderApplication application) =>
+      _client.post<void>(
+        ApiEndpoints.riderApplication,
+        body: {
+          'full_name': application.fullName,
+          'cnic': application.cnic,
+          'vehicle': application.vehicle?.name,
+          'registration_number': application.registrationNumber,
+          'seller_code': application.seller?.code,
+        },
+      );
+
   RiderRun _runFrom(Map<String, dynamic> json) => RiderRun(
     id: '${json['id']}',
     label: json['label'] as String? ?? 'Run',
@@ -121,7 +159,17 @@ class RiderApiDataSource implements RiderRemoteDataSource {
         StopStatus.values.where((s) => s.name == json['status']).firstOrNull ??
         StopStatus.pending,
     completedAt: DateTime.tryParse(json['completed_at'] as String? ?? ''),
+    plot: _plotFrom(json['plot'] as Map<String, dynamic>?),
   );
+
+  ({double x, double y})? _plotFrom(Map<String, dynamic>? json) {
+    if (json == null) return null;
+    final x = (json['x'] as num?)?.toDouble();
+    final y = (json['y'] as num?)?.toDouble();
+    // A half-supplied plot would pin the stop to an axis it was never on.
+    if (x == null || y == null) return null;
+    return (x: x, y: y);
+  }
 }
 
 /// The morning run from the design, playable end to end.
@@ -208,11 +256,38 @@ class MockRiderDataSource implements RiderRemoteDataSource {
     await Future<void>.delayed(const Duration(milliseconds: 400));
   }
 
+  /// The one code the mock knows about, from the design.
+  static const _knownCode = 'MW7K2I';
+
+  @override
+  Future<RiderSellerMatch?> lookUpSellerCode(String code) async {
+    await Future<void>.delayed(_latency);
+    if (code.toUpperCase() != _knownCode) return null;
+
+    return RiderSellerMatch(
+      code: code.toUpperCase(),
+      sellerName: 'Malik Water Supply',
+      area: 'Gulberg III',
+      riderCount: 4,
+      joinedYear: 2024,
+    );
+  }
+
+  @override
+  Future<void> submitApplication(RiderApplication application) async {
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (!application.identityComplete) {
+      throw const ValidationFailure('Enter your full name and CNIC number.');
+    }
+  }
+
   static RiderRun _seedRun() => RiderRun(
     id: 'run-1',
     label: 'Morning run',
     sellerName: 'Chashma Pure Water',
     stops: const [
+      // The plots trace the design's route: down the left, across, then back
+      // along the bottom to the khata stop.
       RunStop(
         id: 'st-1',
         orderId: 'so-a',
@@ -223,6 +298,7 @@ class MockRiderDataSource implements RiderRemoteDataSource {
         paymentMethod: PaymentMethod.cash,
         distanceMetres: 400,
         emptiesToCollect: 2,
+        plot: (x: -0.15, y: -0.62),
       ),
       RunStop(
         id: 'st-2',
@@ -233,6 +309,7 @@ class MockRiderDataSource implements RiderRemoteDataSource {
         amountToCollect: 0,
         paymentMethod: PaymentMethod.jazzCash,
         distanceMetres: 1200,
+        plot: (x: 0.62, y: -0.62),
       ),
       RunStop(
         id: 'st-3',
@@ -244,6 +321,7 @@ class MockRiderDataSource implements RiderRemoteDataSource {
         paymentMethod: PaymentMethod.cash,
         distanceMetres: 2600,
         emptiesToCollect: 3,
+        plot: (x: 0.62, y: -0.05),
       ),
       RunStop(
         id: 'st-4',
@@ -255,6 +333,31 @@ class MockRiderDataSource implements RiderRemoteDataSource {
         paymentMethod: PaymentMethod.khata,
         distanceMetres: 3100,
         emptiesToCollect: 6,
+        plot: (x: -0.18, y: -0.05),
+      ),
+      RunStop(
+        id: 'st-5',
+        orderId: 'so-e',
+        customerName: 'Hina S.',
+        address: 'Faisal Town',
+        items: '2 × 10L refill',
+        amountToCollect: 140,
+        paymentMethod: PaymentMethod.cash,
+        distanceMetres: 900,
+        emptiesToCollect: 2,
+        plot: (x: -0.18, y: 0.52),
+      ),
+      RunStop(
+        id: 'st-6',
+        orderId: 'so-f',
+        customerName: 'Usman T.',
+        address: 'Ichhra',
+        items: '4 × 25L refill',
+        amountToCollect: 0,
+        paymentMethod: PaymentMethod.khata,
+        distanceMetres: 1500,
+        emptiesToCollect: 4,
+        plot: (x: -0.78, y: 0.52),
       ),
     ],
   );

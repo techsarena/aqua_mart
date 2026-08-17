@@ -165,18 +165,62 @@ void main() {
     expect(find.text('3 of 4'), findsOneWidget);
   });
 
-  testWidgets('rider role reaches the invitation while signed out', (
-    tester,
-  ) async {
+  testWidgets('rider role opens rider registration', (tester) async {
     await _pumpApp(tester);
     await _reachRolePicker(tester);
 
     await tester.tap(find.text('I deliver'));
+    // Like the seller, the rider's account is created here so they are signed
+    // in before a route outside the onboarding stack; the mock takes 600ms.
+    await tester.pump(const Duration(seconds: 2));
     await tester.pumpAndSettle();
 
-    // Previously bounced straight back to the role picker.
+    // Riders skip the customer's name and details steps for their own.
     expect(find.text('Who are you?'), findsNothing);
-    expect(find.textContaining('wants you as their rider'), findsOneWidget);
+    expect(find.text('Your name and CNIC'), findsOneWidget);
+  });
+
+  testWidgets('the rider registration runs its three steps', (tester) async {
+    await _pumpApp(tester);
+    await _reachRolePicker(tester);
+
+    await tester.tap(find.text('I deliver'));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    // 3 of 5 — Continue waits on a name and a full 13-digit CNIC.
+    await tester.enterText(find.byType(TextField).at(0), 'Imran Bashir');
+    await tester.enterText(find.byType(TextField).at(1), '3520288412345');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // 4 of 5 — a vehicle that needs a plate reveals the field.
+    expect(find.text('What do you deliver on?'), findsOneWidget);
+    await tester.tap(find.text('Motorbike'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'KMR-4471');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Continue'));
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+
+    // 5 of 5 — the code resolves to the seller who issued it.
+    expect(find.text('Who invited you?'), findsOneWidget);
+    await tester.enterText(find.byType(EditableText).first, 'MW7K2I');
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Malik Water Supply'), findsOneWidget);
+    await tester.ensureVisible(find.text('Join Malik Water Supply'));
+    await tester.tap(find.text('Join Malik Water Supply'));
+    await tester.pump(const Duration(seconds: 2));
+    await tester.pumpAndSettle();
+
+    // The wait, carrying the vehicle from step 4.
+    expect(find.text('Malik Water Supply is reviewing you'), findsOneWidget);
+    expect(find.textContaining('KMR-4471'), findsOneWidget);
   });
 
   testWidgets('picking the seller role opens business registration', (
@@ -244,12 +288,12 @@ void main() {
     final container = await _pumpApp(tester);
     await _reachRolePicker(tester);
 
-    // Rider is the one role that does not sign in and land in an app, so the
-    // session can be inspected without pumping into a screen that animates
-    // or counts down forever.
-    await tester.tap(find.text('I deliver'));
+    // Customer is the one role that does not create its account at this step
+    // — sellers and riders both sign in here and route onward — so the
+    // pending role can be read before anything has been committed.
+    await tester.tap(find.text('I need water'));
     await tester.pumpAndSettle();
 
-    expect(container.read(sessionProvider).pendingRole?.name, 'rider');
+    expect(container.read(sessionProvider).pendingRole?.name, 'customer');
   });
 }

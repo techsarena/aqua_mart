@@ -42,26 +42,25 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
     await ref.read(sessionProvider.notifier).setRole(role);
     if (!mounted) return;
 
-    // Riders are invited by a seller, so they land on the invitation rather
-    // than in an app of their own.
-    if (role == UserRole.rider) {
-      context.goNamed(AppRoutes.riderInvitation);
-      return;
-    }
-
-    // Sellers register their business instead of finishing the personal
-    // steps, so their account is created here rather than at step 4 — the
-    // seller onboarding routes sit outside the onboarding stack, and a
-    // signed-out seller would be redirected straight back to the intro.
-    if (role == UserRole.seller) {
-      await _startSellerRegistration();
+    // Sellers register their business and riders register themselves, instead
+    // of finishing the personal steps — so both accounts are created here
+    // rather than at step 4. Their onboarding routes sit outside the
+    // onboarding stack, and a signed-out user would be redirected straight
+    // back to the intro.
+    if (role == UserRole.seller || role == UserRole.rider) {
+      await _startRegistration(
+        role == UserRole.seller
+            ? AppRoutes.sellerOnboarding
+            : AppRoutes.riderIdentity,
+      );
       return;
     }
 
     context.pushNamed(AppRoutes.signUpName);
   }
 
-  Future<void> _startSellerRegistration() async {
+  /// Creates the account from the draft, then hands off to [nextRoute].
+  Future<void> _startRegistration(String nextRoute) async {
     setState(() => _busy = true);
 
     final draft = ref.read(sessionProvider).draft;
@@ -73,7 +72,7 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
     result.when(
       success: (user) {
         ref.read(sessionProvider.notifier).signIn(user);
-        context.goNamed(AppRoutes.sellerOnboarding);
+        context.goNamed(nextRoute);
       },
       failure: (f) {
         setState(() {
@@ -90,13 +89,22 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
   @override
   Widget build(BuildContext context) => OnboardingScaffold(
     step: 2,
-    totalSteps: 4,
+    // Riders have three more steps than customers do, so the track only
+    // lengthens once "I deliver" is the choice on screen.
+    totalSteps: _selected == UserRole.rider ? 5 : 4,
     title: 'Who are you?',
     subtitle: 'You can switch later in settings.',
-    footer: const AppNote.positive(
-      text: 'Sellers are verified before going live. Takes about a day.',
-      icon: Icons.verified_rounded,
-    ),
+    footer: _selected == UserRole.rider
+        ? const AppNote.warning(
+            text:
+                'Riders need three more things: your CNIC, your vehicle, and '
+                'the invite code from the seller you deliver for.',
+            icon: Icons.info_outline_rounded,
+          )
+        : const AppNote.positive(
+            text: 'Sellers are verified before going live. Takes about a day.',
+            icon: Icons.verified_rounded,
+          ),
     child: Column(
       children: [
         for (final role in UserRole.values) ...[
@@ -157,6 +165,10 @@ class _RoleCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: selected ? AppColors.onTint : AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.xl),
+          border: Border.all(
+            color: selected ? AppColors.accent : Colors.transparent,
+            width: 1.8,
+          ),
         ),
         child: Row(
           children: [
@@ -187,6 +199,16 @@ class _RoleCard extends StatelessWidget {
                 ],
               ),
             ),
+            // The tick confirms the tap on the way out, since the card
+            // navigates rather than waiting for a Continue button.
+            if (selected) ...[
+              const SizedBox(width: AppSpacing.sm),
+              const Icon(
+                Icons.check_rounded,
+                size: 24,
+                color: AppColors.accent,
+              ),
+            ],
           ],
         ),
       ),

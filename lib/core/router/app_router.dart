@@ -37,8 +37,12 @@ import '../../features/payments/presentation/screens/wallet_screen.dart';
 import '../../features/empties/presentation/screens/empty_bottles_screen.dart';
 import '../../features/rider/presentation/screens/rider_cash_handover_screen.dart';
 import '../../features/rider/presentation/screens/rider_earnings_screen.dart';
+import '../../features/rider/presentation/screens/rider_identity_screen.dart';
 import '../../features/rider/presentation/screens/rider_invitation_screen.dart';
+import '../../features/rider/presentation/screens/rider_pending_approval_screen.dart';
 import '../../features/rider/presentation/screens/rider_run_screen.dart';
+import '../../features/rider/presentation/screens/rider_seller_code_screen.dart';
+import '../../features/rider/presentation/screens/rider_vehicle_screen.dart';
 import '../../features/rider/presentation/shell/rider_shell.dart';
 import '../../features/seller/presentation/screens/assign_rider_screen.dart';
 import '../../features/seller/presentation/screens/business_hours_screen.dart';
@@ -95,7 +99,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           location.startsWith('/signup') ||
           // Riders are invited rather than self-serve, so the invitation is
           // reachable before they have a session.
-          location == AppRoutes.riderInvitationPath;
+          location == AppRoutes.riderInvitationPath ||
+          // Rider registration continues the sign-up under /rider, so these
+          // steps are part of the onboarding stack despite the path.
+          location.startsWith('/rider/signup');
 
       // Language is chosen on the intro screen rather than at its own gate,
       // so a first run starts there and registration follows in four steps.
@@ -110,9 +117,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // Signed in but sitting on an onboarding screen — send them to their app.
-      // The rider invitation is exempt: an invited rider signs in and then
-      // still needs to accept or decline.
-      if (inOnboarding && location != AppRoutes.riderInvitationPath) {
+      // The rider screens are exempt: a rider signs in at the role step and
+      // then still has registration to finish, or an invitation to answer.
+      final isRiderStep =
+          location == AppRoutes.riderInvitationPath ||
+          location.startsWith('/rider/signup');
+
+      if (inOnboarding && !isRiderStep) {
         return _homeFor(session.activeRole);
       }
 
@@ -498,6 +509,34 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: AppRoutes.riderInvitation,
         parentNavigatorKey: _rootKey,
         builder: (_, _) => const RiderInvitationScreen(),
+      ),
+
+      // ── Rider registration, steps 3–5 ───────────────────────────────────
+      // Outside the shell: a rider works through these before there is a run
+      // to show them.
+      GoRoute(
+        path: AppRoutes.riderIdentityPath,
+        name: AppRoutes.riderIdentity,
+        parentNavigatorKey: _rootKey,
+        builder: (_, _) => const RiderIdentityScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.riderVehiclePath,
+        name: AppRoutes.riderVehicle,
+        parentNavigatorKey: _rootKey,
+        builder: (_, _) => const RiderVehicleScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.riderSellerCodePath,
+        name: AppRoutes.riderSellerCode,
+        parentNavigatorKey: _rootKey,
+        builder: (_, _) => const RiderSellerCodeScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.riderPendingApprovalPath,
+        name: AppRoutes.riderPendingApproval,
+        parentNavigatorKey: _rootKey,
+        builder: (_, _) => const RiderPendingApprovalScreen(),
       ),
     ],
   );

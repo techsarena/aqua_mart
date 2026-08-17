@@ -18,6 +18,7 @@ class RunStop extends Equatable {
     this.emptiesToCollect = 0,
     this.status = StopStatus.pending,
     this.completedAt,
+    this.plot,
   });
 
   final String id;
@@ -33,6 +34,13 @@ class RunStop extends Equatable {
   final int emptiesToCollect;
   final StopStatus status;
   final DateTime? completedAt;
+
+  /// Where the stop sits on the run map, in `Alignment` space (-1..1).
+  ///
+  /// The backend sends real coordinates; until the Maps SDK is wired in, the
+  /// map view plots these directly. Null keeps the stop off the map rather
+  /// than pinning it to the centre.
+  final ({double x, double y})? plot;
 
   bool get isCash => paymentMethod.isCollectedByRider;
 
@@ -57,6 +65,7 @@ class RunStop extends Equatable {
     emptiesToCollect: emptiesToCollect,
     status: status ?? this.status,
     completedAt: completedAt ?? this.completedAt,
+    plot: plot,
   );
 
   @override
@@ -106,6 +115,19 @@ class RiderRun extends Equatable {
 
   int get emptiesCollected =>
       delivered.fold(0, (sum, s) => sum + s.emptiesToCollect);
+
+  /// How far the remaining stops run, end to end.
+  ///
+  /// Each stop's distance is measured from the one before it, so the run
+  /// length is their sum rather than the furthest of them.
+  double get remainingMetres =>
+      pending.fold(0, (sum, s) => sum + s.distanceMetres);
+
+  /// Rough riding time for what is left, at city-traffic pace plus a minute
+  /// at each door.
+  Duration get remainingDuration => Duration(
+    minutes: (remainingMetres / 1000 * 4).round() + pending.length,
+  );
 
   int get cashOrderCount => delivered.where((s) => s.isCash).length;
 

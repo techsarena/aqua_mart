@@ -84,4 +84,6 @@ abstract final class ApiEndpoints {
   static const riderEarnings = '/rider/earnings';
   static const riderInvitations = '/rider/invitations';
   static String respondInvitation(String id) => '/rider/invitations/$id';
+  static String sellerCode(String code) => '/rider/seller-codes/$code';
+  static const riderApplication = '/rider/application';
 }

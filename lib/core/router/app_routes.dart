@@ -162,6 +162,20 @@ abstract final class AppRoutes {
   static const riderInvitation = 'rider-invitation';
   static const riderInvitationPath = '/rider/invitation';
 
+  /// Rider registration, steps 3–5 of the sign-up. Riders branch here from
+  /// the role step instead of finishing the customer's personal details.
+  static const riderIdentity = 'rider-identity';
+  static const riderIdentityPath = '/rider/signup/identity';
+
+  static const riderVehicle = 'rider-vehicle';
+  static const riderVehiclePath = '/rider/signup/vehicle';
+
+  static const riderSellerCode = 'rider-seller-code';
+  static const riderSellerCodePath = '/rider/signup/code';
+
+  static const riderPendingApproval = 'rider-pending';
+  static const riderPendingApprovalPath = '/rider/signup/pending';
+
   /// The tab roots of the three shells.
   ///
   /// These must be switched to with `go`, never `push`ed: pushing one mounts a
