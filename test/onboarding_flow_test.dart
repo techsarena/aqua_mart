@@ -221,6 +221,17 @@ void main() {
     // The wait, carrying the vehicle from step 4.
     expect(find.text('Malik Water Supply is reviewing you'), findsOneWidget);
     expect(find.textContaining('KMR-4471'), findsOneWidget);
+
+    // Calling stands in for dialling for now and opens the rider's run. The
+    // run is a shell tab, so a push here would mount a second shell and trip
+    // the navigator's key reservation.
+    await tester.tap(find.text('Call Malik Water Supply'));
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Morning run'), findsOneWidget);
   });
 
   testWidgets('picking the seller role opens business registration', (

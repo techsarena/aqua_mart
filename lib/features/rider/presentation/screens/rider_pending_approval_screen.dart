@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -103,7 +105,10 @@ class RiderPendingApprovalScreen extends ConsumerWidget {
       ),
       bottomNavigationBar: StickyActionBar(
         label: 'Call ${seller?.sellerName ?? 'the seller'}',
-        onPressed: () {},
+        // Placeholder until dialling is wired up: opens the rider's run so
+        // the app past approval is reachable. `goNamed`, not push — the run
+        // is a shell tab, and pushing it mounts a second copy of the shell.
+        onPressed: () => context.goNamed(AppRoutes.riderRun),
         secondaryLabel: 'Change seller code',
         onSecondary: () => Navigator.maybePop(context),
       ),
