@@ -10,6 +10,8 @@ class SellerAlertsScreen extends StatelessWidget {
   const SellerAlertsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) =>
-      const NotificationsScreen(title: 'Alerts');
+  Widget build(BuildContext context) => const NotificationsScreen(
+    title: 'Alerts',
+    subtitle: 'Orders, stock and money.',
+  );
 }

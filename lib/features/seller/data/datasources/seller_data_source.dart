@@ -20,6 +20,7 @@ abstract interface class SellerRemoteDataSource {
   Future<void> assignRider({required String orderId, required String riderId});
   Future<List<BottleDto>> fetchInventory();
   Future<BottleDto> saveBottle(BottleDto bottle);
+  Future<void> deleteBottle(String bottleId);
   Future<List<Rider>> fetchRiders();
   Future<List<Payout>> fetchPayouts();
   Future<Dispute> fetchDispute(String id);
@@ -116,6 +117,10 @@ class SellerApiDataSource implements SellerRemoteDataSource {
     );
     return BottleDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
   }
+
+  @override
+  Future<void> deleteBottle(String bottleId) =>
+      _client.delete<void>(ApiEndpoints.sellerBottle(bottleId));
 
   @override
   Future<List<Rider>> fetchRiders() async {
@@ -320,6 +325,12 @@ class MockSellerDataSource implements SellerRemoteDataSource {
       _inventory.add(bottle);
     }
     return bottle;
+  }
+
+  @override
+  Future<void> deleteBottle(String bottleId) async {
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    _inventory.removeWhere((b) => b.id == bottleId);
   }
 
   @override

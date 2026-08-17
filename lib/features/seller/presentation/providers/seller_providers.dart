@@ -113,6 +113,17 @@ class SellerInventoryNotifier extends AsyncNotifier<List<Bottle>> {
     }
     return result;
   }
+
+  Future<Result<void>> delete(String bottleId) async {
+    final result = await Result.guard(
+      () => ref.read(sellerDataSourceProvider).deleteBottle(bottleId),
+    );
+    if (result.isSuccess) {
+      ref.invalidateSelf();
+      ref.invalidate(sellerDashboardProvider);
+    }
+    return result;
+  }
 }
 
 final sellerInventoryProvider =

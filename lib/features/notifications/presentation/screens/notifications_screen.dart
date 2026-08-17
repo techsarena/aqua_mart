@@ -2,21 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/back_disc_button.dart';
 import '../../../../shared/widgets/state_views.dart';
 import '../../domain/entities/app_notification.dart';
 import '../providers/notification_providers.dart';
 
 /// The alerts feed. Shared by all three roles — only the content differs.
 class NotificationsScreen extends ConsumerWidget {
-  const NotificationsScreen({super.key, this.title = 'Notifications'});
+  const NotificationsScreen({
+    super.key,
+    this.title = 'Notifications',
+    this.subtitle = 'Order updates, price changes and reorder reminders.',
+  });
 
   final String title;
+
+  /// The line under the title — each role summarises its own feed.
+  final String subtitle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -24,14 +33,33 @@ class NotificationsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
+        automaticallyImplyLeading: false,
+        toolbarHeight: 60,
+        titleSpacing: AppSpacing.gutter,
+        title: Row(
+          children: [
+            if (context.canPop()) ...[
+              const BackDiscButton(),
+              const SizedBox(width: AppSpacing.md),
+            ],
+            Expanded(
+              child: Text(title, style: AppTypography.heading(size: 30)),
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () =>
                 ref.read(notificationsProvider.notifier).markAllRead(),
+            style: TextButton.styleFrom(
+              textStyle: AppTypography.body(
+                size: 13.5,
+                weight: FontWeight.w700,
+              ),
+            ),
             child: const Text('Mark all read'),
           ),
-          const SizedBox(width: AppSpacing.sm),
+          const SizedBox(width: AppSpacing.md),
         ],
       ),
       body: switch (async) {
@@ -52,16 +80,17 @@ class NotificationsScreen extends ConsumerWidget {
                     message: 'Order updates and reminders will show up here.',
                   ),
                 )
-              : _Feed(items: items!),
+              : _Feed(items: items!, subtitle: subtitle),
       },
     );
   }
 }
 
 class _Feed extends ConsumerWidget {
-  const _Feed({required this.items});
+  const _Feed({required this.items, required this.subtitle});
 
   final List<AppNotification> items;
+  final String subtitle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -74,19 +103,19 @@ class _Feed extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.gutter,
-        AppSpacing.sm,
+        0,
         AppSpacing.gutter,
         AppSpacing.xxl,
       ),
       children: [
         Text(
-          'Order updates, price changes and reorder reminders.',
+          subtitle,
           style: AppTypography.body(
-            size: 12.5,
+            size: 14.5,
             color: AppColors.textMuted(0.55),
           ),
         ),
-        const SizedBox(height: AppSpacing.lg),
+        const SizedBox(height: AppSpacing.xl),
         if (today.isNotEmpty) ...[
           const _GroupHeader('Today'),
           for (final item in today) _NotificationTile(item: item),
@@ -108,13 +137,13 @@ class _GroupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(bottom: AppSpacing.sm, left: 4),
+    padding: const EdgeInsets.only(bottom: AppSpacing.md, left: 2),
     child: Text(
       label.toUpperCase(),
       style: AppTypography.body(
-        size: 10.5,
+        size: 12,
         weight: FontWeight.w800,
-        letterSpacing: 0.9,
+        letterSpacing: 1.2,
         color: AppColors.textMuted(0.45),
       ),
     ),
@@ -129,29 +158,47 @@ class _NotificationTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (icon, tint) = _visualsFor(item.kind);
+    // An unread alert that still needs a decision gets the full treatment —
+    // solid glyph, tinted ground, matching outline. Once read it settles back
+    // to a plain white card like everything else.
+    final isUrgent = !item.isRead && item.kind.needsAction;
+    final isLive = !item.isRead;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: AppCard(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        color: item.isRead ? AppColors.surface : AppColors.accent100,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        color: switch ((isLive, isUrgent)) {
+          (_, true) => tint.withValues(alpha: 0.10),
+          (true, _) => AppColors.accent100,
+          _ => AppColors.surface,
+        },
+        borderColor: isLive ? tint.withValues(alpha: 0.45) : null,
         onTap: () {
           ref.read(notificationsProvider.notifier).markRead(item.id);
           final link = item.deepLink;
-          if (link != null) context.push(link);
+          if (link == null) return;
+          // A tab root is switched to, not stacked on top of this screen.
+          if (AppRoutes.isShellTab(link)) {
+            context.go(link);
+          } else {
+            context.push(link);
+          }
         },
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 38,
-              height: 38,
+              width: 44,
+              height: 44,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: tint.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(AppRadius.md),
+                // Solid while it is live, so the urgent ones read from across
+                // the room; pale once handled.
+                color: isLive ? tint : tint.withValues(alpha: 0.16),
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 19, color: tint),
+              child: Icon(icon, size: 27, color: isLive ? Colors.white : tint),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -160,40 +207,34 @@ class _NotificationTile extends ConsumerWidget {
                 children: [
                   Text(
                     item.title,
-                    style: AppTypography.body(
-                      size: 14,
-                      weight: FontWeight.w700,
-                    ),
+                    style: AppTypography.heading(size: 16, height: 1.25),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     item.body,
                     style: AppTypography.body(
-                      size: 12.5,
+                      size: 13.5,
                       color: AppColors.textMuted(0.65),
                       height: 1.4,
                     ),
                   ),
-                  const SizedBox(height: 5),
+                  const SizedBox(height: AppSpacing.sm),
                   Text(
                     Formatters.relative(item.createdAt),
                     style: AppTypography.body(
-                      size: 11,
+                      size: 12,
                       color: AppColors.textMuted(0.45),
                     ),
                   ),
                 ],
               ),
             ),
-            if (!item.isRead)
+            if (isLive)
               Container(
-                width: 8,
-                height: 8,
-                margin: const EdgeInsets.only(top: 6, left: 4),
-                decoration: const BoxDecoration(
-                  color: AppColors.accent,
-                  shape: BoxShape.circle,
-                ),
+                width: 10,
+                height: 10,
+                margin: const EdgeInsets.only(top: 8, left: 6),
+                decoration: BoxDecoration(color: tint, shape: BoxShape.circle),
               ),
           ],
         ),
@@ -207,8 +248,8 @@ class _NotificationTile extends ConsumerWidget {
       AppColors.accent,
     ),
     NotificationKind.orderUpdate => (
-      Icons.check_circle_outline_rounded,
-      AppColors.accent2,
+      Icons.receipt_long_rounded,
+      AppColors.accent,
     ),
     NotificationKind.priceChange => (
       Icons.trending_down_rounded,
@@ -223,11 +264,11 @@ class _NotificationTile extends ConsumerWidget {
       AppColors.warning,
     ),
     NotificationKind.stockLow => (
-      Icons.inventory_2_outlined,
+      Icons.warning_amber_rounded,
       AppColors.warning,
     ),
     NotificationKind.complaint => (
-      Icons.report_gmailerrorred_rounded,
+      Icons.error_outline_rounded,
       AppColors.danger,
     ),
     NotificationKind.payout => (Icons.payments_outlined, AppColors.accent2),

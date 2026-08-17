@@ -161,4 +161,28 @@ abstract final class AppRoutes {
 
   static const riderInvitation = 'rider-invitation';
   static const riderInvitationPath = '/rider/invitation';
+
+  /// The tab roots of the three shells.
+  ///
+  /// These must be switched to with `go`, never `push`ed: pushing one mounts a
+  /// second copy of the shell, and the shell owns navigator `GlobalKey`s — so
+  /// the duplicate reservation trips an assertion inside `Navigator`.
+  static const shellTabPaths = <String>{
+    customerHomePath,
+    customerOrdersPath,
+    customerTrackPath,
+    customerProfilePath,
+    sellerDashboardPath,
+    sellerOrderQueuePath,
+    sellerInventoryPath,
+    sellerServiceAreaPath,
+    sellerProfilePath,
+    riderRunPath,
+    riderCashHandoverPath,
+    riderEarningsPath,
+  };
+
+  /// Whether [location] should be navigated to with `go` rather than `push`.
+  static bool isShellTab(String location) =>
+      shellTabPaths.contains(Uri.parse(location).path);
 }

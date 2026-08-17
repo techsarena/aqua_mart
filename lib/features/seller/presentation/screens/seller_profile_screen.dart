@@ -10,6 +10,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/app_avatar.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_section.dart';
 import '../../../../shared/widgets/app_tag.dart';
 import '../../../../shared/widgets/settings_tile.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
@@ -28,202 +29,133 @@ class SellerProfileScreen extends ConsumerWidget {
     final sync = ref.watch(sellerDashboardProvider).value?.sync;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Me')),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(
+        padding: EdgeInsets.fromLTRB(
           AppSpacing.gutter,
-          0,
+          MediaQuery.paddingOf(context).top + AppSpacing.lg,
           AppSpacing.gutter,
           AppSpacing.xxl,
         ),
         children: [
           // ── Identity ────────────────────────────────────────────────────
-          AppCard(
-            child: Row(
-              children: [
-                const SellerAvatar(size: 54),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Chashma Pure Water',
-                        style: AppTypography.heading(size: 19),
-                      ),
-                      const SizedBox(height: 5),
-                      const AppTag(
-                        'Verified seller',
-                        tone: TagTone.accent2,
-                        icon: Icons.verified_rounded,
-                      ),
-                    ],
-                  ),
+          // The header itself, not a card on the page — there is no app bar
+          // above it.
+          Row(
+            children: [
+              const AppAvatar(
+                name: 'Chashma Pure Water',
+                size: 70,
+                background: AppColors.accent2_200,
+                foreground: AppColors.accent2Deep,
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Chashma Pure Water',
+                      style: AppTypography.heading(size: 25),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    const AppTag(
+                      'Verified seller',
+                      tone: TagTone.accent2,
+                      icon: Icons.check_rounded,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-
-          // ── Standing ────────────────────────────────────────────────────
-          const SizedBox(height: AppSpacing.md),
-          AppCard(
-            child: Row(
-              children: [
-                const Expanded(
-                  child: StatTile(value: '4.8', label: 'rating · 1,240'),
-                ),
-                const Expanded(
-                  child: StatTile(
-                    value: '96%',
-                    label: 'on time',
-                    valueColor: AppColors.accent2_700,
-                  ),
-                ),
-                Expanded(
-                  child: StatTile(value: '${riders.length}', label: 'riders'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
 
           // ── Payout ──────────────────────────────────────────────────────
           if (nextPayout != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            AppCard(
-              onTap: () => context.pushNamed(AppRoutes.payoutStatement),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Next payout',
-                    style: AppTypography.body(
-                      size: 12,
-                      weight: FontWeight.w600,
-                      color: AppColors.textMuted(0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    Formatters.rupees(nextPayout.netPaid),
-                    style: AppTypography.heading(size: 30),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Every Monday · ${nextPayout.bankLabel ?? 'your bank'} · '
-                    'after 8% commission',
-                    style: AppTypography.body(
-                      size: 12.5,
-                      color: AppColors.textMuted(0.55),
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () =>
-                              context.pushNamed(AppRoutes.payoutStatement),
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(42),
-                          ),
-                          child: const Text('Statements'),
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () {},
-                          style: OutlinedButton.styleFrom(
-                            minimumSize: const Size.fromHeight(42),
-                          ),
-                          child: const Text('Change bank'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+            const SizedBox(height: AppSpacing.xl),
+            _PayoutPanel(
+              amount: Formatters.rupees(nextPayout.netPaid),
+              detail:
+                  'Every Monday · ${nextPayout.bankLabel ?? 'your bank'} · '
+                  'after 8% commission',
+              onStatements: () => context.pushNamed(AppRoutes.payoutStatement),
             ),
           ],
 
+          // ── Standing ────────────────────────────────────────────────────
+          const SizedBox(height: AppSpacing.md),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Expanded(
+                  child: _StatCard(value: '4.8', label: 'rating · 1,240'),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                const Expanded(
+                  child: _StatCard(value: '96%', label: 'on time'),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: _StatCard(value: '${riders.length}', label: 'riders'),
+                ),
+              ],
+            ),
+          ),
+
           // ── Riders ──────────────────────────────────────────────────────
           const SizedBox(height: AppSpacing.xl),
-          Row(
-            children: [
-              Text('Your riders', style: AppTypography.heading(size: 20)),
-              const Spacer(),
-              TextButton(
-                onPressed: () => context.pushNamed(AppRoutes.riderPerformance),
-                style: TextButton.styleFrom(minimumSize: Size.zero),
-                child: const Text('See all'),
+          const FieldLabel('Your riders'),
+          for (final rider in riders) ...[
+            AppCard(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.md,
               ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          AppCard(
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-            child: Column(
-              children: [
-                for (final rider in riders)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg,
-                      vertical: 9,
-                    ),
-                    child: Row(
+              onTap: () => context.pushNamed(AppRoutes.riderPerformance),
+              child: Row(
+                children: [
+                  AppAvatar(name: rider.name, size: 42),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        AppAvatar(name: rider.name, size: 38),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                rider.name,
-                                style: AppTypography.body(
-                                  size: 14,
-                                  weight: FontWeight.w700,
-                                ),
-                              ),
-                              Text(
-                                rider.statusLine,
-                                style: AppTypography.body(
-                                  size: 12,
-                                  color: AppColors.textMuted(0.55),
-                                ),
-                              ),
-                            ],
-                          ),
+                        Text(
+                          rider.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.heading(size: 15.5),
                         ),
-                        AppTag(
-                          rider.status.label,
-                          tone: switch (rider.status) {
-                            RiderStatus.onRun => TagTone.accent2,
-                            RiderStatus.idle => TagTone.neutral,
-                            RiderStatus.offDuty => TagTone.neutral,
-                          },
+                        const SizedBox(height: 2),
+                        Text(
+                          rider.statusLine,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTypography.body(
+                            size: 12.5,
+                            color: AppColors.textMuted(0.55),
+                          ),
                         ),
                       ],
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg,
-                    AppSpacing.sm,
-                    AppSpacing.lg,
-                    AppSpacing.sm,
+                  const SizedBox(width: AppSpacing.sm),
+                  AppTag(
+                    rider.status.label,
+                    tone: switch (rider.status) {
+                      RiderStatus.onRun => TagTone.accent2,
+                      RiderStatus.idle ||
+                      RiderStatus.offDuty => TagTone.neutral,
+                    },
                   ),
-                  child: OutlinedButton.icon(
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Send an invite by phone number.'),
-                      ),
-                    ),
-                    icon: const Icon(Icons.person_add_alt_rounded, size: 18),
-                    label: const Text('Invite a rider'),
-                  ),
-                ),
-              ],
+                ],
+              ),
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          _InviteRiderButton(
+            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Send an invite by phone number.')),
             ),
           ),
 
@@ -282,4 +214,177 @@ class SellerProfileScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// The money panel — the one dark surface on the page, so the payout is the
+/// first thing the eye lands on.
+class _PayoutPanel extends StatelessWidget {
+  const _PayoutPanel({
+    required this.amount,
+    required this.detail,
+    required this.onStatements,
+  });
+
+  final String amount;
+  final String detail;
+  final VoidCallback onStatements;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(AppSpacing.xl),
+    decoration: BoxDecoration(
+      color: AppColors.accent,
+      borderRadius: BorderRadius.circular(AppRadius.xl),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'NEXT PAYOUT',
+          style: AppTypography.body(
+            size: 12,
+            weight: FontWeight.w700,
+            letterSpacing: 1.4,
+            color: Colors.white.withValues(alpha: 0.85),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          amount,
+          style: AppTypography.heading(size: 36, color: Colors.white),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          detail,
+          style: AppTypography.body(
+            size: 13.5,
+            color: Colors.white.withValues(alpha: 0.85),
+            height: 1.35,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton(
+                onPressed: onStatements,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(40),
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.text,
+                ),
+                child: const Text('Statements', style: TextStyle(fontSize: 15)),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: () {},
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(40),
+                  foregroundColor: Colors.white,
+                  side: BorderSide(color: Colors.white.withValues(alpha: 0.55)),
+                ),
+                child: const Text(
+                  'Change bank',
+                  style: TextStyle(fontSize: 15),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
+
+/// One of the three standing figures, each on its own card.
+class _StatCard extends StatelessWidget {
+  const _StatCard({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpacing.lg,
+      vertical: AppSpacing.lg,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: AppTypography.heading(size: 26)),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          label,
+          style: AppTypography.body(
+            size: 12.5,
+            color: AppColors.textMuted(0.55),
+            height: 1.3,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Dashed outline — an empty slot waiting to be filled, not a solid action.
+class _InviteRiderButton extends StatelessWidget {
+  const _InviteRiderButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => CustomPaint(
+    painter: _DashedBorderPainter(),
+    child: Material(
+      type: MaterialType.transparency,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        child: SizedBox(
+          height: 47,
+          child: Center(
+            child: Text(
+              '+ Invite a rider',
+              style: AppTypography.body(size: 15, weight: FontWeight.w700),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          const Radius.circular(AppRadius.lg),
+        ),
+      );
+    final paint = Paint()
+      ..color = AppColors.neutral400
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        final next = distance + 6;
+        canvas.drawPath(
+          metric.extractPath(distance, next.clamp(0, metric.length)),
+          paint,
+        );
+        distance = next + 5;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedBorderPainter oldDelegate) => false;
 }

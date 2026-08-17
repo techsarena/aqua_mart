@@ -44,7 +44,7 @@ class AppTag extends StatelessWidget {
           Text(
             label,
             style: AppTypography.body(
-              size: 13,
+              size: 12,
               weight: FontWeight.w700,
               color: fg,
               height: 1.3,

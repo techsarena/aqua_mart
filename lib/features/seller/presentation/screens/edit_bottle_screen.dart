@@ -8,6 +8,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_section.dart';
+import '../../../../shared/widgets/back_disc_button.dart';
+import '../../../../shared/widgets/photo_placeholder.dart';
 import '../../../../shared/widgets/quantity_stepper.dart';
 import '../../../../shared/widgets/selectable_option.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
@@ -15,10 +17,18 @@ import '../../../catalog/domain/entities/bottle.dart';
 import '../providers/seller_providers.dart';
 
 /// Edit one bottle: its name, size, both prices, the deposit, and stock.
+///
+/// The same screen adds a bottle: routing here with [newBottleId] seeds a
+/// blank draft rather than loading one off the shelf.
 class EditBottleScreen extends ConsumerStatefulWidget {
   const EditBottleScreen({super.key, required this.bottleId});
 
+  /// The `bottleId` that means "this one doesn't exist yet".
+  static const newBottleId = 'new';
+
   final String bottleId;
+
+  bool get isNew => bottleId == newBottleId;
 
   @override
   ConsumerState<EditBottleScreen> createState() => _EditBottleScreenState();
@@ -35,6 +45,13 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
   bool _isVisible = true;
   bool _seeded = false;
   bool _saving = false;
+
+  /// A size outside the three we trade in. Not on [Bottle], which only models
+  /// the sizes we price — so it stays local until the team sets one up.
+  bool _isOtherSize = false;
+
+  /// Held across rebuilds in add mode so the generated id stays stable.
+  Bottle? _draft;
 
   @override
   void dispose() {
@@ -79,9 +96,11 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
 
     result.when(
       success: (_) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Bottle updated.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(widget.isNew ? 'Bottle added.' : 'Bottle updated.'),
+          ),
+        );
         context.pop();
       },
       failure: (f) => ScaffoldMessenger.of(
@@ -90,9 +109,66 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
     );
   }
 
+  Future<void> _confirmDelete(Bottle bottle) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete this bottle?'),
+        content: Text(
+          '${bottle.name} will be removed from your shelf. Hiding it instead '
+          'keeps the prices and stock.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Keep it'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    final result = await ref
+        .read(sellerInventoryProvider.notifier)
+        .delete(bottle.id);
+    if (!mounted) return;
+
+    result.when(
+      success: (_) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Bottle deleted.')));
+        context.pop();
+      },
+      failure: (f) => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(f.message))),
+    );
+  }
+
+  /// The draft a new bottle starts from — no prices, hidden until the seller
+  /// has filled it in and saved.
+  Bottle _blankDraft() => Bottle(
+    id: 'b-${DateTime.now().millisecondsSinceEpoch}',
+    sellerId: ref.read(sellerInventoryProvider).value?.firstOrNull?.sellerId ??
+        '',
+    size: BottleSize.twentyFive,
+    name: '',
+    refillPrice: 0,
+    newPrice: 0,
+    isVisible: false,
+  );
+
   @override
   Widget build(BuildContext context) {
-    final bottle = ref.watch(bottleByIdProvider(widget.bottleId));
+    final bottle = widget.isNew
+        ? (_draft ??= _blankDraft())
+        : ref.watch(bottleByIdProvider(widget.bottleId));
 
     if (bottle == null) {
       return Scaffold(
@@ -103,76 +179,107 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
     _seed(bottle);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Edit bottle')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        toolbarHeight: 76,
+        titleSpacing: AppSpacing.gutter,
+        title: Row(
+          children: [
+            const BackDiscButton(size: 52),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Text(
+                widget.isNew ? 'Add bottle' : 'Edit bottle',
+                style: AppTypography.heading(size: 32),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          // Nothing to delete until the bottle has been saved once.
+          if (!widget.isNew)
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.gutter),
+              child: _CircleIconButton(
+                icon: Icons.delete_outline_rounded,
+                background: AppColors.dangerBg,
+                foreground: AppColors.danger,
+                onTap: () => _confirmDelete(bottle),
+              ),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           AppSpacing.gutter,
-          0,
+          AppSpacing.sm,
           AppSpacing.gutter,
           AppSpacing.xxl,
         ),
         children: [
-          // ── Photo ───────────────────────────────────────────────────────
-          AppCard(
-            child: Row(
-              children: [
-                Container(
-                  width: 76,
-                  height: 76,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.neutral100,
-                    borderRadius: BorderRadius.circular(AppRadius.md),
-                  ),
-                  child: Icon(
-                    Icons.water_drop_rounded,
-                    size: 30,
-                    color: AppColors.accent300,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bottle photo',
-                        style: AppTypography.body(
-                          size: 14,
-                          weight: FontWeight.w700,
-                        ),
+          // ── Photo and name ──────────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const PhotoPlaceholder(
+                label: 'bottle\nphoto',
+                width: 118,
+                height: 178,
+              ),
+              const SizedBox(width: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const FieldLabel('Bottle name'),
+                    TextField(
+                      controller: _nameController,
+                      style: AppTypography.body(
+                        size: 18,
+                        weight: FontWeight.w700,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Shown to customers on your store page',
-                        style: AppTypography.body(
-                          size: 12,
-                          color: AppColors.textMuted(0.55),
+                      decoration: InputDecoration(
+                        hintText: '25L Cooler Bottle',
+                        filled: true,
+                        fillColor: AppColors.surface,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
+                          vertical: AppSpacing.lg,
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                      OutlinedButton(
-                        onPressed: () {},
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 36),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.md,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          borderSide: const BorderSide(
+                            color: AppColors.accent,
+                            width: 1.8,
                           ),
                         ),
-                        child: const Text('Replace photo'),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.lg),
+                          borderSide: const BorderSide(
+                            color: AppColors.accent,
+                            width: 2.2,
+                          ),
+                        ),
                       ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 52),
+                        backgroundColor: AppColors.surface,
+                        foregroundColor: AppColors.text,
+                        side: const BorderSide(color: AppColors.neutral300),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.xl,
+                        ),
+                      ),
+                      child: const Text('Replace photo'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: AppSpacing.xl),
-          const FieldLabel('Bottle name'),
-          TextField(
-            controller: _nameController,
-            decoration: const InputDecoration(hintText: '25L Cooler Bottle'),
+              ),
+            ],
           ),
 
           const SizedBox(height: AppSpacing.xl),
@@ -181,17 +288,34 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
             children: [
               for (final size in BottleSize.values) ...[
                 Expanded(
-                  child: ChoiceTag(
+                  child: _SizePill(
                     label: size.label,
-                    selected: _size == size,
-                    onTap: () => setState(() => _size = size),
+                    selected: !_isOtherSize && _size == size,
+                    onTap: () => setState(() {
+                      _size = size;
+                      _isOtherSize = false;
+                    }),
                   ),
                 ),
-                if (size != BottleSize.values.last)
-                  const SizedBox(width: AppSpacing.sm),
+                const SizedBox(width: AppSpacing.sm),
               ],
+              // A size outside the three we trade in — priced with the team,
+              // so it only records intent here.
+              Expanded(
+                child: _SizePill(
+                  label: 'Other',
+                  selected: _isOtherSize,
+                  onTap: () => setState(() => _isOtherSize = true),
+                ),
+              ),
             ],
           ),
+          if (_isOtherSize) ...[
+            const SizedBox(height: AppSpacing.md),
+            const AppNote(
+              text: 'Our team will call to agree pricing for other sizes.',
+            ),
+          ],
 
           const SizedBox(height: AppSpacing.xl),
           const FieldLabel('Prices'),
@@ -203,14 +327,14 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
                   controller: _refillController,
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: _MoneyField(
                   label: 'New bottle',
                   controller: _newController,
                 ),
               ),
-              const SizedBox(width: AppSpacing.sm),
+              const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: _MoneyField(
                   label: 'Deposit',
@@ -219,11 +343,11 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.md),
           Text(
             'Customers see both prices side by side and pick one.',
             style: AppTypography.body(
-              size: 12,
+              size: 15,
               color: AppColors.textMuted(0.55),
             ),
           ),
@@ -239,24 +363,25 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
                     children: [
                       Text(
                         'Filled in stock',
-                        style: AppTypography.body(
-                          size: 14,
-                          weight: FontWeight.w700,
-                        ),
+                        style: AppTypography.heading(size: 20),
                       ),
-                      if (bottle.emptiesInYard > 0)
+                      if (bottle.emptiesInYard > 0) ...[
+                        const SizedBox(height: AppSpacing.xs),
                         Text(
                           '${bottle.emptiesInYard} empties waiting in the yard',
                           style: AppTypography.body(
-                            size: 12,
+                            size: 14.5,
                             color: AppColors.textMuted(0.55),
                           ),
                         ),
+                      ],
                     ],
                   ),
                 ),
+                const SizedBox(width: AppSpacing.md),
                 QuantityStepper(
                   quantity: _stock,
+                  large: true,
                   onIncrement: () => setState(() => _stock++),
                   onDecrement: () => setState(() => _stock--),
                 ),
@@ -265,48 +390,54 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
           ),
 
           const SizedBox(height: AppSpacing.md),
+          // Tinted, with the switch leading — this is a state the seller reads
+          // at a glance rather than a field they fill in.
           AppCard(
+            color: AppColors.accent2_100,
             child: Row(
               children: [
+                Switch(
+                  value: _isVisible,
+                  onChanged: (v) => setState(() => _isVisible = v),
+                  activeThumbColor: Colors.white,
+                  activeTrackColor: AppColors.accent2,
+                  inactiveThumbColor: Colors.white,
+                  inactiveTrackColor: AppColors.neutral300,
+                  trackOutlineColor: const WidgetStatePropertyAll(
+                    Colors.transparent,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Showing to customers',
-                        style: AppTypography.body(
-                          size: 14,
-                          weight: FontWeight.w700,
-                        ),
+                        style: AppTypography.heading(size: 20),
                       ),
+                      const SizedBox(height: AppSpacing.xs),
                       Text(
                         'Turn off to hide without deleting',
                         style: AppTypography.body(
-                          size: 12,
+                          size: 14.5,
                           color: AppColors.textMuted(0.55),
                         ),
                       ),
                     ],
                   ),
                 ),
-                Switch.adaptive(
-                  value: _isVisible,
-                  onChanged: (v) => setState(() => _isVisible = v),
-                ),
               ],
             ),
-          ),
-
-          const SizedBox(height: AppSpacing.xl),
-          TextButton(
-            onPressed: () {},
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Delete this bottle'),
           ),
         ],
       ),
       bottomNavigationBar: StickyActionBar(
-        label: _saving ? 'Saving…' : 'Save changes',
+        label: _saving
+            ? 'Saving…'
+            : widget.isNew
+            ? 'Add bottle'
+            : 'Save changes',
         enabled: !_saving,
         onPressed: () => _save(bottle),
       ),
@@ -314,6 +445,75 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
   }
 }
 
+/// The round delete bin in the header, matching [BackDiscButton]'s disc.
+class _CircleIconButton extends StatelessWidget {
+  const _CircleIconButton({
+    required this.icon,
+    required this.onTap,
+    this.background = AppColors.surface,
+    this.foreground = AppColors.text,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: background,
+    shape: const CircleBorder(),
+    child: InkWell(
+      onTap: onTap,
+      customBorder: const CircleBorder(),
+      child: SizedBox(
+        width: 52,
+        height: 52,
+        child: Icon(icon, color: foreground, size: 26),
+      ),
+    ),
+  );
+}
+
+/// One of the four size choices — bigger than [ChoiceTag], which is sized for
+/// dense filter rows.
+class _SizePill extends StatelessWidget {
+  const _SizePill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: selected ? AppColors.accent : AppColors.surface,
+    shape: const StadiumBorder(),
+    child: InkWell(
+      onTap: onTap,
+      customBorder: const StadiumBorder(),
+      child: Container(
+        height: 60,
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTypography.body(
+            size: 17,
+            weight: FontWeight.w700,
+            color: selected ? Colors.white : AppColors.textMuted(0.75),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// A price on a white card: small `Rs`, large value, tap anywhere to edit.
 class _MoneyField extends StatelessWidget {
   const _MoneyField({required this.label, required this.controller});
 
@@ -321,31 +521,54 @@ class _MoneyField extends StatelessWidget {
   final TextEditingController controller;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        label,
-        style: AppTypography.body(
-          size: 11.5,
-          weight: FontWeight.w600,
-          color: AppColors.textMuted(0.6),
-        ),
-      ),
-      const SizedBox(height: 5),
-      TextField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-        decoration: const InputDecoration(
-          prefixText: 'Rs ',
-          isDense: true,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: 12,
+  Widget build(BuildContext context) => AppCard(
+    padding: const EdgeInsets.symmetric(
+      horizontal: AppSpacing.lg,
+      vertical: AppSpacing.md,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: AppTypography.body(
+            size: 14,
+            color: AppColors.textMuted(0.55),
           ),
         ),
-      ),
-    ],
+        const SizedBox(height: AppSpacing.xs),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              'Rs',
+              style: AppTypography.body(
+                size: 14,
+                weight: FontWeight.w600,
+                color: AppColors.textMuted(0.55),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Expanded(
+              child: TextField(
+                controller: controller,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: AppTypography.heading(size: 24),
+                decoration: const InputDecoration(
+                  isDense: true,
+                  filled: false,
+                  contentPadding: EdgeInsets.zero,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    ),
   );
 }

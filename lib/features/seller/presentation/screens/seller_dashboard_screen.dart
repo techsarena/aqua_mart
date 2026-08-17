@@ -11,7 +11,7 @@ import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_tag.dart';
 import '../../../../shared/widgets/state_views.dart';
-import '../../../notifications/presentation/providers/notification_providers.dart';
+import '../../../notifications/presentation/widgets/alerts_bell_button.dart';
 import '../../domain/entities/seller_dashboard.dart';
 import '../providers/seller_providers.dart';
 import '../widgets/order_queue_card.dart';
@@ -24,7 +24,6 @@ class SellerDashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(sellerDashboardProvider);
     final pending = ref.watch(pendingOrdersProvider);
-    final unread = ref.watch(unreadNotificationCountProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -42,30 +41,9 @@ class SellerDashboardScreen extends ConsumerWidget {
             Text('Chashma Pure Water', style: AppTypography.heading(size: 19)),
           ],
         ),
-        actions: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              IconButton(
-                onPressed: () => context.pushNamed(AppRoutes.sellerAlerts),
-                icon: const Icon(Icons.notifications_none_rounded),
-              ),
-              if (unread > 0)
-                Positioned(
-                  right: 8,
-                  top: 8,
-                  child: Container(
-                    width: 9,
-                    height: 9,
-                    decoration: const BoxDecoration(
-                      color: AppColors.danger,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: AppSpacing.sm),
+        actions: const [
+          AlertsBellButton(routeName: AppRoutes.sellerAlerts),
+          SizedBox(width: AppSpacing.gutter),
         ],
       ),
       body: switch (async) {

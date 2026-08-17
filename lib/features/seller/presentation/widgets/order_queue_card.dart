@@ -35,103 +35,115 @@ class OrderQueueCard extends ConsumerWidget {
     final needsRider = order.status == OrderStatus.packed;
 
     return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
             children: [
               Expanded(
                 child: Text(
-                  '${order.customerName} · ${order.address.area}',
+                  order.customerName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: AppTypography.body(
-                    size: 14.5,
-                    weight: FontWeight.w700,
-                  ),
+                  style: AppTypography.heading(size: 17),
                 ),
               ),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 Formatters.relative(order.placedAt),
                 style: AppTypography.body(
-                  size: 11.5,
+                  size: 12.5,
                   color: AppColors.textMuted(0.45),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 4),
-          Row(
+          const SizedBox(height: AppSpacing.md),
+
+          // Area · items · payment. The payment method carries the accent tint
+          // so it reads apart from the two neutral facts beside it.
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
             children: [
-              Expanded(
-                child: Text(
-                  '${order.itemsSummary} · '
-                  '${Formatters.rupees(order.total)} · '
-                  '${order.paymentMethod.shortLabel}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.body(
-                    size: 12.5,
-                    color: AppColors.textMuted(0.6),
-                  ),
-                ),
-              ),
+              AppTag(order.address.area),
+              AppTag(order.itemsSummary),
+              AppTag(order.paymentMethod.shortLabel, tone: TagTone.accent),
             ],
           ),
           if (order.rider != null) ...[
             const SizedBox(height: AppSpacing.sm),
             AppTag(
               'With ${order.rider!.name}',
-              tone: TagTone.accent,
+              tone: TagTone.accent2,
               icon: Icons.two_wheeler_rounded,
             ),
           ],
-
           const SizedBox(height: AppSpacing.md),
+
           Row(
             children: [
-              if (showDecline && onDecline != null) ...[
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onDecline,
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(42),
-                      foregroundColor: AppColors.danger,
-                      side: const BorderSide(color: AppColors.dangerBg),
-                    ),
-                    child: const Text('Decline'),
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-              ],
               Expanded(
-                flex: showDecline ? 1 : 2,
-                child: FilledButton(
-                  // Dispatching goes through rider selection, not straight
-                  // to "sent" — someone has to actually carry it.
-                  onPressed: isDone
-                      ? null
-                      : needsRider
-                      ? () => context.pushNamed(
-                          AppRoutes.assignRider,
-                          pathParameters: {'orderId': order.id},
-                        )
-                      : onAdvance,
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size.fromHeight(42),
-                    backgroundColor: isDone
-                        ? AppColors.accent2_200
-                        : AppColors.accent,
-                    foregroundColor: isDone
-                        ? AppColors.accent2_700
-                        : Colors.white,
-                    disabledBackgroundColor: AppColors.accent2_200,
-                    disabledForegroundColor: AppColors.accent2_700,
+                child: Text(
+                  Formatters.rupees(order.total),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.heading(size: 21),
+                ),
+              ),
+              if (showDecline && onDecline != null) ...[
+                TextButton(
+                  onPressed: onDecline,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.danger,
+                    minimumSize: const Size(0, 42),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.md,
+                    ),
                   ),
-                  child: Text(
-                    needsRider ? 'Send with…' : order.status.sellerActionLabel,
+                  child: const Text('Decline'),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+              ],
+              FilledButton(
+                // Dispatching goes through rider selection, not straight
+                // to "sent" — someone has to actually carry it.
+                onPressed: isDone
+                    ? null
+                    : needsRider
+                    ? () => context.pushNamed(
+                        AppRoutes.assignRider,
+                        pathParameters: {'orderId': order.id},
+                      )
+                    : onAdvance,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(126, 42),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
                   ),
+                  textStyle: AppTypography.body(
+                    size: 15,
+                    weight: FontWeight.w700,
+                  ),
+                  backgroundColor: isDone
+                      ? AppColors.accent2_200
+                      : AppColors.accent,
+                  foregroundColor: isDone
+                      ? AppColors.accent2_700
+                      : Colors.white,
+                  disabledBackgroundColor: AppColors.accent2_200,
+                  disabledForegroundColor: AppColors.accent2_700,
+                ),
+                child: Text(
+                  needsRider ? 'Send with…' : order.status.sellerActionLabel,
                 ),
               ),
             ],

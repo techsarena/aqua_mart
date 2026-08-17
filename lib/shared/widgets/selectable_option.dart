@@ -44,6 +44,12 @@ class SelectableOption extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = tone ?? AppColors.accent;
 
+    // The radio leads when nothing else claims that slot — a plain list of
+    // choices reads better with the marks in a column down the left. Rows
+    // that carry their own leading art (payment icons, rider avatars) keep
+    // the radio on the right so the art stays in front.
+    final radioLeads = showRadio && leading == null && icon == null;
+
     return Opacity(
       opacity: enabled ? 1 : 0.45,
       child: Material(
@@ -62,12 +68,15 @@ class SelectableOption extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.lg),
               border: Border.all(
                 color: selected ? accent : AppColors.divider,
-                width: selected ? 1.6 : 1,
+                width: selected ? 2 : 1,
               ),
             ),
             child: Row(
               children: [
-                if (leading != null) ...[
+                if (radioLeads) ...[
+                  _Radio(selected: selected, accent: accent),
+                  const SizedBox(width: AppSpacing.md),
+                ] else if (leading != null) ...[
                   leading!,
                   const SizedBox(width: AppSpacing.md),
                 ] else if (icon != null) ...[
@@ -85,7 +94,7 @@ class SelectableOption extends StatelessWidget {
                       Text(
                         title,
                         style: AppTypography.body(
-                          size: large ? 16.5 : 14.5,
+                          size: large ? 16 : 14,
                           weight: FontWeight.w700,
                         ),
                       ),
@@ -94,7 +103,7 @@ class SelectableOption extends StatelessWidget {
                         Text(
                           subtitle!,
                           style: AppTypography.body(
-                            size: large ? 13.5 : 12.5,
+                            size: large ? 13 : 12,
                             color: AppColors.textMuted(0.6),
                           ),
                         ),
@@ -104,7 +113,7 @@ class SelectableOption extends StatelessWidget {
                 ),
                 if (trailing != null)
                   trailing!
-                else if (showRadio)
+                else if (showRadio && !radioLeads)
                   _Radio(selected: selected, accent: accent),
               ],
             ),
@@ -124,18 +133,28 @@ class _Radio extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AnimatedContainer(
     duration: const Duration(milliseconds: 160),
-    width: 20,
-    height: 20,
+    width: 26,
+    height: 26,
+    alignment: Alignment.center,
     decoration: BoxDecoration(
       shape: BoxShape.circle,
       color: selected ? accent : Colors.transparent,
       border: Border.all(
         color: selected ? accent : AppColors.neutral400,
-        width: 1.6,
+        width: 2,
       ),
     ),
+    // A white ring punched out of the filled disc, rather than a tick — the
+    // dot reads as "this one" without implying the choice is confirmed.
     child: selected
-        ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+        ? Container(
+            width: 10,
+            height: 10,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
+          )
         : null,
   );
 }

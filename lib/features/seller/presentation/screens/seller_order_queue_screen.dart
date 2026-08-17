@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/state_views.dart';
+import '../../../notifications/presentation/widgets/alerts_bell_button.dart';
 import '../../../orders/domain/entities/order.dart';
 import '../providers/seller_providers.dart';
 import '../widgets/order_queue_card.dart';
@@ -24,20 +26,19 @@ class SellerOrderQueueScreen extends ConsumerWidget {
       length: names.length,
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Orders'),
-          bottom: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            labelColor: AppColors.accent,
-            unselectedLabelColor: AppColors.textMuted(0.55),
-            indicatorColor: AppColors.accent,
-            indicatorSize: TabBarIndicatorSize.label,
-            dividerColor: AppColors.divider,
-            labelStyle: AppTypography.body(size: 13.5, weight: FontWeight.w700),
-            tabs: [
-              for (final name in names)
-                Tab(text: '$name · ${buckets[name]!.length}'),
-            ],
+          title: Text('Orders', style: AppTypography.heading(size: 30)),
+          toolbarHeight: 68,
+          actions: const [
+            AlertsBellButton(routeName: AppRoutes.sellerAlerts),
+            SizedBox(width: AppSpacing.gutter),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(60),
+            child: _BucketTabs(
+              labels: [
+                for (final name in names) '$name · ${buckets[name]!.length}',
+              ],
+            ),
           ),
         ),
         body: switch (async) {
@@ -55,6 +56,94 @@ class SellerOrderQueueScreen extends ConsumerWidget {
                 _Bucket(name: name, orders: buckets[name]!),
             ],
           ),
+        },
+      ),
+    );
+  }
+}
+
+/// The bucket switcher: filled pills on a scroll track, not an underlined
+/// [TabBar]. Drives the ambient [TabController], so tapping a pill and swiping
+/// the pages stay in step.
+class _BucketTabs extends StatefulWidget {
+  const _BucketTabs({required this.labels});
+
+  final List<String> labels;
+
+  @override
+  State<_BucketTabs> createState() => _BucketTabsState();
+}
+
+class _BucketTabsState extends State<_BucketTabs> {
+  final _scroll = ScrollController();
+  TabController? _controller;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final controller = DefaultTabController.of(context);
+    if (controller == _controller) return;
+    _controller?.removeListener(_onTabChanged);
+    _controller = controller..addListener(_onTabChanged);
+  }
+
+  // `animation` also fires mid-swipe, but index is what the pills paint from,
+  // so repainting on the settled index is enough.
+  void _onTabChanged() => setState(() {});
+
+  @override
+  void dispose() {
+    _controller?.removeListener(_onTabChanged);
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = _controller?.index ?? 0;
+
+    return SizedBox(
+      height: 60,
+      child: ListView.separated(
+        controller: _scroll,
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.gutter,
+          0,
+          AppSpacing.gutter,
+          AppSpacing.md,
+        ),
+        itemCount: widget.labels.length,
+        separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.sm),
+        itemBuilder: (context, i) {
+          final isSelected = i == selected;
+          return Center(
+            child: Material(
+              color: isSelected ? AppColors.accent : AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.pill),
+              child: InkWell(
+                onTap: () => _controller?.animateTo(i),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.xl,
+                    vertical: AppSpacing.md,
+                  ),
+                  child: Text(
+                    widget.labels[i],
+                    style: AppTypography.body(
+                      size: 13.5,
+                      weight: FontWeight.w700,
+                      color: isSelected
+                          ? Colors.white
+                          : AppColors.textMuted(0.75),
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
         },
       ),
     );

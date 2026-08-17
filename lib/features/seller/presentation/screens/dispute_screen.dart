@@ -8,6 +8,9 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/app_card.dart';
+import '../../../../shared/widgets/app_section.dart';
+import '../../../../shared/widgets/back_disc_button.dart';
+import '../../../../shared/widgets/photo_placeholder.dart';
 import '../../../../shared/widgets/selectable_option.dart';
 import '../../../../shared/widgets/state_views.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
@@ -58,7 +61,22 @@ class _DisputeScreenState extends ConsumerState<DisputeScreen> {
     final async = ref.watch(disputeProvider(widget.disputeId));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Complaint')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        toolbarHeight: 60,
+        titleSpacing: AppSpacing.gutter,
+        title: Row(
+          children: [
+            if (context.canPop()) ...[
+              const BackDiscButton(),
+              const SizedBox(width: AppSpacing.md),
+            ],
+            Expanded(
+              child: Text('Complaint', style: AppTypography.heading(size: 25)),
+            ),
+          ],
+        ),
+      ),
       body: switch (async) {
         AsyncLoading() => const SkeletonList(itemCount: 3, itemHeight: 120),
         AsyncError(:final error) => ErrorView(
@@ -74,127 +92,107 @@ class _DisputeScreenState extends ConsumerState<DisputeScreen> {
           ),
           children: [
             // ── What happened ───────────────────────────────────────────
+            // One panel: the charge in caps, then who and which order, then
+            // the order itself — read top to bottom before deciding.
             AppCard(
               color: AppColors.dangerBg,
+              borderColor: AppColors.danger.withValues(alpha: 0.35),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       const Icon(
-                        Icons.report_gmailerrorred_rounded,
-                        size: 22,
+                        Icons.error_outline_rounded,
+                        size: 20,
                         color: AppColors.danger,
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       Expanded(
                         child: Text(
-                          dispute.reason,
+                          dispute.reason.toUpperCase(),
                           style: AppTypography.body(
-                            size: 15,
+                            size: 12,
                             weight: FontWeight.w800,
+                            letterSpacing: 1.1,
                             color: AppColors.danger,
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: AppSpacing.md),
                   Text(
                     '${dispute.customerName} · order #${dispute.orderReference}',
-                    style: AppTypography.body(
-                      size: 12.5,
-                      color: AppColors.danger,
-                    ),
+                    style: AppTypography.heading(size: 17),
                   ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: AppSpacing.md),
-            AppCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+                  const SizedBox(height: AppSpacing.xs),
                   Text(
                     dispute.orderSummary,
                     style: AppTypography.body(
-                      size: 13,
-                      color: AppColors.textMuted(0.65),
-                      height: 1.5,
+                      size: 13.5,
+                      color: AppColors.textMuted(0.6),
+                      height: 1.45,
                     ),
                   ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
-                    child: Divider(),
-                  ),
-                  Text(
-                    'What she said',
-                    style: AppTypography.body(
-                      size: 12,
-                      weight: FontWeight.w700,
-                      color: AppColors.textMuted(0.55),
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '"${dispute.customerNote}"',
-                    style: AppTypography.body(
-                      size: 14,
-                      height: 1.55,
-                    ).copyWith(fontStyle: FontStyle.italic),
-                  ),
-                  if (dispute.hasPhoto) ...[
-                    const SizedBox(height: AppSpacing.md),
-                    Container(
-                      height: 96,
-                      width: 96,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: AppColors.neutral200,
-                        borderRadius: BorderRadius.circular(AppRadius.md),
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.photo_outlined,
-                            size: 22,
-                            color: AppColors.textMuted(0.45),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Her photo',
-                            style: AppTypography.body(
-                              size: 11,
-                              color: AppColors.textMuted(0.5),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),
 
-            // ── Who she is ──────────────────────────────────────────────
-            if (dispute.customerHistory != null) ...[
+            // ── What she said ───────────────────────────────────────────
+            const SizedBox(height: AppSpacing.xl),
+            const FieldLabel('What she said'),
+            AppCard(
+              child: Text(
+                '"${dispute.customerNote}"',
+                style: AppTypography.body(size: 15, height: 1.5),
+              ),
+            ),
+
+            // ── Her photo and her history, side by side ─────────────────
+            if (dispute.hasPhoto || dispute.customerHistory != null) ...[
               const SizedBox(height: AppSpacing.md),
-              AppNote(
-                icon: Icons.history_rounded,
-                text: dispute.customerHistory!,
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (dispute.hasPhoto) ...[
+                      const PhotoPlaceholder(
+                        label: 'her photo',
+                        width: 104,
+                        height: 104,
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                    ],
+                    if (dispute.customerHistory != null)
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          alignment: Alignment.centerLeft,
+                          decoration: BoxDecoration(
+                            color: AppColors.accent2_100,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                          ),
+                          child: Text(
+                            dispute.customerHistory!,
+                            style: AppTypography.body(
+                              size: 13,
+                              color: AppColors.text,
+                              height: 1.45,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ],
 
             // ── How to settle ───────────────────────────────────────────
             const SizedBox(height: AppSpacing.xl),
-            Text(
-              'How do you want to settle it?',
-              style: AppTypography.body(size: 15, weight: FontWeight.w700),
-            ),
-            const SizedBox(height: AppSpacing.md),
+            const FieldLabel('How do you want to settle it?'),
             SelectableOption(
+              large: true,
               title: 'Send a free replacement',
               subtitle:
                   '1 × 25L on your next run · costs you '
@@ -203,16 +201,18 @@ class _DisputeScreenState extends ConsumerState<DisputeScreen> {
               onTap: () =>
                   setState(() => _resolution = DisputeResolution.replacement),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.md),
             SelectableOption(
+              large: true,
               title: 'Refund ${Formatters.rupees(dispute.amount)}',
               subtitle: 'Deducted from your next payout',
               selected: _resolution == DisputeResolution.refund,
               onTap: () =>
                   setState(() => _resolution = DisputeResolution.refund),
             ),
-            const SizedBox(height: AppSpacing.sm),
+            const SizedBox(height: AppSpacing.md),
             SelectableOption(
+              large: true,
               title: 'I disagree — send it to Aqua Mart',
               subtitle: 'We review both sides within a day',
               selected: _resolution == DisputeResolution.escalate,
