@@ -71,6 +71,8 @@ abstract interface class SellerOnboardingRemoteDataSource {
   Future<SellerVerificationStatus> uploadDocuments({
     required File cnicFront,
     required File cnicBack,
+    required String cnicFrontOcr,
+    required String cnicBackOcr,
     required File waterTest,
     File? licence,
     File? plantPhoto,
@@ -112,6 +114,8 @@ class SellerOnboardingApiDataSource
   Future<SellerVerificationStatus> uploadDocuments({
     required File cnicFront,
     required File cnicBack,
+    required String cnicFrontOcr,
+    required String cnicBackOcr,
     required File waterTest,
     File? licence,
     File? plantPhoto,
@@ -121,6 +125,8 @@ class SellerOnboardingApiDataSource
       fields: {
         'cnic_front': await _part(cnicFront),
         'cnic_back': await _part(cnicBack),
+        'cnic_front_ocr': cnicFrontOcr,
+        'cnic_back_ocr': cnicBackOcr,
         'water_test': await _part(waterTest),
         if (licence != null) 'licence': await _part(licence),
         if (plantPhoto != null) 'plant_photo': await _part(plantPhoto),

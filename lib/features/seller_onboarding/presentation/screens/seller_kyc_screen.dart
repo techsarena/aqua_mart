@@ -13,6 +13,8 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../auth/presentation/widgets/onboarding_scaffold.dart';
+import '../../data/services/cnic_ocr_service.dart';
+import '../../domain/services/cnic_validator.dart';
 import '../providers/seller_onboarding_providers.dart';
 
 /// Seller sign-up 2 of 4 — real camera, gallery, and PDF uploads for KYC.
@@ -27,7 +29,10 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
   static const _maxFileBytes = 5 * 1024 * 1024;
 
   final _imagePicker = ImagePicker();
+  final _cnicOcr = const CnicOcrService();
   final Map<_KycSlot, File> _files = {};
+  final Map<_KycSlot, CnicValidationResult> _cnicResults = {};
+  final Set<_KycSlot> _validating = {};
   bool _uploading = false;
 
   @override
@@ -65,61 +70,17 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
       .every((slot) => _isUploaded(slot, application));
 
   Future<void> _chooseSource(_KycSlot slot) async {
-    if (_uploading) return;
+    if (_uploading || _validating.contains(slot)) return;
 
     final action = await showModalBottomSheet<_PickerAction>(
       context: context,
-      showDragHandle: true,
-      builder: (context) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            0,
-            AppSpacing.lg,
-            AppSpacing.lg,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(slot.label, style: AppTypography.heading(size: 20)),
-              const SizedBox(height: AppSpacing.md),
-              if (slot.acceptsCamera)
-                ListTile(
-                  leading: const Icon(Icons.photo_camera_outlined),
-                  title: const Text('Take a photo'),
-                  subtitle: const Text('Open the camera'),
-                  onTap: () => Navigator.pop(context, _PickerAction.camera),
-                ),
-              if (slot.acceptsCamera)
-                ListTile(
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Choose from gallery'),
-                  subtitle: const Text('Use an existing JPG or PNG'),
-                  onTap: () => Navigator.pop(context, _PickerAction.gallery),
-                ),
-              if (slot.acceptsDocument)
-                ListTile(
-                  leading: const Icon(Icons.picture_as_pdf_outlined),
-                  title: const Text('Choose a document'),
-                  subtitle: const Text('PDF, JPG or PNG · maximum 5 MB'),
-                  onTap: () => Navigator.pop(context, _PickerAction.document),
-                ),
-              if (_files.containsKey(slot))
-                ListTile(
-                  leading: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: AppColors.danger,
-                  ),
-                  title: const Text(
-                    'Remove selected file',
-                    style: TextStyle(color: AppColors.danger),
-                  ),
-                  onTap: () => Navigator.pop(context, _PickerAction.remove),
-                ),
-            ],
-          ),
-        ),
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      barrierColor: AppColors.text.withValues(alpha: 0.58),
+      builder: (context) => _DocumentSourceSheet(
+        slot: slot,
+        hasSelection: _files.containsKey(slot),
       ),
     );
 
@@ -132,7 +93,10 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
       case _PickerAction.document:
         await _pickDocument(slot);
       case _PickerAction.remove:
-        setState(() => _files.remove(slot));
+        setState(() {
+          _files.remove(slot);
+          _cnicResults.remove(slot);
+        });
     }
   }
 
@@ -194,6 +158,11 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
       return;
     }
 
+    if (slot.isCnic && extension == 'pdf') {
+      if (mounted) _showMessage('Take or choose a clear CNIC photo.');
+      return;
+    }
+
     if (await file.length() > _maxFileBytes) {
       if (mounted) {
         _showMessage('This file is over 5 MB. Choose a smaller file.');
@@ -201,7 +170,76 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
       return;
     }
 
+    if (slot.isCnic) {
+      await _validateCnic(slot, file);
+      return;
+    }
+
     if (mounted) setState(() => _files[slot] = file);
+  }
+
+  Future<void> _validateCnic(_KycSlot slot, File file) async {
+    final otherSlot = slot == _KycSlot.cnicFront
+        ? _KycSlot.cnicBack
+        : _KycSlot.cnicFront;
+    final otherFile = _files[otherSlot];
+    if (otherFile != null && await _sameFile(file, otherFile)) {
+      _showMessage(
+        'The same CNIC photo was selected twice. Add the other side.',
+      );
+      return;
+    }
+
+    setState(() => _validating.add(slot));
+    try {
+      final text = await _cnicOcr.recognise(file);
+      final side = slot == _KycSlot.cnicFront ? CnicSide.front : CnicSide.back;
+      final result = CnicValidator.validateSide(text, side);
+      if (!mounted) return;
+      if (!result.isValid) {
+        _showMessage(result.message ?? 'This is not a valid CNIC photo.');
+        return;
+      }
+
+      final otherResult = _cnicResults[otherSlot];
+      if (otherResult != null) {
+        final front = side == CnicSide.front ? result : otherResult;
+        final back = side == CnicSide.back ? result : otherResult;
+        final pairError = CnicValidator.pairError(front, back);
+        if (pairError != null) {
+          _showMessage(pairError);
+          return;
+        }
+      }
+
+      setState(() {
+        _files[slot] = file;
+        _cnicResults[slot] = result;
+      });
+    } on PlatformException catch (_) {
+      if (mounted) {
+        _showMessage(
+          'Could not verify this CNIC. Fully restart the app and retake the photo.',
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Could not read this CNIC. Retake it in better light.');
+      }
+    } finally {
+      if (mounted) setState(() => _validating.remove(slot));
+    }
+  }
+
+  Future<bool> _sameFile(File first, File second) async {
+    if (await first.length() != await second.length()) return false;
+    final firstBytes = await first.readAsBytes();
+    final secondBytes = await second.readAsBytes();
+    if (firstBytes.length != secondBytes.length) return false;
+    for (var index = 0; index < firstBytes.length; index++) {
+      if (firstBytes[index] != secondBytes[index]) return false;
+    }
+    return true;
   }
 
   Future<void> _submit(SellerApplication application) async {
@@ -217,8 +255,14 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
 
     final cnicFront = _files[_KycSlot.cnicFront];
     final cnicBack = _files[_KycSlot.cnicBack];
+    final cnicFrontOcr = _cnicResults[_KycSlot.cnicFront]?.ocrText;
+    final cnicBackOcr = _cnicResults[_KycSlot.cnicBack]?.ocrText;
     final waterTest = _files[_KycSlot.waterTest];
-    if (cnicFront == null || cnicBack == null || waterTest == null) {
+    if (cnicFront == null ||
+        cnicBack == null ||
+        cnicFrontOcr == null ||
+        cnicBackOcr == null ||
+        waterTest == null) {
       _showMessage('Add both CNIC photos and the water testing certificate.');
       return;
     }
@@ -229,6 +273,8 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
         .uploadDocuments(
           cnicFront: cnicFront,
           cnicBack: cnicBack,
+          cnicFrontOcr: cnicFrontOcr,
+          cnicBackOcr: cnicBackOcr,
           waterTest: waterTest,
           licence: _files[_KycSlot.licence],
           plantPhoto: _files[_KycSlot.plantPhoto],
@@ -261,7 +307,8 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
       title: "Prove it's you",
       subtitle: 'Photos are fine — no scanner needed. We check within a day.',
       primaryLabel: _uploading ? 'Uploading…' : 'Upload & continue',
-      primaryEnabled: !_uploading && _requiredReady(application),
+      primaryEnabled:
+          !_uploading && _validating.isEmpty && _requiredReady(application),
       onPrimary: () => _submit(application),
       footer: const AppNote(
         icon: Icons.lock_outline_rounded,
@@ -291,7 +338,8 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
               file: _files[slot],
               uploaded: _isUploaded(slot, application),
               isNext: slot == nextRequired,
-              enabled: !_uploading,
+              enabled: !_uploading && !_validating.contains(slot),
+              validating: _validating.contains(slot),
               onTap: () => _chooseSource(slot),
             ),
             const SizedBox(height: AppSpacing.md),
@@ -340,6 +388,8 @@ enum _KycSlot {
 
   bool get acceptsCamera => this != _KycSlot.licence;
 
+  bool get isCnic => this == _KycSlot.cnicFront || this == _KycSlot.cnicBack;
+
   bool get acceptsDocument => switch (this) {
     _KycSlot.waterTest || _KycSlot.licence => true,
     _ => false,
@@ -355,6 +405,237 @@ enum _KycSlot {
 
 enum _PickerAction { camera, gallery, document, remove }
 
+class _DocumentSourceSheet extends StatelessWidget {
+  const _DocumentSourceSheet({required this.slot, required this.hasSelection});
+
+  final _KycSlot slot;
+  final bool hasSelection;
+
+  String get _title => switch (slot) {
+    _KycSlot.cnicFront || _KycSlot.cnicBack => 'Add CNIC photo',
+    _KycSlot.waterTest => 'Add water test',
+    _KycSlot.licence => 'Add business document',
+    _KycSlot.plantPhoto => 'Add plant photo',
+  };
+
+  String get _subtitle => switch (slot) {
+    _KycSlot.cnicFront ||
+    _KycSlot.cnicBack => 'Front side first, then the back.',
+    _KycSlot.waterTest => 'Upload a clear certificate photo or PDF.',
+    _KycSlot.licence => 'Upload your NTN or business licence.',
+    _KycSlot.plantPhoto => 'Choose a clear photo of your water plant.',
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final heightFactor = slot.acceptsDocument ? 0.9 : 0.79;
+
+    return FractionallySizedBox(
+      heightFactor: heightFactor,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(42)),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 22),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight - 42,
+              ),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        width: 92,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: AppColors.neutral400.withValues(alpha: 0.52),
+                          borderRadius: BorderRadius.circular(AppRadius.pill),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 34),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Text(
+                        _title,
+                        style: AppTypography.heading(size: 31),
+                      ),
+                    ),
+                    const SizedBox(height: 9),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Text(
+                        _subtitle,
+                        style: AppTypography.body(
+                          size: 17,
+                          height: 1.35,
+                          color: AppColors.neutral600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 30),
+                    if (slot.acceptsCamera) ...[
+                      _SourceActionCard(
+                        icon: Icons.photo_camera_rounded,
+                        iconColor: AppColors.accent,
+                        title: 'Take photo',
+                        subtitle: 'Use the camera now',
+                        outlined: true,
+                        onTap: () =>
+                            Navigator.pop(context, _PickerAction.camera),
+                      ),
+                      const SizedBox(height: 16),
+                      _SourceActionCard(
+                        icon: Icons.photo_library_rounded,
+                        iconColor: AppColors.accent2,
+                        title: 'Upload from gallery',
+                        subtitle: 'Pick a photo you already have',
+                        onTap: () =>
+                            Navigator.pop(context, _PickerAction.gallery),
+                      ),
+                    ],
+                    if (slot.acceptsDocument) ...[
+                      if (slot.acceptsCamera) const SizedBox(height: 16),
+                      _SourceActionCard(
+                        icon: Icons.description_rounded,
+                        iconColor: AppColors.accent700,
+                        title: 'Choose document',
+                        subtitle: 'Pick a PDF, JPG or PNG',
+                        outlined: !slot.acceptsCamera,
+                        onTap: () =>
+                            Navigator.pop(context, _PickerAction.document),
+                      ),
+                    ],
+                    const Spacer(),
+                    if (hasSelection)
+                      TextButton(
+                        onPressed: () =>
+                            Navigator.pop(context, _PickerAction.remove),
+                        child: Text(
+                          'Remove selected file',
+                          style: AppTypography.body(
+                            size: 16,
+                            weight: FontWeight.w700,
+                            color: AppColors.danger,
+                          ),
+                        ),
+                      ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 13),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: AppTypography.body(
+                          size: 20,
+                          weight: FontWeight.w700,
+                          color: AppColors.neutral600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SourceActionCard extends StatelessWidget {
+  const _SourceActionCard({
+    required this.icon,
+    required this.iconColor,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.outlined = false,
+  });
+
+  final IconData icon;
+  final Color iconColor;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: AppColors.surface,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(28),
+      side: outlined
+          ? const BorderSide(color: AppColors.accent, width: 2.4)
+          : BorderSide.none,
+    ),
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: onTap,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 112),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 17),
+          child: Row(
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: iconColor,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: Colors.white, size: 28),
+              ),
+              const SizedBox(width: 17),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.heading(size: 20),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body(
+                        size: 15.5,
+                        height: 1.28,
+                        color: AppColors.neutral600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.neutral400,
+                size: 31,
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 class _DocumentUploadTile extends StatelessWidget {
   const _DocumentUploadTile({
     required this.slot,
@@ -362,6 +643,7 @@ class _DocumentUploadTile extends StatelessWidget {
     required this.uploaded,
     required this.isNext,
     required this.enabled,
+    required this.validating,
     required this.onTap,
   });
 
@@ -370,6 +652,7 @@ class _DocumentUploadTile extends StatelessWidget {
   final bool uploaded;
   final bool isNext;
   final bool enabled;
+  final bool validating;
   final VoidCallback onTap;
 
   @override
@@ -411,7 +694,11 @@ class _DocumentUploadTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 3),
                 Text(
-                  file != null
+                  validating
+                      ? 'Checking that this is the correct CNIC side…'
+                      : file != null && slot.isCnic
+                      ? 'CNIC checked · ${_fileName(file!.path)}'
+                      : file != null
                       ? '${_fileName(file!.path)} · ${_fileSize(file!)}'
                       : uploaded
                       ? 'Uploaded securely'
@@ -429,10 +716,16 @@ class _DocumentUploadTile extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Icon(
-            uploaded ? Icons.check_circle_rounded : Icons.add_circle_outline,
-            color: uploaded ? AppColors.accent2 : AppColors.accent,
-          ),
+          if (validating)
+            const SizedBox.square(
+              dimension: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.4),
+            )
+          else
+            Icon(
+              uploaded ? Icons.check_circle_rounded : Icons.add_circle_outline,
+              color: uploaded ? AppColors.accent2 : AppColors.accent,
+            ),
         ],
       ),
     );

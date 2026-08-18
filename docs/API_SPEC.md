@@ -1068,12 +1068,16 @@ verification waiting room.
 | --- | --- | --- |
 | `cnic_front` | ✅ | image |
 | `cnic_back` | ✅ | image |
+| `cnic_front_ocr` | ✅ | on-device OCR evidence; max 10,000 characters |
+| `cnic_back_ocr` | ✅ | on-device OCR evidence; max 10,000 characters |
 | `water_test` | ✅ | water testing certificate |
 | `licence` | | NTN / business licence — speeds up approval |
 | `plant_photo` | | shown on the store page |
 
-Accept JPEG/PNG/PDF, max 5 MB each. Strip EXIF. Store privately — **CNIC images
-must never be reachable by a public URL.**
+CNIC accepts JPEG/PNG; other documents accept JPEG/PNG/PDF. Maximum 5 MB each.
+The server rejects unreadable/non-CNIC images, reversed or duplicate sides, and
+mismatched identity numbers before saving. Strip EXIF and store privately —
+**CNIC images must never be reachable by a public URL.**
 
 Response: `{"data": {"verification_status": "documentsUploaded"}}`
 
