@@ -43,21 +43,47 @@ therefore optional — the documented paths work against a bare bench.
 
 ## Configuration
 
+Almost everything operational lives on the **Aqua Settings** single DocType
+(Desk → Aqua Mart → Aqua Settings), not in site config, so it can be changed
+without a deploy. Defaults match the spec, and the doc does not need to be
+saved for them to apply.
+
+| Section | Controls |
+| --- | --- |
+| OTP Delivery | `console` / `whatsapp` / `sms`, plus a fixed dev code |
+| OTP Limits | TTL, max attempts, resend interval, hourly cap |
+| WhatsApp | Meta Cloud API, UltraMsg, or OpenWA credentials |
+| SMS | Twilio, or any generic `{phone}` / `{message}` gateway |
+| Tokens | access and refresh lifetimes |
+| Commerce | deposit, commission rate, low-stock threshold, dispute window |
+| Push | FCM server key |
+
+Credentials use `Password` fields, so they are encrypted at rest. The
+settings are cached for 5 minutes and the cache is cleared on save, so the
+hot paths (every OTP, every token mint) do not hit the database.
+
+**For app development without a gateway:** leave the provider on `console`,
+tick *Use Fixed Dev Code*, and every OTP becomes `472901`. The controller
+refuses that combination on a live provider, so it cannot be left on by
+accident. In `console` mode the code is written to the Error Log — the only
+place a plaintext code is ever recorded, and never reachable by the app.
+The API never returns the code in any mode (§4.1).
+
+Only two keys remain in `site_config.json`:
+
 | site_config key | Purpose |
 | --- | --- |
 | `aqua_jwt_secret` | HS256 signing key. Set this so tokens survive a restore; falls back to the site encryption key. |
-| `aqua_fcm_key` | FCM server key for push (§9). Without it, the in-app feed and sockets still work. |
+| `aqua_fcm_key` | Legacy fallback for the FCM key if it is not set in Aqua Settings. |
 
-Pluggable integrations, via `hooks.py` in any app:
+Pluggable integrations, via `hooks.py` in any app. A hook wins over the
+Aqua Settings provider, so an integrator can bypass the built-in senders:
 
 | Hook | Signature |
 | --- | --- |
-| `aqua_sms_sender` | `(phone, message)` — OTP and rider invites |
+| `aqua_sms_sender` | `(phone, code)` — OTP and rider invites |
 | `aqua_push_sender` | `(tokens, payload)` — replaces the default FCM call |
 | `aqua_card_tokeniser` | `(customer, number, holder, expiry, cvv, save)` — PSP tokenisation |
-
-Without an SMS sender configured, OTP codes are written to the Error Log in
-developer mode only, and never returned by the API (§4.1).
 
 ## Open questions
 
@@ -65,12 +91,14 @@ Appendix C items are implemented with a stated default, all in one place:
 
 | # | Question | Current behaviour | Where |
 | --- | --- | --- | --- |
-| 1 | Delivery fee | flat per seller, waived over `free_delivery_over` | `services/pricing.py` |
-| 2 | Commission | 10% of gross, deposits excluded | `tasks.py::COMMISSION_RATE` |
+| 1 | Delivery fee | flat per seller, waived over `free_delivery_over` | `Aqua Seller Profile` |
+| 2 | Commission | 10% of gross, deposits excluded | **Aqua Settings** → Commission Rate |
 | 3 | Khata approval | `Aqua Khata.is_approved`, no self-serve request flow yet | `api/wallet.py` |
 | 4 | Rider pay | per-rider `per_delivery` / `on_time_bonus` | `Aqua Rider Profile` |
-| 5 | Deposit | Rs 300 default, per-bottle override | `constants.DEFAULT_DEPOSIT` |
+| 5 | Deposit | Rs 300, per-bottle override | **Aqua Settings** → Default Deposit |
 | 6 | Multi-seller carts | one seller per order, enforced | `api/orders.py` |
 | 7 | Rider exclusivity | one seller per rider | `Aqua Rider Profile.seller` |
 
 Change any of these in the one place listed rather than at call sites.
+The commission rate in particular is a placeholder and needs a business
+answer before real payouts run.
