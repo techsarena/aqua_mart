@@ -9,11 +9,18 @@ class AppLocation {
     required this.latitude,
     required this.longitude,
     required this.label,
+    this.country,
+    this.isoCountryCode,
   });
 
   final double latitude;
   final double longitude;
   final String label;
+
+  /// Kept from the geocoder so a result can be checked against the country
+  /// the app serves — coordinates alone cannot separate border cities.
+  final String? country;
+  final String? isoCountryCode;
 }
 
 /// Keeps permission, GPS and native geocoding details out of the UI layer.
@@ -57,10 +64,13 @@ class AppLocationService {
         longitude,
       );
       if (places.isNotEmpty) {
+        final place = places.first;
         return AppLocation(
           latitude: latitude,
           longitude: longitude,
-          label: _placemarkLabel(places.first),
+          label: _placemarkLabel(place),
+          country: place.country,
+          isoCountryCode: place.isoCountryCode,
         );
       }
     } catch (_) {
@@ -94,9 +104,22 @@ class AppLocationService {
 
     final results = <AppLocation>[];
     for (final match in matches.take(8)) {
+      // Cheap box check first, so an obviously foreign hit costs no
+      // reverse-geocode round trip.
       if (!Pakistan.contains(match.latitude, match.longitude)) continue;
 
       final location = await reverse(match.latitude, match.longitude);
+
+      // Then the authoritative check: the box alone cannot separate a border
+      // city such as Kabul from northern Pakistan.
+      if (!Pakistan.matches(
+        country: location.country,
+        isoCountryCode: location.isoCountryCode,
+        latitude: location.latitude,
+        longitude: location.longitude,
+      )) {
+        continue;
+      }
       final duplicate = results.any(
         (item) =>
             item.label == location.label &&

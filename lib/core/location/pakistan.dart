@@ -15,7 +15,16 @@ abstract final class Pakistan {
   static const south = 23.5;
   static const north = 37.2;
   static const west = 60.7;
-  static const east = 77.9;
+
+  /// The eastern edge, used for the map camera. It has to reach ~77°E to
+  /// include the far northeast (Siachen), which is well east of Lahore.
+  static const east = 77.3;
+
+  /// East of this, the country only extends in the north — so a single
+  /// rectangle would also swallow Delhi (28.6N, 77.2E), which sits at the
+  /// same longitude as the northeast but far to the south.
+  static const _northeastOnlyEast = 75.9;
+  static const _northeastMinLatitude = 32.0;
 
   /// The country's rough centre, used as a first view before any pin exists.
   static const centre = LatLng(30.3753, 69.3451);
@@ -27,12 +36,21 @@ abstract final class Pakistan {
   static final LatLng southWest = LatLng(south, west);
   static final LatLng northEast = LatLng(north, east);
 
-  /// True when a point is inside the country box.
-  static bool contains(double latitude, double longitude) =>
-      latitude >= south &&
-      latitude <= north &&
-      longitude >= west &&
-      longitude <= east;
+  /// True when a point is inside the country.
+  ///
+  /// Not a plain rectangle: the eastern limit steps back below the northern
+  /// latitudes, because a box wide enough for Siachen would otherwise include
+  /// Delhi and much of northern India.
+  static bool contains(double latitude, double longitude) {
+    if (latitude < south || latitude > north) return false;
+    if (longitude < west || longitude > east) return false;
+
+    // The far east is northern territory only.
+    if (longitude > _northeastOnlyEast) {
+      return latitude >= _northeastMinLatitude;
+    }
+    return true;
+  }
 
   /// True when a geocoded result belongs to Pakistan.
   ///
