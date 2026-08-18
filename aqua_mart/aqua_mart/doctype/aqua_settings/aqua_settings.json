@@ -1,0 +1,380 @@
+{
+ "actions": [],
+ "creation": "2026-08-18 00:00:00",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "delivery_section",
+  "provider",
+  "use_fixed_dev_code",
+  "fixed_dev_code",
+  "limits_section",
+  "otp_ttl_seconds",
+  "max_attempts",
+  "column_break_limits",
+  "resend_interval_seconds",
+  "hourly_limit",
+  "whatsapp_section",
+  "whatsapp_backend",
+  "whatsapp_phone_number_id",
+  "whatsapp_access_token",
+  "whatsapp_api_version",
+  "whatsapp_otp_template_name",
+  "whatsapp_otp_template_lang",
+  "ultramsg_instance_id",
+  "ultramsg_token",
+  "ultramsg_base_url",
+  "ultramsg_priority",
+  "openwaapi_base_url",
+  "openwaapi_api_key",
+  "openwaapi_session_id",
+  "sms_section",
+  "sms_backend",
+  "twilio_account_sid",
+  "twilio_auth_token",
+  "twilio_from_number",
+  "sms_gateway_url",
+  "sms_gateway_api_key",
+  "tokens_section",
+  "access_token_ttl_minutes",
+  "column_break_tokens",
+  "refresh_token_ttl_days",
+  "commerce_section",
+  "default_deposit",
+  "commission_rate",
+  "column_break_commerce",
+  "low_stock_threshold",
+  "dispute_window_hours",
+  "push_section",
+  "fcm_server_key"
+ ],
+ "fields": [
+  {
+   "fieldname": "delivery_section",
+   "fieldtype": "Section Break",
+   "label": "OTP Delivery"
+  },
+  {
+   "default": "console",
+   "description": "console = store the code in the Error Log and skip sending. Switch to whatsapp/sms once provider credentials are configured. The code is never returned by the API in any mode.",
+   "fieldname": "provider",
+   "fieldtype": "Select",
+   "label": "Provider",
+   "options": "console\nwhatsapp\nsms",
+   "reqd": 1
+  },
+  {
+   "default": "0",
+   "description": "When on, every console-mode OTP uses the fixed code below (handy for app development). When off, a random 6-digit code is generated. Ignored unless provider is console.",
+   "fieldname": "use_fixed_dev_code",
+   "fieldtype": "Check",
+   "label": "Use Fixed Dev Code"
+  },
+  {
+   "default": "472901",
+   "depends_on": "eval:doc.use_fixed_dev_code",
+   "fieldname": "fixed_dev_code",
+   "fieldtype": "Data",
+   "label": "Fixed Dev Code",
+   "length": 6
+  },
+  {
+   "fieldname": "limits_section",
+   "fieldtype": "Section Break",
+   "label": "OTP Limits"
+  },
+  {
+   "default": "300",
+   "description": "How long a code is valid for, in seconds. API_SPEC 4.1 asks for 5 minutes.",
+   "fieldname": "otp_ttl_seconds",
+   "fieldtype": "Int",
+   "label": "OTP TTL (seconds)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "5",
+   "description": "Lock the code after this many wrong tries.",
+   "fieldname": "max_attempts",
+   "fieldtype": "Int",
+   "label": "Max Attempts",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_limits",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "30",
+   "description": "Minimum seconds between consecutive OTP requests for the same phone. Sent to the client as resend_after_seconds, which drives its countdown.",
+   "fieldname": "resend_interval_seconds",
+   "fieldtype": "Int",
+   "label": "Resend Interval (seconds)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "3",
+   "description": "Maximum OTP requests per phone per hour. API_SPEC 4.1 asks for 3 per 15 minutes.",
+   "fieldname": "hourly_limit",
+   "fieldtype": "Int",
+   "label": "Hourly Limit",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "depends_on": "eval:doc.provider=='whatsapp'",
+   "fieldname": "whatsapp_section",
+   "fieldtype": "Section Break",
+   "label": "WhatsApp"
+  },
+  {
+   "default": "meta",
+   "depends_on": "eval:doc.provider=='whatsapp'",
+   "description": "Which WhatsApp backend to send through. meta = official Cloud API. ultramsg / openwaapi send free-form text.",
+   "fieldname": "whatsapp_backend",
+   "fieldtype": "Select",
+   "label": "WhatsApp Backend",
+   "options": "meta\nultramsg\nopenwaapi"
+  },
+  {
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='meta'",
+   "description": "Meta Cloud API phone_number_id from the WhatsApp app.",
+   "fieldname": "whatsapp_phone_number_id",
+   "fieldtype": "Data",
+   "label": "WhatsApp Phone Number ID"
+  },
+  {
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='meta'",
+   "description": "Meta Cloud API access token. Stored encrypted.",
+   "fieldname": "whatsapp_access_token",
+   "fieldtype": "Password",
+   "label": "WhatsApp Access Token"
+  },
+  {
+   "default": "v18.0",
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='meta'",
+   "description": "Graph API version to call.",
+   "fieldname": "whatsapp_api_version",
+   "fieldtype": "Data",
+   "label": "WhatsApp API Version"
+  },
+  {
+   "default": "aqua_otp",
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='meta'",
+   "description": "Approved template name used for OTP messages.",
+   "fieldname": "whatsapp_otp_template_name",
+   "fieldtype": "Data",
+   "label": "WhatsApp OTP Template Name"
+  },
+  {
+   "default": "en",
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='meta'",
+   "description": "Template language code.",
+   "fieldname": "whatsapp_otp_template_lang",
+   "fieldtype": "Data",
+   "label": "WhatsApp OTP Template Language"
+  },
+  {
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='ultramsg'",
+   "description": "UltraMsg instance id, e.g. instance182401.",
+   "fieldname": "ultramsg_instance_id",
+   "fieldtype": "Data",
+   "label": "UltraMsg Instance ID"
+  },
+  {
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='ultramsg'",
+   "description": "UltraMsg instance token. Stored encrypted.",
+   "fieldname": "ultramsg_token",
+   "fieldtype": "Password",
+   "label": "UltraMsg Token"
+  },
+  {
+   "default": "https://api.ultramsg.com",
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='ultramsg'",
+   "fieldname": "ultramsg_base_url",
+   "fieldtype": "Data",
+   "label": "UltraMsg Base URL"
+  },
+  {
+   "default": "10",
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='ultramsg'",
+   "description": "Message priority (1-10).",
+   "fieldname": "ultramsg_priority",
+   "fieldtype": "Int",
+   "label": "UltraMsg Priority"
+  },
+  {
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='openwaapi'",
+   "description": "OpenWA API base URL. You can paste it with or without the trailing /api.",
+   "fieldname": "openwaapi_base_url",
+   "fieldtype": "Data",
+   "label": "OpenWA API Base URL"
+  },
+  {
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='openwaapi'",
+   "description": "OpenWA API key. Stored encrypted.",
+   "fieldname": "openwaapi_api_key",
+   "fieldtype": "Password",
+   "label": "OpenWA API Key"
+  },
+  {
+   "depends_on": "eval:doc.provider=='whatsapp' && doc.whatsapp_backend=='openwaapi'",
+   "description": "Connected OpenWA session ID/name used to send OTPs.",
+   "fieldname": "openwaapi_session_id",
+   "fieldtype": "Data",
+   "label": "OpenWA Session ID"
+  },
+  {
+   "depends_on": "eval:doc.provider=='sms'",
+   "fieldname": "sms_section",
+   "fieldtype": "Section Break",
+   "label": "SMS"
+  },
+  {
+   "default": "twilio",
+   "depends_on": "eval:doc.provider=='sms'",
+   "description": "twilio = Twilio REST API. generic = any gateway that accepts a GET/POST with the phone and message as query parameters.",
+   "fieldname": "sms_backend",
+   "fieldtype": "Select",
+   "label": "SMS Backend",
+   "options": "twilio\ngeneric"
+  },
+  {
+   "depends_on": "eval:doc.provider=='sms' && doc.sms_backend=='twilio'",
+   "fieldname": "twilio_account_sid",
+   "fieldtype": "Data",
+   "label": "Twilio Account SID"
+  },
+  {
+   "depends_on": "eval:doc.provider=='sms' && doc.sms_backend=='twilio'",
+   "description": "Stored encrypted.",
+   "fieldname": "twilio_auth_token",
+   "fieldtype": "Password",
+   "label": "Twilio Auth Token"
+  },
+  {
+   "depends_on": "eval:doc.provider=='sms' && doc.sms_backend=='twilio'",
+   "description": "The sender number, in E.164.",
+   "fieldname": "twilio_from_number",
+   "fieldtype": "Data",
+   "label": "Twilio From Number"
+  },
+  {
+   "depends_on": "eval:doc.provider=='sms' && doc.sms_backend=='generic'",
+   "description": "Full gateway URL. {phone} and {message} placeholders are substituted.",
+   "fieldname": "sms_gateway_url",
+   "fieldtype": "Data",
+   "label": "SMS Gateway URL"
+  },
+  {
+   "depends_on": "eval:doc.provider=='sms' && doc.sms_backend=='generic'",
+   "description": "Sent as the api_key parameter. Stored encrypted.",
+   "fieldname": "sms_gateway_api_key",
+   "fieldtype": "Password",
+   "label": "SMS Gateway API Key"
+  },
+  {
+   "fieldname": "tokens_section",
+   "fieldtype": "Section Break",
+   "label": "Tokens"
+  },
+  {
+   "default": "60",
+   "description": "Access token lifetime. API_SPEC 4.2 asks for 60 minutes.",
+   "fieldname": "access_token_ttl_minutes",
+   "fieldtype": "Int",
+   "label": "Access Token TTL (minutes)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_tokens",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "60",
+   "description": "Refresh token lifetime. API_SPEC 4.2 asks for 60 days. Refresh tokens rotate on use.",
+   "fieldname": "refresh_token_ttl_days",
+   "fieldtype": "Int",
+   "label": "Refresh Token TTL (days)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "description": "Business rules left open by API_SPEC Appendix C. Changing a value here changes it everywhere.",
+   "fieldname": "commerce_section",
+   "fieldtype": "Section Break",
+   "label": "Commerce"
+  },
+  {
+   "default": "300",
+   "description": "Appendix C q5. Refundable deposit per bottle, in rupees, when a bottle has no deposit of its own.",
+   "fieldname": "default_deposit",
+   "fieldtype": "Int",
+   "label": "Default Deposit (Rs)",
+   "non_negative": 1
+  },
+  {
+   "default": "10",
+   "description": "Appendix C q2. Percent of gross sales taken as commission on the weekly payout. Deposits are excluded from the base.",
+   "fieldname": "commission_rate",
+   "fieldtype": "Percent",
+   "label": "Commission Rate (%)"
+  },
+  {
+   "fieldname": "column_break_commerce",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "5",
+   "description": "A bottle at or below this filled stock raises the seller's low-stock label and hourly alert.",
+   "fieldname": "low_stock_threshold",
+   "fieldtype": "Int",
+   "label": "Low Stock Threshold",
+   "non_negative": 1
+  },
+  {
+   "default": "24",
+   "description": "API_SPEC 6.7. A dispute left unsettled this long is escalated and the seller's rating is protected.",
+   "fieldname": "dispute_window_hours",
+   "fieldtype": "Int",
+   "label": "Dispute Window (hours)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "push_section",
+   "fieldtype": "Section Break",
+   "label": "Push Notifications"
+  },
+  {
+   "description": "FCM server key for push (API_SPEC 9). Leave blank to disable push - the in-app feed and sockets still work. Stored encrypted.",
+   "fieldname": "fcm_server_key",
+   "fieldtype": "Password",
+   "label": "FCM Server Key"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 0,
+   "print": 0,
+   "read": 1,
+   "role": "System Manager",
+   "share": 0,
+   "write": 1
+  }
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
