@@ -52,11 +52,19 @@ class MainActivity : FlutterActivity() {
                             val hasBackBarcode =
                                 barcodeTask.isSuccessful && barcodeTask.result.isNotEmpty()
 
-                            if (!textTask.isSuccessful && !hasBackBarcode) {
-                                val error = textTask.exception ?: barcodeTask.exception
+                            // Text recognition is what the SERVER re-checks, and
+                            // it only ever sees this string - it cannot see the
+                            // barcode. Reporting success with empty text let a
+                            // card pass on-device (on barcode evidence alone)
+                            // and then be rejected on upload, which is a dead
+                            // end for the user. An unreadable card must fail
+                            // here, while the model is still on screen.
+                            if (!textTask.isSuccessful || text.isBlank()) {
+                                val error = textTask.exception
                                 result.error(
                                     "ocr_failed",
-                                    error?.message ?: "Could not read this CNIC.",
+                                    error?.message
+                                        ?: "Could not read any text on this card.",
                                     null,
                                 )
                             } else {

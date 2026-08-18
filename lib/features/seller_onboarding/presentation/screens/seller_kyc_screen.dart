@@ -283,13 +283,18 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
 
     final cnicFront = _files[_KycSlot.cnicFront];
     final cnicBack = _files[_KycSlot.cnicBack];
-    final cnicFrontOcr = _cnicResults[_KycSlot.cnicFront]?.ocrText;
-    final cnicBackOcr = _cnicResults[_KycSlot.cnicBack]?.ocrText;
     final waterTest = _files[_KycSlot.waterTest];
+
+    // A `_cnicResults` entry exists only for a side that PASSED on-device
+    // validation, and that check is now the only one there is — the server no
+    // longer re-reads the card. So both sides must have one before uploading.
+    final frontChecked = _cnicResults.containsKey(_KycSlot.cnicFront);
+    final backChecked = _cnicResults.containsKey(_KycSlot.cnicBack);
+
     if (cnicFront == null ||
         cnicBack == null ||
-        cnicFrontOcr == null ||
-        cnicBackOcr == null ||
+        !frontChecked ||
+        !backChecked ||
         waterTest == null) {
       _showMessage('Add both CNIC photos and the water testing certificate.');
       return;
@@ -301,8 +306,6 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
         .uploadDocuments(
           cnicFront: cnicFront,
           cnicBack: cnicBack,
-          cnicFrontOcr: cnicFrontOcr,
-          cnicBackOcr: cnicBackOcr,
           waterTest: waterTest,
           licence: _files[_KycSlot.licence],
           plantPhoto: _files[_KycSlot.plantPhoto],

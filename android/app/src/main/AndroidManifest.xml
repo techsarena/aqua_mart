@@ -34,6 +34,14 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <!-- Install the CNIC OCR + barcode models with the app.
+             Without this, ML Kit downloads them from Play Services on first
+             use: the text recogniser then returns an EMPTY string until the
+             download finishes, which read as "no text on the card" and made
+             the server reject a perfectly good CNIC. -->
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="ocr,barcode" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

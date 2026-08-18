@@ -199,8 +199,6 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
   Future<Result<void>> uploadDocuments({
     required File cnicFront,
     required File cnicBack,
-    required String cnicFrontOcr,
-    required String cnicBackOcr,
     required File waterTest,
     File? licence,
     File? plantPhoto,
@@ -210,8 +208,6 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
         .uploadDocuments(
           cnicFront: cnicFront,
           cnicBack: cnicBack,
-          cnicFrontOcr: cnicFrontOcr,
-          cnicBackOcr: cnicBackOcr,
           waterTest: waterTest,
           licence: licence,
           plantPhoto: plantPhoto,
