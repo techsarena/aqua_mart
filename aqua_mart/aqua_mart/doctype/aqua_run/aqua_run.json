@@ -1,0 +1,90 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "rider",
+  "seller",
+  "label",
+  "cb0",
+  "run_date",
+  "seller_name",
+  "finished_at"
+ ],
+ "fields": [
+  {
+   "fieldname": "rider",
+   "label": "Rider",
+   "fieldtype": "Link",
+   "options": "Aqua Rider Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seller",
+   "label": "Seller",
+   "fieldtype": "Link",
+   "options": "Aqua Seller Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "label",
+   "label": "Label",
+   "fieldtype": "Data",
+   "default": "Morning run",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "run_date",
+   "label": "Date",
+   "fieldtype": "Date",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seller_name",
+   "label": "Seller Name",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "finished_at",
+   "label": "Finished At",
+   "fieldtype": "Datetime"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Run",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:RUN-{#####}",
+ "title_field": "label"
+}

@@ -1,0 +1,163 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "order",
+  "order_reference",
+  "seller",
+  "customer",
+  "customer_name",
+  "cb0",
+  "reason",
+  "customer_note",
+  "order_summary",
+  "amount",
+  "has_photo",
+  "sec_res",
+  "raised_at",
+  "status",
+  "cb1",
+  "resolution",
+  "resolved_at",
+  "customer_history"
+ ],
+ "fields": [
+  {
+   "fieldname": "order",
+   "label": "Order",
+   "fieldtype": "Link",
+   "options": "Aqua Order",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "order_reference",
+   "label": "Order Reference",
+   "fieldtype": "Data",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seller",
+   "label": "Seller",
+   "fieldtype": "Link",
+   "options": "Aqua Seller Profile",
+   "reqd": 1
+  },
+  {
+   "fieldname": "customer",
+   "label": "Customer",
+   "fieldtype": "Link",
+   "options": "User"
+  },
+  {
+   "fieldname": "customer_name",
+   "label": "Customer Name",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "reason",
+   "label": "Reason",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer_note",
+   "label": "Customer Note",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "order_summary",
+   "label": "Order Summary",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "amount",
+   "label": "Amount",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "has_photo",
+   "label": "Has Photo",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "sec_res",
+   "label": "Resolution",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "raised_at",
+   "label": "Raised At",
+   "fieldtype": "Datetime",
+   "reqd": 1,
+   "description": "The moment the customer reported it. NEVER rewrite - the 24h clock depends on it."
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "options": "open\nresolved\nescalated",
+   "default": "open",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb1",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "resolution",
+   "label": "Resolution",
+   "fieldtype": "Select",
+   "options": "\nreplacement\nrefund\nescalate"
+  },
+  {
+   "fieldname": "resolved_at",
+   "label": "Resolved At",
+   "fieldtype": "Datetime"
+  },
+  {
+   "fieldname": "customer_history",
+   "label": "Customer History",
+   "fieldtype": "Data",
+   "description": "Composed server-side: \"Her first complaint in 14 orders\""
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Dispute",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:DSP-{#####}"
+}

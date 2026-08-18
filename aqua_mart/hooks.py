@@ -250,3 +250,47 @@ app_license = "mit"
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
 
+# ---------------------------------------------------------------------------
+# Aqua Mart API (see API_SPEC.md)
+# ---------------------------------------------------------------------------
+
+# The Flutter client calls clean REST paths under /v1 (API_SPEC 1.1), which
+# are served from before_request. Order matters: the Bearer JWT is resolved
+# into a session first, then the API handler answers /v1/* outright.
+#
+# before_request (rather than a page_renderer) because frappe/app.py routes
+# only GET/HEAD/POST into the website stack, and the spec needs PATCH, PUT
+# and DELETE as well. A bad token is ignored by the resolver rather than
+# raising, so /auth/* never answers 401 for an expired-token reason (1.4).
+before_request = [
+	"aqua_mart.services.tokens.resolve_request",
+	"aqua_mart.api.renderer.serve_api",
+]
+
+scheduler_events = {
+	"cron": {
+		# time out top-ups: pending > 5 min -> failed
+		"* * * * *": ["aqua_mart.tasks.timeout_topups"],
+		# expire OTPs, and roll yesterday's manual store close off
+		"*/5 * * * *": [
+			"aqua_mart.tasks.expire_otps",
+			"aqua_mart.tasks.apply_business_hours",
+		],
+		# weekly payouts, Monday 06:00
+		"0 6 * * 1": ["aqua_mart.tasks.build_weekly_payouts"],
+	},
+	"hourly": [
+		"aqua_mart.tasks.escalate_stale_disputes",
+		"aqua_mart.tasks.low_stock_alerts",
+	],
+	"daily": [
+		"aqua_mart.tasks.khata_reminders",
+	],
+}
+
+after_install = "aqua_mart.install.after_install"
+
+# Fixtures ship the three app roles so a fresh site has them.
+fixtures = [
+	{"dt": "Role", "filters": [["name", "in", ["Aqua Customer", "Aqua Seller", "Aqua Rider"]]]},
+]

@@ -1,0 +1,331 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "business_name",
+  "owner_name",
+  "business_type",
+  "purification",
+  "logo_url",
+  "cb0",
+  "verification_status",
+  "submitted_at",
+  "rejection_reason",
+  "is_suspended",
+  "sec_ops",
+  "is_open",
+  "manual_close_date",
+  "eta_minutes",
+  "free_delivery_over",
+  "delivery_fee",
+  "cb1",
+  "rating",
+  "rating_total",
+  "rating_count",
+  "sec_loc",
+  "latitude",
+  "longitude",
+  "radius_km",
+  "cb2",
+  "areas",
+  "sec_hours",
+  "days",
+  "opens_at",
+  "closes_at",
+  "sec_kyc",
+  "cnic_front",
+  "cnic_back",
+  "water_test",
+  "cb3",
+  "licence",
+  "plant_photo",
+  "sells_other_sizes",
+  "sec_sync",
+  "sync_online",
+  "sync_pending",
+  "last_synced_at"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "label": "User",
+   "fieldtype": "Link",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "business_name",
+   "label": "Business Name",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "owner_name",
+   "label": "Owner Name",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "business_type",
+   "label": "Business Type",
+   "fieldtype": "Select",
+   "options": "roPlant\nwaterShop\ndistributor\nmineralBrand"
+  },
+  {
+   "fieldname": "purification",
+   "label": "Purification",
+   "fieldtype": "Data",
+   "description": "Free text shown as-is: \"RO + UV\""
+  },
+  {
+   "fieldname": "logo_url",
+   "label": "Logo URL",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "verification_status",
+   "label": "Verification Status",
+   "fieldtype": "Select",
+   "options": "detailsReceived\ndocumentsUploaded\ninReview\napproved\nrejected",
+   "default": "detailsReceived",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "submitted_at",
+   "label": "Submitted At",
+   "fieldtype": "Datetime"
+  },
+  {
+   "fieldname": "rejection_reason",
+   "label": "Rejection Reason",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "is_suspended",
+   "label": "Suspended",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "sec_ops",
+   "label": "Operations",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "is_open",
+   "label": "Is Open",
+   "fieldtype": "Check",
+   "default": "1",
+   "description": "Manual toggle; overrides business hours for the rest of the day"
+  },
+  {
+   "fieldname": "manual_close_date",
+   "label": "Manual Close Date",
+   "fieldtype": "Date",
+   "description": "The day the manual toggle applies to; cleared at next opening"
+  },
+  {
+   "fieldname": "eta_minutes",
+   "label": "ETA Minutes",
+   "fieldtype": "Int",
+   "default": "25"
+  },
+  {
+   "fieldname": "free_delivery_over",
+   "label": "Free Delivery Over",
+   "fieldtype": "Int",
+   "description": "Rupees. 0 = always free, empty = no offer"
+  },
+  {
+   "fieldname": "delivery_fee",
+   "label": "Delivery Fee",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "cb1",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rating",
+   "label": "Rating",
+   "fieldtype": "Float",
+   "default": "0",
+   "precision": "1"
+  },
+  {
+   "fieldname": "rating_total",
+   "label": "Rating Total",
+   "fieldtype": "Int",
+   "default": "0",
+   "description": "Sum of stars; rating = rating_total / rating_count"
+  },
+  {
+   "fieldname": "rating_count",
+   "label": "Rating Count",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "sec_loc",
+   "label": "Location & Area",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "latitude",
+   "label": "Latitude",
+   "fieldtype": "Float",
+   "precision": "6"
+  },
+  {
+   "fieldname": "longitude",
+   "label": "Longitude",
+   "fieldtype": "Float",
+   "precision": "6"
+  },
+  {
+   "fieldname": "radius_km",
+   "label": "Radius (km)",
+   "fieldtype": "Float",
+   "default": "5"
+  },
+  {
+   "fieldname": "cb2",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "areas",
+   "label": "Service Areas",
+   "fieldtype": "Table",
+   "options": "Aqua Service Area"
+  },
+  {
+   "fieldname": "sec_hours",
+   "label": "Business Hours",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "days",
+   "label": "Days",
+   "fieldtype": "Data",
+   "default": "0,1,2,3,4,5,6",
+   "description": "0 = Monday ... 6 = Sunday, comma separated"
+  },
+  {
+   "fieldname": "opens_at",
+   "label": "Opens At",
+   "fieldtype": "Time",
+   "default": "08:00:00"
+  },
+  {
+   "fieldname": "closes_at",
+   "label": "Closes At",
+   "fieldtype": "Time",
+   "default": "22:00:00"
+  },
+  {
+   "fieldname": "sec_kyc",
+   "label": "KYC Documents",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "cnic_front",
+   "label": "CNIC Front",
+   "fieldtype": "Attach",
+   "description": "Private storage only"
+  },
+  {
+   "fieldname": "cnic_back",
+   "label": "CNIC Back",
+   "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "water_test",
+   "label": "Water Test Certificate",
+   "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "cb3",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "licence",
+   "label": "Licence / NTN",
+   "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "plant_photo",
+   "label": "Plant Photo",
+   "fieldtype": "Attach"
+  },
+  {
+   "fieldname": "sells_other_sizes",
+   "label": "Sells Other Sizes",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "sec_sync",
+   "label": "ERP Sync",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "sync_online",
+   "label": "Sync Online",
+   "fieldtype": "Check",
+   "default": "1"
+  },
+  {
+   "fieldname": "sync_pending",
+   "label": "Sync Pending",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "last_synced_at",
+   "label": "Last Synced At",
+   "fieldtype": "Datetime"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Seller Profile",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:SELL-{####}",
+ "title_field": "business_name",
+ "track_changes": 1
+}

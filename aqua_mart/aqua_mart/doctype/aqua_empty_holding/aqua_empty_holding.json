@@ -1,0 +1,105 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "customer",
+  "seller",
+  "seller_name",
+  "litres",
+  "cb0",
+  "count",
+  "deposit",
+  "pending_return",
+  "pending_handling"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "label": "Customer",
+   "fieldtype": "Link",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seller",
+   "label": "Seller",
+   "fieldtype": "Link",
+   "options": "Aqua Seller Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seller_name",
+   "label": "Seller Name",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "litres",
+   "label": "Litres",
+   "fieldtype": "Int",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "count",
+   "label": "Count",
+   "fieldtype": "Int",
+   "default": "0",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "deposit",
+   "label": "Deposit",
+   "fieldtype": "Int",
+   "default": "0",
+   "description": "Total for this holding (count x per-bottle deposit)"
+  },
+  {
+   "fieldname": "pending_return",
+   "label": "Pending Return",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "pending_handling",
+   "label": "Pending Handling",
+   "fieldtype": "Select",
+   "options": "\nswap\nrefund"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Empty Holding",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:EMP-{#####}"
+}

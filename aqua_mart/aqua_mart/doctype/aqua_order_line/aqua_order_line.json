@@ -1,0 +1,70 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "bottle",
+  "litres",
+  "item_name",
+  "kind",
+  "unit_price",
+  "quantity"
+ ],
+ "fields": [
+  {
+   "fieldname": "bottle",
+   "label": "Bottle",
+   "fieldtype": "Link",
+   "options": "Aqua Bottle",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "litres",
+   "label": "Litres",
+   "fieldtype": "Int",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "item_name",
+   "label": "Name",
+   "fieldtype": "Data",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "kind",
+   "label": "Kind",
+   "fieldtype": "Select",
+   "options": "refill\nbuyNew",
+   "in_list_view": 1,
+   "description": "Only refills generate empties to collect"
+  },
+  {
+   "fieldname": "unit_price",
+   "label": "Unit Price",
+   "fieldtype": "Int",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "quantity",
+   "label": "Quantity",
+   "fieldtype": "Int",
+   "default": "1",
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Order Line",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "istable": 1
+}

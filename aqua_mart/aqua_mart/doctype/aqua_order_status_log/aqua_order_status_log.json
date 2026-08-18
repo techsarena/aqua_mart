@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "order",
+  "status",
+  "at",
+  "cb0",
+  "actor",
+  "title",
+  "subtitle"
+ ],
+ "fields": [
+  {
+   "fieldname": "order",
+   "label": "Order",
+   "fieldtype": "Link",
+   "options": "Aqua Order",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "options": "pending\naccepted\npacked\nonTheWay\ndelivered\ncancelledByCustomer\nrejectedBySeller",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "at",
+   "label": "At",
+   "fieldtype": "Datetime",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "actor",
+   "label": "Actor",
+   "fieldtype": "Link",
+   "options": "User"
+  },
+  {
+   "fieldname": "title",
+   "label": "Title",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "subtitle",
+   "label": "Subtitle",
+   "fieldtype": "Data"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Order Status Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "at",
+ "sort_order": "ASC",
+ "states": [],
+ "autoname": "hash"
+}

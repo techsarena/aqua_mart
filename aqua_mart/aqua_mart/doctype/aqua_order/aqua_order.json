@@ -1,0 +1,286 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "reference",
+  "customer",
+  "customer_name",
+  "seller",
+  "seller_name",
+  "cb0",
+  "status",
+  "payment_method",
+  "placed_at",
+  "delivery_fee",
+  "eta_minutes",
+  "idempotency_key",
+  "sec_lines",
+  "lines",
+  "sec_addr",
+  "address",
+  "address_label",
+  "address_title",
+  "address_area",
+  "address_house_number",
+  "cb1",
+  "address_rider_note",
+  "address_latitude",
+  "address_longitude",
+  "address_is_default",
+  "sec_rider",
+  "rider",
+  "rider_name",
+  "cb2",
+  "rider_rating",
+  "sec_outcome",
+  "rating",
+  "rating_comment",
+  "rating_tags",
+  "cb3",
+  "cancellation_reason",
+  "rejection_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "reference",
+   "label": "Reference",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "description": "Customer-facing order number, e.g. SO-2418"
+  },
+  {
+   "fieldname": "customer",
+   "label": "Customer",
+   "fieldtype": "Link",
+   "options": "User",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "label": "Customer Name",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "seller",
+   "label": "Seller",
+   "fieldtype": "Link",
+   "options": "Aqua Seller Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seller_name",
+   "label": "Seller Name",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "options": "pending\naccepted\npacked\nonTheWay\ndelivered\ncancelledByCustomer\nrejectedBySeller",
+   "default": "pending",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "payment_method",
+   "label": "Payment Method",
+   "fieldtype": "Select",
+   "options": "cash\nwallet\njazzCash\ncard\nkhata",
+   "default": "cash"
+  },
+  {
+   "fieldname": "placed_at",
+   "label": "Placed At",
+   "fieldtype": "Datetime"
+  },
+  {
+   "fieldname": "delivery_fee",
+   "label": "Delivery Fee",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "eta_minutes",
+   "label": "ETA Minutes",
+   "fieldtype": "Int"
+  },
+  {
+   "fieldname": "idempotency_key",
+   "label": "Idempotency Key",
+   "fieldtype": "Data",
+   "description": "POST /orders replays return the original order"
+  },
+  {
+   "fieldname": "sec_lines",
+   "label": "Lines",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "lines",
+   "label": "Lines",
+   "fieldtype": "Table",
+   "options": "Aqua Order Line"
+  },
+  {
+   "fieldname": "sec_addr",
+   "label": "Delivery Address (snapshot)",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "address",
+   "label": "Address",
+   "fieldtype": "Link",
+   "options": "Aqua Address",
+   "description": "Reference only. The fields below are the snapshot the order renders."
+  },
+  {
+   "fieldname": "address_label",
+   "label": "Label",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "address_title",
+   "label": "Title",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "address_area",
+   "label": "Area",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "address_house_number",
+   "label": "House Number",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "cb1",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "address_rider_note",
+   "label": "Rider Note",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "address_latitude",
+   "label": "Latitude",
+   "fieldtype": "Float",
+   "precision": "6"
+  },
+  {
+   "fieldname": "address_longitude",
+   "label": "Longitude",
+   "fieldtype": "Float",
+   "precision": "6"
+  },
+  {
+   "fieldname": "address_is_default",
+   "label": "Was Default",
+   "fieldtype": "Check",
+   "default": "0"
+  },
+  {
+   "fieldname": "sec_rider",
+   "label": "Rider",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rider",
+   "label": "Rider",
+   "fieldtype": "Link",
+   "options": "Aqua Rider Profile"
+  },
+  {
+   "fieldname": "rider_name",
+   "label": "Rider Name",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "cb2",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "rider_rating",
+   "label": "Rider Rating",
+   "fieldtype": "Float",
+   "precision": "1"
+  },
+  {
+   "fieldname": "sec_outcome",
+   "label": "Outcome",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rating",
+   "label": "Rating",
+   "fieldtype": "Int",
+   "description": "1-5, empty until rated"
+  },
+  {
+   "fieldname": "rating_comment",
+   "label": "Rating Comment",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "rating_tags",
+   "label": "Rating Tags",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "cb3",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "cancellation_reason",
+   "label": "Cancellation Reason",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "rejection_reason",
+   "label": "Rejection Reason",
+   "fieldtype": "Small Text"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Order",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:ORD-{#####}",
+ "title_field": "reference",
+ "track_changes": 1
+}

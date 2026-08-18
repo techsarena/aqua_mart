@@ -1,0 +1,129 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "seller",
+  "litres",
+  "bottle_name",
+  "description",
+  "photo_url",
+  "cb0",
+  "refill_price",
+  "new_price",
+  "deposit",
+  "filled_stock",
+  "empties_in_yard",
+  "is_visible"
+ ],
+ "fields": [
+  {
+   "fieldname": "seller",
+   "label": "Seller",
+   "fieldtype": "Link",
+   "options": "Aqua Seller Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "litres",
+   "label": "Litres",
+   "fieldtype": "Select",
+   "options": "6\n10\n25",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Integers on the wire; only 6/10/25 are understood by the client"
+  },
+  {
+   "fieldname": "bottle_name",
+   "label": "Name",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "description",
+   "label": "Description",
+   "fieldtype": "Small Text"
+  },
+  {
+   "fieldname": "photo_url",
+   "label": "Photo URL",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "refill_price",
+   "label": "Refill Price",
+   "fieldtype": "Int",
+   "default": "0",
+   "description": "Customer hands over an empty bottle"
+  },
+  {
+   "fieldname": "new_price",
+   "label": "New Price",
+   "fieldtype": "Int",
+   "default": "0",
+   "description": "Customer keeps the bottle. Any chargeable deposit is already inside this."
+  },
+  {
+   "fieldname": "deposit",
+   "label": "Deposit",
+   "fieldtype": "Int",
+   "default": "300",
+   "description": "Refundable on return. NOT added to new_price by the client."
+  },
+  {
+   "fieldname": "filled_stock",
+   "label": "Filled Stock",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "empties_in_yard",
+   "label": "Empties In Yard",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "is_visible",
+   "label": "Is Visible",
+   "fieldtype": "Check",
+   "default": "1",
+   "description": "false = hidden from customers entirely, still listed for the seller"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Bottle",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:BOTL-{####}",
+ "title_field": "bottle_name"
+}

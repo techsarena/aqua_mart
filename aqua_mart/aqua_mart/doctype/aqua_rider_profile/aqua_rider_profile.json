@@ -1,0 +1,190 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "full_name",
+  "seller",
+  "cnic",
+  "phone",
+  "cb0",
+  "vehicle",
+  "registration_number",
+  "status",
+  "approval_status",
+  "sec_perf",
+  "rating",
+  "rating_total",
+  "rating_count",
+  "cash_in_hand",
+  "cb1",
+  "per_delivery",
+  "on_time_bonus",
+  "fuel_advance",
+  "latitude",
+  "longitude"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "label": "User",
+   "fieldtype": "Link",
+   "options": "User",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "full_name",
+   "label": "Full Name",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "seller",
+   "label": "Seller",
+   "fieldtype": "Link",
+   "options": "Aqua Seller Profile",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cnic",
+   "label": "CNIC",
+   "fieldtype": "Data",
+   "description": "13 digits. Never shown to customers."
+  },
+  {
+   "fieldname": "phone",
+   "label": "Phone",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "vehicle",
+   "label": "Vehicle",
+   "fieldtype": "Select",
+   "options": "motorbike\nrickshaw\nloader\nonFoot"
+  },
+  {
+   "fieldname": "registration_number",
+   "label": "Registration Number",
+   "fieldtype": "Data",
+   "description": "Required for every vehicle except onFoot"
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "options": "onRun\nidle\noffDuty",
+   "default": "idle",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "approval_status",
+   "label": "Approval Status",
+   "fieldtype": "Select",
+   "options": "detailsReceived\ndocumentsUploaded\ninReview\napproved\nrejected",
+   "default": "detailsReceived",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sec_perf",
+   "label": "Performance",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "rating",
+   "label": "Rating",
+   "fieldtype": "Float",
+   "default": "0",
+   "precision": "1"
+  },
+  {
+   "fieldname": "rating_total",
+   "label": "Rating Total",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "rating_count",
+   "label": "Rating Count",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "cash_in_hand",
+   "label": "Cash In Hand",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "cb1",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "per_delivery",
+   "label": "Per Delivery",
+   "fieldtype": "Int",
+   "default": "45"
+  },
+  {
+   "fieldname": "on_time_bonus",
+   "label": "On Time Bonus",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "fuel_advance",
+   "label": "Fuel Advance",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "latitude",
+   "label": "Latitude",
+   "fieldtype": "Float",
+   "precision": "6"
+  },
+  {
+   "fieldname": "longitude",
+   "label": "Longitude",
+   "fieldtype": "Float",
+   "precision": "6"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Rider Profile",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:RIDR-{####}",
+ "title_field": "full_name",
+ "track_changes": 1
+}

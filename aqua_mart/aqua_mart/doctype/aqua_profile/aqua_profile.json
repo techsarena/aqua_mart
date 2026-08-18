@@ -1,0 +1,115 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "user",
+  "phone",
+  "role",
+  "full_name",
+  "cb0",
+  "gender",
+  "date_of_birth",
+  "avatar_url",
+  "is_profile_complete",
+  "is_verified"
+ ],
+ "fields": [
+  {
+   "fieldname": "user",
+   "label": "User",
+   "fieldtype": "Link",
+   "options": "User",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "phone",
+   "label": "Phone",
+   "fieldtype": "Data",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "description": "E.164, e.g. +923004412987"
+  },
+  {
+   "fieldname": "role",
+   "label": "Role",
+   "fieldtype": "Select",
+   "options": "customer\nseller\nrider",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "full_name",
+   "label": "Full Name",
+   "fieldtype": "Data",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gender",
+   "label": "Gender",
+   "fieldtype": "Select",
+   "options": "\nfemale\nmale\nunspecified"
+  },
+  {
+   "fieldname": "date_of_birth",
+   "label": "Date of Birth",
+   "fieldtype": "Date"
+  },
+  {
+   "fieldname": "avatar_url",
+   "label": "Avatar URL",
+   "fieldtype": "Data"
+  },
+  {
+   "fieldname": "is_profile_complete",
+   "label": "Profile Complete",
+   "fieldtype": "Check",
+   "default": "0",
+   "description": "Set by PATCH /auth/profile - the client's onboarding depends on it"
+  },
+  {
+   "fieldname": "is_verified",
+   "label": "Verified",
+   "fieldtype": "Check",
+   "default": "0"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Profile",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "format:CUST-{####}",
+ "title_field": "full_name",
+ "track_changes": 1
+}

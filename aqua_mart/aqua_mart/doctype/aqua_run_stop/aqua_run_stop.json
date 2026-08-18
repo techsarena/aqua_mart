@@ -1,0 +1,127 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "creation": "2026-08-18 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "run",
+  "order",
+  "sequence",
+  "status",
+  "cb0",
+  "amount_to_collect",
+  "empties_to_collect",
+  "distance_metres",
+  "plot_x",
+  "plot_y",
+  "completed_at",
+  "failure_reason"
+ ],
+ "fields": [
+  {
+   "fieldname": "run",
+   "label": "Run",
+   "fieldtype": "Link",
+   "options": "Aqua Run",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "order",
+   "label": "Order",
+   "fieldtype": "Link",
+   "options": "Aqua Order",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "sequence",
+   "label": "Sequence",
+   "fieldtype": "Int",
+   "default": "0",
+   "in_list_view": 1,
+   "description": "Stop order IS the delivery order; the client takes the first pending stop as next"
+  },
+  {
+   "fieldname": "status",
+   "label": "Status",
+   "fieldtype": "Select",
+   "options": "pending\ndelivered\nfailed",
+   "default": "pending",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cb0",
+   "label": "",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "amount_to_collect",
+   "label": "Amount To Collect",
+   "fieldtype": "Int",
+   "default": "0",
+   "description": "0 for anything already paid - only cash orders carry a figure"
+  },
+  {
+   "fieldname": "empties_to_collect",
+   "label": "Empties To Collect",
+   "fieldtype": "Int",
+   "default": "0"
+  },
+  {
+   "fieldname": "distance_metres",
+   "label": "Distance Metres",
+   "fieldtype": "Int",
+   "description": "Measured from the PREVIOUS stop, not the depot"
+  },
+  {
+   "fieldname": "plot_x",
+   "label": "Plot X",
+   "fieldtype": "Float",
+   "precision": "3"
+  },
+  {
+   "fieldname": "plot_y",
+   "label": "Plot Y",
+   "fieldtype": "Float",
+   "precision": "3"
+  },
+  {
+   "fieldname": "completed_at",
+   "label": "Completed At",
+   "fieldtype": "Datetime"
+  },
+  {
+   "fieldname": "failure_reason",
+   "label": "Failure Reason",
+   "fieldtype": "Small Text"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-08-18 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Aqua Mart",
+ "name": "Aqua Run Stop",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "sequence",
+ "sort_order": "ASC",
+ "states": [],
+ "autoname": "format:STOP-{#####}"
+}
