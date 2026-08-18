@@ -124,6 +124,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         // a role home. Registration routes remain freely navigable so Back
         // works; each route checkpoints itself when it becomes visible.
         if (_isResumableRegistrationPath(location)) return null;
+
+        // A seller waiting on approval is pinned to the waiting room. Every
+        // seller endpoint answers 403 until the store is approved, so letting
+        // them into the shell yields a screen of errors they cannot act on.
+        // The waiting room itself clears this checkpoint once the server says
+        // approved, which is what reopens the rest of the app.
+        if (resumeRoute == AppRoutes.sellerVerificationPath) return resumeRoute;
+
         if (location == AppRoutes.splashPath || inOnboarding) {
           return resumeRoute;
         }

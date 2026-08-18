@@ -38,7 +38,15 @@ class SellerDashboardScreen extends ConsumerWidget {
                 color: AppColors.textMuted(0.55),
               ),
             ),
-            Text('Chashma Pure Water', style: AppTypography.heading(size: 19)),
+            // The seller's own store name. Blank until the dashboard lands,
+            // so the bar keeps its height instead of showing a placeholder
+            // name that is not theirs.
+            Text(
+              async.value?.businessName ?? '',
+              style: AppTypography.heading(size: 19),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ],
         ),
         actions: const [

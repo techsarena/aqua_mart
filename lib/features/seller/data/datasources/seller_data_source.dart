@@ -3,6 +3,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../catalog/data/models/bottle_dto.dart';
 import '../../../orders/data/models/order_dto.dart';
 import '../../domain/entities/seller_dashboard.dart';
+import '../../domain/entities/service_area.dart';
 
 abstract interface class SellerRemoteDataSource {
   Future<SellerDashboard> fetchDashboard();
@@ -18,6 +19,8 @@ abstract interface class SellerRemoteDataSource {
   Future<List<Payout>> fetchPayouts();
   Future<Dispute> fetchDispute(String id);
   Future<void> resolveDispute(String id, DisputeResolution resolution);
+  Future<ServiceArea> fetchServiceArea();
+  Future<ServiceArea> saveServiceArea(ServiceArea area);
 }
 
 class SellerApiDataSource implements SellerRemoteDataSource {
@@ -30,6 +33,10 @@ class SellerApiDataSource implements SellerRemoteDataSource {
     final data =
         await _client.getObject(ApiEndpoints.sellerDashboard) ?? const {};
     return SellerDashboard(
+      businessName: data['business_name'] as String? ?? '',
+      // "Verified seller" means the store passed review, not that the person
+      // confirmed a phone number.
+      isVerified: data['verification_status'] == 'approved',
       ordersToday: (data['orders_today'] as num?)?.toInt() ?? 0,
       delivered: (data['delivered'] as num?)?.toInt() ?? 0,
       earned: (data['earned'] as num?)?.toInt() ?? 0,
@@ -139,6 +146,23 @@ class SellerApiDataSource implements SellerRemoteDataSource {
         ApiEndpoints.resolveDispute(id),
         body: {'resolution': resolution.name},
       );
+
+  @override
+  Future<ServiceArea> fetchServiceArea() async {
+    final json = await _client.getObject(ApiEndpoints.serviceArea);
+    return ServiceArea.fromJson(json ?? const {});
+  }
+
+  @override
+  Future<ServiceArea> saveServiceArea(ServiceArea area) async {
+    final json = await _client.putObject(
+      ApiEndpoints.serviceArea,
+      body: area.toJson(),
+    );
+    // The server echoes the stored area back, so the screen shows what was
+    // actually saved rather than what was sent.
+    return ServiceArea.fromJson(json ?? const {});
+  }
 
   Rider _riderFrom(Map<String, dynamic> json) => Rider(
     id: '${json['id']}',

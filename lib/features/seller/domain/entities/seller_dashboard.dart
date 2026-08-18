@@ -31,9 +31,19 @@ class SellerDashboard extends Equatable {
     required this.earned,
     required this.isOpen,
     required this.sync,
+    this.businessName = '',
+    this.isVerified = false,
     this.pendingCount = 0,
     this.lowStockLabel,
   });
+
+  /// The store's own name — what the header and profile show. Empty until the
+  /// dashboard loads, so call sites fall back rather than printing nothing.
+  final String businessName;
+
+  /// True once the store is approved, which is what the "Verified seller"
+  /// badge means.
+  final bool isVerified;
 
   final int ordersToday;
   final int delivered;
@@ -49,6 +59,10 @@ class SellerDashboard extends Equatable {
 
   SellerDashboard copyWith({bool? isOpen, ErpSyncState? sync}) =>
       SellerDashboard(
+        // Carried through: the open/closed toggle copies optimistically, and
+        // dropping these would blank the seller's own name on every tap.
+        businessName: businessName,
+        isVerified: isVerified,
         ordersToday: ordersToday,
         delivered: delivered,
         earned: earned,
@@ -59,7 +73,17 @@ class SellerDashboard extends Equatable {
       );
 
   @override
-  List<Object?> get props => [ordersToday, delivered, earned, isOpen, sync];
+  List<Object?> get props => [
+    businessName,
+    isVerified,
+    ordersToday,
+    delivered,
+    earned,
+    isOpen,
+    sync,
+    pendingCount,
+    lowStockLabel,
+  ];
 }
 
 /// One of the seller's riders.

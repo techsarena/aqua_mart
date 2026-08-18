@@ -7,18 +7,43 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_card.dart';
-import '../../../../shared/widgets/sticky_action_bar.dart';
 import '../../../auth/presentation/providers/auth_providers.dart';
+import '../../../catalog/domain/entities/seller.dart';
 import '../providers/seller_onboarding_providers.dart';
 
-/// The waiting room. Deliberately not a dead end: the seller can set up their
-/// area and stock now so orders arrive the minute approval lands.
-class SellerVerificationScreen extends ConsumerWidget {
+/// The waiting room, and a gate: while the store is `inReview` this is the
+/// ONLY screen a seller can reach.
+///
+/// The seller app assumes an approved store — its endpoints answer 403 until
+/// then — so letting someone in early produces a shell full of errors they
+/// cannot act on. The status is re-read from the server on every visit rather
+/// than trusted from local state, and the seller is released into the app
+/// only when it comes back `approved`.
+class SellerVerificationScreen extends ConsumerStatefulWidget {
   const SellerVerificationScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SellerVerificationScreen> createState() =>
+      _SellerVerificationScreenState();
+}
+
+class _SellerVerificationScreenState
+    extends ConsumerState<SellerVerificationScreen> {
+  @override
+  Widget build(BuildContext context) {
     final application = ref.watch(sellerApplicationProvider);
+    final verification = ref.watch(sellerVerificationProvider);
+
+    // Approval is what ends the wait. Releasing the registration checkpoint
+    // is what lets the router route anywhere else, so it happens here and
+    // nowhere else.
+    ref.listen(sellerVerificationProvider, (_, next) {
+      final status = next.value?.status;
+      if (status == SellerVerificationStatus.approved) _release();
+    });
+
+    final serverStatus = verification.value?.status;
+    final isRejected = serverStatus == SellerVerificationStatus.rejected;
 
     final steps = <({String title, String subtitle, bool done, bool active})>[
       (
@@ -66,25 +91,35 @@ class SellerVerificationScreen extends ConsumerWidget {
             width: 72,
             height: 72,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
-              color: AppColors.accent100,
+            decoration: BoxDecoration(
+              color: isRejected ? AppColors.dangerBg : AppColors.accent100,
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.hourglass_top_rounded,
+            child: Icon(
+              isRejected
+                  ? Icons.error_outline_rounded
+                  : Icons.hourglass_top_rounded,
               size: 32,
-              color: AppColors.accent,
+              color: isRejected ? AppColors.danger : AppColors.accent,
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            "We're checking your papers",
+            isRejected
+                ? 'We could not approve your store'
+                : "We're checking your papers",
             style: AppTypography.heading(size: 27),
           ),
           const SizedBox(height: AppSpacing.sm),
           Text(
-            "Usually done within a day. We'll send a notification the moment "
-            "you're live — no need to wait here.",
+            // A rejected seller is owed the reason, not an endless wait.
+            isRejected
+                ? (verification.value?.rejectionReason?.trim().isNotEmpty ??
+                          false
+                      ? verification.value!.rejectionReason!
+                      : 'Please call support and we will talk it through.')
+                : "Usually done within a day. We'll send a notification the "
+                      "moment you're live — no need to wait here.",
             style: AppTypography.body(
               size: 14,
               color: AppColors.textMuted(0.65),
@@ -109,40 +144,97 @@ class SellerVerificationScreen extends ConsumerWidget {
           ),
 
           const SizedBox(height: AppSpacing.lg),
+          // The old note invited the seller to set up their area now. That
+          // is not possible before approval — every seller endpoint 403s —
+          // so it promised something the app could not deliver.
           AppNote(
-            icon: Icons.rocket_launch_outlined,
+            icon: isRejected
+                ? Icons.support_agent_outlined
+                : Icons.notifications_active_outlined,
             text: '',
-            richText: const TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Get a head start: ',
-                  style: TextStyle(fontWeight: FontWeight.w800),
-                ),
-                TextSpan(
-                  text:
-                      'set your delivery area and stock now so orders arrive '
-                      'the minute you\'re approved.',
-                ),
-              ],
+            richText: TextSpan(
+              children: isRejected
+                  ? const [
+                      TextSpan(
+                        text: 'Next step: ',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      TextSpan(
+                        text:
+                            'call support on 0800-AQUAMART and we will help '
+                            'you fix it and re-apply.',
+                      ),
+                    ]
+                  : const [
+                      TextSpan(
+                        text: 'Nothing to do here: ',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      TextSpan(
+                        text:
+                            'we will notify you the moment your store is '
+                            'approved, and your area and stock come next.',
+                      ),
+                    ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: StickyActionBar(
-        label: 'Set up my delivery area',
-        // Straight into the seller app, where area and stock live.
-        onPressed: () async {
-          await ref.read(sessionProvider.notifier).completeRegistration();
-          if (context.mounted) {
-            context.goNamed(AppRoutes.sellerServiceArea);
-          }
-        },
-        secondaryLabel: 'Call support · 0800-AQUAMART',
-        onSecondary: () => ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Calling 0800-AQUAMART…'))),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.xl,
+            AppSpacing.sm,
+            AppSpacing.xl,
+            AppSpacing.md,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // No "set up my area" here: the seller endpoints require an
+              // approved store, so that button led straight into a wall of
+              // 403s. Checking the status again is the only useful action
+              // while the review is open.
+              SizedBox(
+                height: 52,
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: verification.isLoading
+                      ? null
+                      : () => ref.invalidate(sellerVerificationProvider),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: Text(
+                    verification.isLoading ? 'Checking…' : 'Check again',
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              TextButton(
+                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Calling 0800-AQUAMART…')),
+                ),
+                child: Text(
+                  'Call support · 0800-AQUAMART',
+                  style: AppTypography.body(
+                    size: 13,
+                    weight: FontWeight.w600,
+                    color: AppColors.textMuted(0.7),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
+  }
+
+  /// Ends the wait: clears the registration checkpoint so the router stops
+  /// pinning this seller here, then sends them into their store.
+  Future<void> _release() async {
+    await ref.read(sessionProvider.notifier).completeRegistration();
+    if (mounted) context.goNamed(AppRoutes.sellerDashboard);
   }
 }
 

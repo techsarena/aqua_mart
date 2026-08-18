@@ -8,6 +8,7 @@ import 'package:aqua_mart/core/network/api_environment.dart';
 import 'package:aqua_mart/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:aqua_mart/features/auth/domain/entities/user_role.dart';
 import 'package:aqua_mart/features/auth/domain/repositories/auth_repository.dart';
+import 'package:dio/dio.dart';
 
 /// Drives the REAL data sources against a running bench.
 ///
@@ -71,5 +72,48 @@ void main() {
   test('the environment points at the bench', () {
     expect(ApiEnvironment.baseUrl, contains('/v1'));
     expect(ApiEnvironment.siteName, isNotEmpty);
+  });
+
+  test('the seller dashboard carries the store\'s own name', () async {
+    final auth = AuthApiDataSource(client);
+    final phone = freshPhone();
+    await auth.requestOtp(phone);
+    final session = await auth.verifyOtp(
+      phone: phone,
+      code: '472901',
+      draft: const SignUpDraft(fullName: 'Owner', role: UserRole.seller),
+    );
+
+    // A client carrying this brand-new seller's token.
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: ApiEnvironment.baseUrl,
+        headers: {
+          'Authorization': 'Bearer ${session.accessToken}',
+          'X-Frappe-Site-Name': ApiEnvironment.siteName,
+        },
+      ),
+    );
+    await dio.post<dynamic>(
+      '/seller/register',
+      data: {
+        'business_name': 'Live Dart Water Co',
+        'owner_name': 'Owner',
+        'business_type': 'roPlant',
+      },
+    );
+
+    // The dashboard requires an approved store. Unapproved, it must 403 —
+    // the guarantee the waiting-room gate depends on.
+    await expectLater(
+      dio.get<dynamic>('/seller/dashboard'),
+      throwsA(
+        isA<DioException>().having(
+          (e) => e.response?.statusCode,
+          'status',
+          403,
+        ),
+      ),
+    );
   });
 }

@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../../core/location/app_location.dart';
 import '../../../../core/location/location_providers.dart';
+import '../../../../core/location/pakistan.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -394,8 +395,14 @@ class _MapPaneState extends State<_MapPane> {
             options: MapOptions(
               initialCenter: _point,
               initialZoom: 16,
-              minZoom: 3,
+              minZoom: 5,
               maxZoom: 19,
+              // Deliveries only happen in Pakistan, so an address cannot be
+              // dropped outside it. Constraining the centre (the pin) rather
+              // than the whole view keeps panning natural near a border.
+              cameraConstraint: CameraConstraint.containCenter(
+                bounds: LatLngBounds(Pakistan.southWest, Pakistan.northEast),
+              ),
               onPositionChanged: (camera, hasGesture) {
                 if (hasGesture) widget.onMapMoved(camera.center);
               },

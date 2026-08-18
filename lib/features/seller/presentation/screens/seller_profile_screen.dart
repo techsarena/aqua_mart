@@ -26,7 +26,14 @@ class SellerProfileScreen extends ConsumerWidget {
     final session = ref.watch(sessionProvider);
     final riders = ref.watch(sellerRidersProvider).value ?? const <Rider>[];
     final nextPayout = ref.watch(sellerPayoutsProvider).value?.firstOrNull;
-    final sync = ref.watch(sellerDashboardProvider).value?.sync;
+    final dashboard = ref.watch(sellerDashboardProvider).value;
+    final sync = dashboard?.sync;
+    // The store's name, from the same place the header reads it. Falls back
+    // to the person's name so the avatar still has initials to draw while the
+    // dashboard is in flight.
+    final storeName = (dashboard?.businessName.isNotEmpty ?? false)
+        ? dashboard!.businessName
+        : (session.user?.fullName ?? '');
 
     return Scaffold(
       body: ListView(
@@ -42,8 +49,8 @@ class SellerProfileScreen extends ConsumerWidget {
           // above it.
           Row(
             children: [
-              const AppAvatar(
-                name: 'Chashma Pure Water',
+              AppAvatar(
+                name: storeName,
                 size: 70,
                 background: AppColors.accent2_200,
                 foreground: AppColors.accent2Deep,
@@ -54,15 +61,20 @@ class SellerProfileScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Chashma Pure Water',
+                      storeName,
                       style: AppTypography.heading(size: 25),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    const AppTag(
-                      'Verified seller',
-                      tone: TagTone.accent2,
-                      icon: Icons.check_rounded,
-                    ),
+                    // Shown only for an approved store — the badge claims
+                    // Aqua Mart checked this seller's papers.
+                    if (dashboard?.isVerified ?? false)
+                      const AppTag(
+                        'Verified seller',
+                        tone: TagTone.accent2,
+                        icon: Icons.check_rounded,
+                      ),
                   ],
                 ),
               ),

@@ -10,6 +10,7 @@ import '../../../orders/domain/entities/order.dart';
 import '../../../orders/domain/entities/order_status.dart';
 import '../../data/datasources/seller_data_source.dart';
 import '../../domain/entities/seller_dashboard.dart';
+import '../../domain/entities/service_area.dart';
 
 final sellerDataSourceProvider = Provider<SellerRemoteDataSource>((ref) {
   return SellerApiDataSource(ref.watch(apiClientProvider));
@@ -195,3 +196,29 @@ final sellerPayoutsProvider = FutureProvider<List<Payout>>(
 final disputeProvider = FutureProvider.family<Dispute, String>(
   (ref, id) => ref.watch(sellerDataSourceProvider).fetchDispute(id),
 );
+
+/// The seller's delivery area, as the server holds it.
+class ServiceAreaNotifier extends AsyncNotifier<ServiceArea> {
+  @override
+  Future<ServiceArea> build() =>
+      ref.watch(sellerDataSourceProvider).fetchServiceArea();
+
+  /// Persists the area and adopts whatever the server stored.
+  Future<Result<void>> save(ServiceArea area) async {
+    final result = await Result.guard(
+      () => ref.read(sellerDataSourceProvider).saveServiceArea(area),
+    );
+    return result.when(
+      success: (saved) {
+        state = AsyncData(saved);
+        return const Result.success(null);
+      },
+      failure: Result.failure,
+    );
+  }
+}
+
+final serviceAreaProvider =
+    AsyncNotifierProvider<ServiceAreaNotifier, ServiceArea>(
+      ServiceAreaNotifier.new,
+    );

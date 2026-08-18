@@ -1,6 +1,8 @@
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
+import 'pakistan.dart';
+
 /// A map point plus the human-readable value shown in address fields.
 class AppLocation {
   const AppLocation({
@@ -73,13 +75,27 @@ class AppLocationService {
 
   /// Uses the platform geocoder, then reverse-geocodes each result so the
   /// picker can show and save the exact value selected by the customer.
+  ///
+  /// Results outside Pakistan are dropped: the app delivers water there and
+  /// nowhere else, and many Pakistani place names ("Model Town", "Johar
+  /// Town") also exist abroad, so an unfiltered search offers addresses no
+  /// rider could ever reach.
   Future<List<AppLocation>> search(String query) async {
     final trimmed = query.trim();
     if (trimmed.isEmpty) return const [];
 
-    final matches = await _geocoding.locationFromAddress(trimmed);
+    // Naming the country in the query biases the geocoder towards Pakistan
+    // before we filter, so the five results we get back are the useful ones.
+    final matches = await _geocoding.locationFromAddress(
+      trimmed.toLowerCase().contains(Pakistan.countryName.toLowerCase())
+          ? trimmed
+          : '$trimmed, ${Pakistan.countryName}',
+    );
+
     final results = <AppLocation>[];
-    for (final match in matches.take(5)) {
+    for (final match in matches.take(8)) {
+      if (!Pakistan.contains(match.latitude, match.longitude)) continue;
+
       final location = await reverse(match.latitude, match.longitude);
       final duplicate = results.any(
         (item) =>
@@ -88,6 +104,7 @@ class AppLocationService {
             item.longitude == location.longitude,
       );
       if (!duplicate) results.add(location);
+      if (results.length == 5) break;
     }
     return results;
   }
