@@ -28,9 +28,9 @@ class OrderRejectedScreen extends ConsumerWidget {
     final order = ref.watch(orderByIdProvider(orderId)).value;
     final address = ref.watch(selectedAddressProvider);
     final alternatives =
-        (address == null
-                ? null
-                : ref.watch(nearbySellersProvider(address.id)).value)
+        ref
+            .watch(nearbySellersProvider(address?.id))
+            .value
             ?.where((s) => s.id != order?.sellerId && s.isOpen)
             .take(2)
             .toList() ??

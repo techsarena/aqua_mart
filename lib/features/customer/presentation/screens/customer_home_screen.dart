@@ -83,9 +83,10 @@ class CustomerHomeScreen extends ConsumerWidget {
     final unread = ref.watch(unreadNotificationCountProvider);
     final usual = ref.watch(usualOrderProvider);
 
-    final sellersAsync = address == null
-        ? const AsyncValue<List<dynamic>>.loading()
-        : ref.watch(nearbySellersProvider(address.id));
+    // Without an address this used to sit on a loading spinner forever. The
+    // shelf now falls back to every approved seller, so a customer who has
+    // not saved an address still has something to order from.
+    final sellersAsync = ref.watch(nearbySellersProvider(address?.id));
 
     return Scaffold(
       body: SafeArea(
@@ -115,9 +116,7 @@ class CustomerHomeScreen extends ConsumerWidget {
               child: RefreshIndicator(
                 onRefresh: () async {
                   ref.invalidate(addressBookProvider);
-                  if (address != null) {
-                    ref.invalidate(nearbySellersProvider(address.id));
-                  }
+                  ref.invalidate(nearbySellersProvider(address?.id));
                 },
                 child: ListView(
                   padding: const EdgeInsets.only(bottom: AppSpacing.xxl),
@@ -144,7 +143,7 @@ class CustomerHomeScreen extends ConsumerWidget {
                         AsyncError(:final error) => ErrorView(
                           failure: asFailure(error),
                           onRetry: () => ref.invalidate(
-                            nearbySellersProvider(address!.id),
+                            nearbySellersProvider(address?.id),
                           ),
                         ),
                         AsyncValue(value: final sellers) =>

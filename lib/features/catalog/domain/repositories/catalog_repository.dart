@@ -4,8 +4,10 @@ import '../entities/seller.dart';
 
 /// Domain-facing contract. The presentation layer only ever sees this.
 abstract interface class CatalogRepository {
+  /// Sellers that deliver to [addressId], or every approved seller when it
+  /// is null — a customer with no saved address yet must still see the shelf.
   Future<Result<List<Seller>>> nearbySellers({
-    required String addressId,
+    String? addressId,
     String? query,
   });
 

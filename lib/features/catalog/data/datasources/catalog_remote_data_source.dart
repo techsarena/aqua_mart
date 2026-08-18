@@ -15,6 +15,13 @@ abstract interface class CatalogRemoteDataSource {
     String? query,
   });
 
+  /// Every approved seller, unfiltered by address.
+  ///
+  /// A customer who has not saved an address yet still needs to see who is
+  /// out there — otherwise the app looks empty at the exact moment it should
+  /// be selling.
+  Future<List<SellerDto>> fetchAllSellers({String? query});
+
   Future<SellerDto> fetchSeller(String sellerId);
 
   Future<List<BottleDto>> fetchSellerBottles(String sellerId);
@@ -40,6 +47,15 @@ class CatalogApiDataSource implements CatalogRemoteDataSource {
     final items = await _client.getList(
       ApiEndpoints.sellersNearby,
       query: {'address_id': addressId, if (query != null) 'q': query},
+    );
+    return items.map(SellerDto.fromJson).toList();
+  }
+
+  @override
+  Future<List<SellerDto>> fetchAllSellers({String? query}) async {
+    final items = await _client.getList(
+      ApiEndpoints.sellers,
+      query: {if (query != null && query.isNotEmpty) 'q': query},
     );
     return items.map(SellerDto.fromJson).toList();
   }

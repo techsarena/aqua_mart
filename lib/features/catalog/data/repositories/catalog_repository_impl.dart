@@ -11,13 +11,14 @@ class CatalogRepositoryImpl implements CatalogRepository {
 
   @override
   Future<Result<List<Seller>>> nearbySellers({
-    required String addressId,
+    String? addressId,
     String? query,
   }) => Result.guard(() async {
-    final dtos = await _remote.fetchNearbySellers(
-      addressId: addressId,
-      query: query,
-    );
+    // No address yet: show everyone rather than an empty shelf. Distances
+    // come back null, which the cards already handle.
+    final dtos = addressId == null
+        ? await _remote.fetchAllSellers(query: query)
+        : await _remote.fetchNearbySellers(addressId: addressId, query: query);
     return dtos.map((d) => d.toDomain()).toList();
   });
 

@@ -41,13 +41,21 @@ class AppTag extends StatelessWidget {
             Icon(icon, size: 12, color: fg),
             const SizedBox(width: 4),
           ],
-          Text(
-            label,
-            style: AppTypography.body(
-              size: 12,
-              weight: FontWeight.w700,
-              color: fg,
-              height: 1.3,
+          // A tag is a one-line pill. Callers should shorten their own text,
+          // but an unexpectedly long label must clip rather than overflow the
+          // card it sits in.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              softWrap: false,
+              style: AppTypography.body(
+                size: 12,
+                weight: FontWeight.w700,
+                color: fg,
+                height: 1.3,
+              ),
             ),
           ),
         ],

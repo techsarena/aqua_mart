@@ -16,8 +16,9 @@ final catalogRepositoryProvider = Provider<CatalogRepository>(
   (ref) => CatalogRepositoryImpl(ref.watch(catalogDataSourceProvider)),
 );
 
-/// Sellers that deliver to the given address.
-final nearbySellersProvider = FutureProvider.family<List<Seller>, String>((
+/// Sellers that deliver to the given address, or every approved seller when
+/// the customer has no address saved yet.
+final nearbySellersProvider = FutureProvider.family<List<Seller>, String?>((
   ref,
   addressId,
 ) async {

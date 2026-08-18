@@ -68,6 +68,30 @@ abstract final class Formatters {
     return '+92 ${digits.substring(0, 3)} ${digits.substring(3)}';
   }
 
+  /// A short, recognisable area label for a tight row.
+  ///
+  /// Addresses are saved from the device geocoder, so `area` is often a whole
+  /// postal line — "Mufti Mahmood Chowk Bus Stop, Itehad Town Rd, Ittehad
+  /// Town Orangi Town, Karachi, Sindh, Pakistan". Printed whole it overflows
+  /// any chip.
+  ///
+  /// The first comma-separated part is the neighbourhood, which is what a
+  /// seller actually needs, so that is kept and only truncated if it is still
+  /// too long — and then on a word boundary, never mid-word.
+  static String areaLabel(String area, {int maxChars = 24}) {
+    final first = area.split(',').first.trim();
+    final label = first.isEmpty ? area.trim() : first;
+    if (label.length <= maxChars) return label;
+
+    // Cut back to the last space so a word is never sliced in half.
+    final clipped = label.substring(0, maxChars);
+    final lastSpace = clipped.lastIndexOf(' ');
+    final safe = lastSpace > maxChars ~/ 2
+        ? clipped.substring(0, lastSpace)
+        : clipped;
+    return '${safe.trimRight()}…';
+  }
+
   /// `AK` — avatar initials.
   static String initials(String name) {
     final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty);

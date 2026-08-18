@@ -74,7 +74,9 @@ class OrderQueueCard extends ConsumerWidget {
             spacing: AppSpacing.sm,
             runSpacing: AppSpacing.sm,
             children: [
-              AppTag(order.address.area),
+              // The saved area is a full geocoded line; the chip shows the
+              // neighbourhood so the row stays one line per fact.
+              AppTag(Formatters.areaLabel(order.address.area)),
               AppTag(order.itemsSummary),
               AppTag(order.paymentMethod.shortLabel, tone: TagTone.accent),
             ],

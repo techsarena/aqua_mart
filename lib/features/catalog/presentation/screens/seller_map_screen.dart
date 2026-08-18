@@ -48,10 +48,10 @@ class _SellerMapScreenState extends ConsumerState<SellerMapScreen> {
   @override
   Widget build(BuildContext context) {
     final address = ref.watch(selectedAddressProvider);
-    final sellers = address == null
-        ? const <Seller>[]
-        : (ref.watch(nearbySellersProvider(address.id)).value ??
-              const <Seller>[]);
+    // A customer without a saved address still sees every seller, so the map
+    // is never blank just because they have not added an address yet.
+    final sellers =
+        ref.watch(nearbySellersProvider(address?.id)).value ?? const <Seller>[];
 
     // A seller with no coordinates cannot be drawn. They stay in the list
     // view; plotting them at 0,0 would put a Lahore shop in the Atlantic.

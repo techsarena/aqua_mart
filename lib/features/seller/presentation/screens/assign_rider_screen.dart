@@ -101,7 +101,12 @@ class _AssignRiderScreenState extends ConsumerState<AssignRiderScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${order.customerName} · ${order.address.area}',
+                    // Geocoded areas run to a full postal line; shortened so
+                    // the row stays one line beside the customer's name.
+                    '${order.customerName} · '
+                    '${Formatters.areaLabel(order.address.area)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: AppTypography.body(
                       size: 14,
                       weight: FontWeight.w700,

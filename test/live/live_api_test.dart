@@ -116,4 +116,44 @@ void main() {
       ),
     );
   });
+
+  test('a customer with NO address still sees every seller', () async {
+    final auth = AuthApiDataSource(client);
+    final phone = freshPhone();
+    await auth.requestOtp(phone);
+    final session = await auth.verifyOtp(
+      phone: phone,
+      code: '472901',
+      draft: const SignUpDraft(fullName: 'Fresh', role: UserRole.customer),
+    );
+
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: ApiEnvironment.baseUrl,
+        headers: {
+          'Authorization': 'Bearer ${session.accessToken}',
+          'X-Frappe-Site-Name': ApiEnvironment.siteName,
+        },
+      ),
+    );
+
+    // Brand-new account: no addresses at all.
+    final addresses = await dio.get<Map<String, dynamic>>('/addresses');
+    expect(addresses.data!['data'], isEmpty);
+
+    // The shelf must NOT be empty just because of that.
+    final sellers = await dio.get<Map<String, dynamic>>('/sellers');
+    final list = sellers.data!['data'] as List;
+    expect(
+      list,
+      isNotEmpty,
+      reason: 'an address-less customer must still see sellers',
+    );
+
+    // And they must be plottable, or the map stays blank.
+    final plottable = list.where(
+      (s) => (s as Map)['latitude'] != null && s['longitude'] != null,
+    );
+    expect(plottable, isNotEmpty, reason: 'sellers need coordinates to plot');
+  });
 }
