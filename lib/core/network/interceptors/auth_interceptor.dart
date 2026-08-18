@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../../storage/token_storage.dart';
 import '../api_endpoints.dart';
+import '../api_environment.dart';
 
 /// Attaches the bearer token to every request and refreshes it once on a 401.
 ///
@@ -54,6 +55,9 @@ class AuthInterceptor extends Interceptor {
       final response = await _refreshDio.post<Map<String, dynamic>>(
         '${ApiEndpoints.baseUrl}${ApiEndpoints.refreshToken}',
         data: {'refresh_token': refreshToken},
+        options: Options(
+          headers: {'X-Frappe-Site-Name': ApiEnvironment.siteName},
+        ),
       );
       final data = response.data ?? const {};
       final newAccess = data['access_token'] as String?;

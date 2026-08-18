@@ -26,11 +26,12 @@ class AuthApiDataSource implements AuthRemoteDataSource {
 
   @override
   Future<int> requestOtp(String phone) async {
-    final json = await _client.post<Map<String, dynamic>>(
+    // resend_after_seconds rides under `data`, unlike the token endpoints.
+    final json = await _client.postObject(
       ApiEndpoints.requestOtp,
       body: {'phone': phone},
     );
-    return (json['resend_after_seconds'] as num?)?.toInt() ?? 30;
+    return (json?['resend_after_seconds'] as num?)?.toInt() ?? 30;
   }
 
   @override
@@ -63,7 +64,7 @@ class AuthApiDataSource implements AuthRemoteDataSource {
 
   @override
   Future<UserDto> completeProfile(SignUpDraft draft) async {
-    final json = await _client.patch<Map<String, dynamic>>(
+    final json = await _client.patchObject(
       ApiEndpoints.completeProfile,
       body: {
         'full_name': draft.fullName,
@@ -71,13 +72,13 @@ class AuthApiDataSource implements AuthRemoteDataSource {
         'date_of_birth': draft.dateOfBirth?.toIso8601String(),
       },
     );
-    return UserDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
+    return UserDto.fromJson(json ?? const {});
   }
 
   @override
   Future<UserDto> fetchMe() async {
-    final json = await _client.get<Map<String, dynamic>>(ApiEndpoints.me);
-    return UserDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
+    final json = await _client.getObject(ApiEndpoints.me);
+    return UserDto.fromJson(json ?? const {});
   }
 
   @override

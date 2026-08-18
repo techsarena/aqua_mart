@@ -17,28 +17,23 @@ class AddressApiDataSource implements AddressRemoteDataSource {
 
   @override
   Future<List<AddressDto>> fetchAddresses() async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.addresses,
-    );
-    final items = (json['data'] ?? json['addresses']) as List? ?? const [];
-    return items
-        .map((e) => AddressDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final items = await _client.getList(ApiEndpoints.addresses);
+    return items.map(AddressDto.fromJson).toList();
   }
 
   @override
   Future<AddressDto> saveAddress(AddressDto address) async {
     final isNew = address.id.isEmpty;
     final json = isNew
-        ? await _client.post<Map<String, dynamic>>(
+        ? await _client.postObject(
             ApiEndpoints.addresses,
             body: address.toJson(),
           )
-        : await _client.put<Map<String, dynamic>>(
+        : await _client.putObject(
             ApiEndpoints.address(address.id),
             body: address.toJson(),
           );
-    return AddressDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
+    return AddressDto.fromJson(json ?? const {});
   }
 
   @override

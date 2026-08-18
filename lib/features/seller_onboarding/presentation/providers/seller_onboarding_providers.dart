@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/core_providers.dart';
+import '../../../../core/utils/result.dart';
 import '../../../catalog/domain/entities/bottle.dart';
 import '../../../catalog/domain/entities/seller.dart';
+import '../../data/datasources/seller_onboarding_data_source.dart';
 
 /// A size the applicant offers, with the two prices they set for it.
 class DraftBottle {
@@ -168,10 +171,59 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
     );
   }
 
-  /// Moves the application into review — what the waiting room reflects.
-  void submit() =>
-      state = state.copyWith(status: SellerVerificationStatus.inReview);
+  /// Registers the store, so the account becomes a seller (step 1).
+  ///
+  /// Must land before `/seller/onboarding` is reachable — that path sits
+  /// outside the onboarding stack and needs a seller profile to exist.
+  Future<Result<void>> register() => Result.guard(() async {
+    final businessType = state.businessType;
+    if (businessType == null) return;
+
+    final status = await ref
+        .read(sellerOnboardingDataSourceProvider)
+        .register(
+          businessName: state.businessName,
+          ownerName: state.ownerName,
+          businessType: businessType,
+        );
+    state = state.copyWith(status: status);
+  });
+
+  /// Submits the catalogue and moves the application into review.
+  ///
+  /// The status comes back from the server rather than being assumed, so a
+  /// rejected resubmission does not show a waiting room that is not true.
+  Future<Result<void>> submit() => Result.guard(() async {
+    final status = await ref
+        .read(sellerOnboardingDataSourceProvider)
+        .submitForReview(
+          bottles: [
+            for (final bottle in state.bottles)
+              BottleDraftPayload(
+                litres: bottle.size.litres,
+                refillPrice: bottle.refillPrice,
+                newPrice: bottle.newPrice,
+              ),
+          ],
+          sellsOtherSizes: state.sellsOtherSizes,
+        );
+    state = state.copyWith(status: status);
+  });
 }
+
+final sellerOnboardingDataSourceProvider =
+    Provider<SellerOnboardingRemoteDataSource>((ref) {
+      if (useMockData) return MockSellerOnboardingDataSource();
+      return SellerOnboardingApiDataSource(ref.watch(apiClientProvider));
+    });
+
+/// The waiting room's live status (6.1).
+///
+/// Polled rather than pushed: approval is a human decision that takes hours,
+/// so a socket that must stay open for it would cost more than it saves.
+final sellerVerificationProvider = FutureProvider.autoDispose<VerificationState>(
+  (ref) => ref.watch(sellerOnboardingDataSourceProvider).fetchStatus(),
+);
 
 final sellerApplicationProvider =
     NotifierProvider<SellerApplicationNotifier, SellerApplication>(

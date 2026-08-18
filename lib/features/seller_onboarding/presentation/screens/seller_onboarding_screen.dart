@@ -46,7 +46,22 @@ class _SellerOnboardingScreenState
       subtitle: 'This is the name customers will see.',
       primaryLabel: 'Continue',
       primaryEnabled: application.detailsComplete,
-      onPrimary: () => context.pushNamed(AppRoutes.sellerKyc),
+      // Registering here (rather than at the end) is what creates the seller
+      // profile every later step needs: /seller/documents and
+      // /seller/verification both 403 without one.
+      onPrimary: () async {
+        final result = await ref
+            .read(sellerApplicationProvider.notifier)
+            .register();
+        if (!context.mounted) return;
+
+        result.when(
+          success: (_) => context.pushNamed(AppRoutes.sellerKyc),
+          failure: (f) => ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(f.message))),
+        );
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

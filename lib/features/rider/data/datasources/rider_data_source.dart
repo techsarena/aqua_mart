@@ -4,6 +4,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../orders/domain/entities/order_status.dart';
 import '../../domain/entities/rider_application.dart';
 import '../../domain/entities/rider_run.dart';
+import '../models/rider_run_dto.dart';
 
 abstract interface class RiderRemoteDataSource {
   Future<RiderRun> fetchRun();
@@ -29,25 +30,23 @@ class RiderApiDataSource implements RiderRemoteDataSource {
 
   @override
   Future<RiderRun> fetchRun() async {
-    final json = await _client.get<Map<String, dynamic>>(ApiEndpoints.riderRun);
-    return _runFrom(json['data'] as Map<String, dynamic>? ?? json);
+    final json = await _client.getObject(ApiEndpoints.riderRun);
+    return RiderRunDto.fromJson(json ?? const {});
   }
 
   @override
   Future<RiderRun> completeStop(String stopId) async {
-    final json = await _client.post<Map<String, dynamic>>(
-      ApiEndpoints.completeStop(stopId),
-    );
-    return _runFrom(json['data'] as Map<String, dynamic>? ?? json);
+    final json = await _client.postObject(ApiEndpoints.completeStop(stopId));
+    return RiderRunDto.fromJson(json ?? const {});
   }
 
   @override
   Future<RiderRun> failStop(String stopId, String reason) async {
-    final json = await _client.post<Map<String, dynamic>>(
+    final json = await _client.postObject(
       ApiEndpoints.failStop(stopId),
       body: {'reason': reason},
     );
-    return _runFrom(json['data'] as Map<String, dynamic>? ?? json);
+    return RiderRunDto.fromJson(json ?? const {});
   }
 
   @override
@@ -58,10 +57,8 @@ class RiderApiDataSource implements RiderRemoteDataSource {
 
   @override
   Future<RiderEarnings> fetchEarnings() async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.riderEarnings,
-    );
-    final data = json['data'] as Map<String, dynamic>? ?? json;
+    final data =
+        await _client.getObject(ApiEndpoints.riderEarnings) ?? const {};
     return RiderEarnings(
       deliveries: (data['deliveries'] as num?)?.toInt() ?? 0,
       perDelivery: (data['per_delivery'] as num?)?.toInt() ?? 0,
@@ -78,13 +75,10 @@ class RiderApiDataSource implements RiderRemoteDataSource {
 
   @override
   Future<RiderInvitation?> fetchInvitation() async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.riderInvitations,
-    );
-    final items = (json['data'] ?? json['invitations']) as List? ?? const [];
+    final items = await _client.getList(ApiEndpoints.riderInvitations);
     if (items.isEmpty) return null;
 
-    final data = items.first as Map<String, dynamic>;
+    final data = items.first;
     return RiderInvitation(
       id: '${data['id']}',
       sellerName: data['seller_name'] as String? ?? '',
@@ -101,10 +95,9 @@ class RiderApiDataSource implements RiderRemoteDataSource {
 
   @override
   Future<RiderSellerMatch?> lookUpSellerCode(String code) async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.sellerCode(code),
-    );
-    final data = json['data'] as Map<String, dynamic>?;
+    // The backend answers `data: null` for a code that matches nothing,
+    // which is a miss rather than an error.
+    final data = await _client.getObject(ApiEndpoints.sellerCode(code));
     if (data == null) return null;
 
     return RiderSellerMatch(
@@ -128,48 +121,6 @@ class RiderApiDataSource implements RiderRemoteDataSource {
           'seller_code': application.seller?.code,
         },
       );
-
-  RiderRun _runFrom(Map<String, dynamic> json) => RiderRun(
-    id: '${json['id']}',
-    label: json['label'] as String? ?? 'Run',
-    sellerName: json['seller_name'] as String? ?? '',
-    finishedAt: DateTime.tryParse(json['finished_at'] as String? ?? ''),
-    stops:
-        (json['stops'] as List?)
-            ?.map((e) => _stopFrom(e as Map<String, dynamic>))
-            .toList() ??
-        const [],
-  );
-
-  RunStop _stopFrom(Map<String, dynamic> json) => RunStop(
-    id: '${json['id']}',
-    orderId: '${json['order_id']}',
-    customerName: json['customer_name'] as String? ?? '',
-    address: json['address'] as String? ?? '',
-    items: json['items'] as String? ?? '',
-    amountToCollect: (json['amount_to_collect'] as num?)?.toInt() ?? 0,
-    paymentMethod:
-        PaymentMethod.values
-            .where((p) => p.name == json['payment_method'])
-            .firstOrNull ??
-        PaymentMethod.cash,
-    distanceMetres: (json['distance_metres'] as num?)?.toDouble() ?? 0,
-    emptiesToCollect: (json['empties_to_collect'] as num?)?.toInt() ?? 0,
-    status:
-        StopStatus.values.where((s) => s.name == json['status']).firstOrNull ??
-        StopStatus.pending,
-    completedAt: DateTime.tryParse(json['completed_at'] as String? ?? ''),
-    plot: _plotFrom(json['plot'] as Map<String, dynamic>?),
-  );
-
-  ({double x, double y})? _plotFrom(Map<String, dynamic>? json) {
-    if (json == null) return null;
-    final x = (json['x'] as num?)?.toDouble();
-    final y = (json['y'] as num?)?.toDouble();
-    // A half-supplied plot would pin the stop to an axis it was never on.
-    if (x == null || y == null) return null;
-    return (x: x, y: y);
-  }
 }
 
 /// The morning run from the design, playable end to end.

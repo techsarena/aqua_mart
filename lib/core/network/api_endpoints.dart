@@ -1,12 +1,12 @@
+import 'api_environment.dart';
+
 /// Single registry of every REST path the app will call.
 ///
 /// Keeping them here means the backend contract lives in one file — when the
 /// real API lands, only the paths and the `baseUrl` change.
 abstract final class ApiEndpoints {
-  static const baseUrl = String.fromEnvironment(
-    'AQUA_API_BASE_URL',
-    defaultValue: 'https://api.aquamart.pk/v1',
-  );
+  /// Kept as an alias so call sites need not know about [ApiEnvironment].
+  static const baseUrl = ApiEnvironment.baseUrl;
 
   // ── Auth ────────────────────────────────────────────────────────────────
   static const requestOtp = '/auth/otp/request';
@@ -52,7 +52,10 @@ abstract final class ApiEndpoints {
 
   // ── Notifications ───────────────────────────────────────────────────────
   static const notifications = '/notifications';
+  static String notification(String id) => '/notifications/$id';
   static const markAllRead = '/notifications/read-all';
+  // POST registers this device for push, DELETE drops it (§9.1).
+  static const devices = '/notifications/devices';
 
   // ── Seller ──────────────────────────────────────────────────────────────
   static const sellerRegister = '/seller/register';
@@ -75,6 +78,7 @@ abstract final class ApiEndpoints {
   static const disputes = '/seller/disputes';
   static String resolveDispute(String id) => '/seller/disputes/$id/resolve';
   static const toggleStoreOpen = '/seller/open';
+  static String sellerDispute(String id) => '/seller/disputes/$id';
 
   // ── Rider ───────────────────────────────────────────────────────────────
   static const riderRun = '/rider/run';

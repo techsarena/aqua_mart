@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/core_providers.dart';
+import '../../../../core/realtime/socket_events.dart';
 import '../../../../core/utils/result.dart';
 import '../../data/datasources/rider_data_source.dart';
+import '../../data/models/rider_run_dto.dart';
 import '../../domain/entities/rider_application.dart';
 import '../../domain/entities/rider_run.dart';
 
@@ -13,7 +15,38 @@ final riderDataSourceProvider = Provider<RiderRemoteDataSource>((ref) {
 
 class RiderRunNotifier extends AsyncNotifier<RiderRun> {
   @override
-  Future<RiderRun> build() => ref.watch(riderDataSourceProvider).fetchRun();
+  Future<RiderRun> build() {
+    _listenForRunChanges();
+    return ref.watch(riderDataSourceProvider).fetchRun();
+  }
+
+  /// `run:updated` on `rider:{id}` — a stop completed elsewhere, a stop added
+  /// mid-run, or a resequence. The payload is the whole run (8.4), so this
+  /// replaces rather than merges.
+  void _listenForRunChanges() {
+    ref.listen(socketEventProvider(SocketEvents.runUpdated), (_, next) {
+      final payload = next.value;
+      if (payload == null || payload['id'] == null) return;
+      state = AsyncData(RiderRunDto.fromJson(payload));
+    });
+  }
+
+  /// The rider's position, pushed while they are on a run (8.5).
+  ///
+  /// The server drops pings from a rider who is not on an active run and
+  /// rate-limits to one per 10s, so callers need not gate this themselves —
+  /// but they should still not call it faster than the run moves.
+  void pushLocation({
+    required double latitude,
+    required double longitude,
+    double? heading,
+  }) => ref
+      .read(socketClientProvider)
+      .sendRiderPing(
+        latitude: latitude,
+        longitude: longitude,
+        heading: heading,
+      );
 
   Future<void> completeStop(String stopId) async {
     final run = await ref.read(riderDataSourceProvider).completeStop(stopId);

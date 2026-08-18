@@ -34,10 +34,8 @@ class SellerApiDataSource implements SellerRemoteDataSource {
 
   @override
   Future<SellerDashboard> fetchDashboard() async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.sellerDashboard,
-    );
-    final data = json['data'] as Map<String, dynamic>? ?? json;
+    final data =
+        await _client.getObject(ApiEndpoints.sellerDashboard) ?? const {};
     return SellerDashboard(
       ordersToday: (data['orders_today'] as num?)?.toInt() ?? 0,
       delivered: (data['delivered'] as num?)?.toInt() ?? 0,
@@ -63,30 +61,23 @@ class SellerApiDataSource implements SellerRemoteDataSource {
 
   @override
   Future<List<OrderDto>> fetchQueue() async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.sellerOrders,
-    );
-    final items = (json['data'] ?? json['orders']) as List? ?? const [];
-    return items
-        .map((e) => OrderDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final items = await _client.getList(ApiEndpoints.sellerOrders);
+    return items.map(OrderDto.fromJson).toList();
   }
 
   @override
   Future<OrderDto> advanceOrder(String orderId) async {
-    final json = await _client.post<Map<String, dynamic>>(
-      ApiEndpoints.advanceOrder(orderId),
-    );
-    return OrderDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
+    final json = await _client.postObject(ApiEndpoints.advanceOrder(orderId));
+    return OrderDto.fromJson(json ?? const {});
   }
 
   @override
   Future<OrderDto> declineOrder(String orderId, String reason) async {
-    final json = await _client.post<Map<String, dynamic>>(
+    final json = await _client.postObject(
       ApiEndpoints.declineOrder(orderId),
       body: {'reason': reason},
     );
-    return OrderDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
+    return OrderDto.fromJson(json ?? const {});
   }
 
   @override
@@ -100,22 +91,17 @@ class SellerApiDataSource implements SellerRemoteDataSource {
 
   @override
   Future<List<BottleDto>> fetchInventory() async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.sellerInventory,
-    );
-    final items = (json['data'] ?? json['bottles']) as List? ?? const [];
-    return items
-        .map((e) => BottleDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final items = await _client.getList(ApiEndpoints.sellerInventory);
+    return items.map(BottleDto.fromJson).toList();
   }
 
   @override
   Future<BottleDto> saveBottle(BottleDto bottle) async {
-    final json = await _client.put<Map<String, dynamic>>(
+    final json = await _client.putObject(
       ApiEndpoints.sellerBottle(bottle.id),
       body: bottle.toJson(),
     );
-    return BottleDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
+    return BottleDto.fromJson(json ?? const {});
   }
 
   @override
@@ -124,26 +110,20 @@ class SellerApiDataSource implements SellerRemoteDataSource {
 
   @override
   Future<List<Rider>> fetchRiders() async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.sellerRiders,
-    );
-    final items = (json['data'] ?? json['riders']) as List? ?? const [];
-    return items.map((e) => _riderFrom(e as Map<String, dynamic>)).toList();
+    final items = await _client.getList(ApiEndpoints.sellerRiders);
+    return items.map(_riderFrom).toList();
   }
 
   @override
   Future<List<Payout>> fetchPayouts() async {
-    final json = await _client.get<Map<String, dynamic>>(ApiEndpoints.payouts);
-    final items = (json['data'] ?? json['payouts']) as List? ?? const [];
-    return items.map((e) => _payoutFrom(e as Map<String, dynamic>)).toList();
+    final items = await _client.getList(ApiEndpoints.payouts);
+    return items.map(_payoutFrom).toList();
   }
 
   @override
   Future<Dispute> fetchDispute(String id) async {
-    final json = await _client.get<Map<String, dynamic>>(
-      '${ApiEndpoints.disputes}/$id',
-    );
-    final data = json['data'] as Map<String, dynamic>? ?? json;
+    final data =
+        await _client.getObject(ApiEndpoints.sellerDispute(id)) ?? const {};
     return Dispute(
       id: '${data['id']}',
       orderReference: data['order_reference'] as String? ?? '',

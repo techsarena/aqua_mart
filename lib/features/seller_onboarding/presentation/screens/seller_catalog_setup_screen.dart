@@ -29,9 +29,18 @@ class SellerCatalogSetupScreen extends ConsumerWidget {
           'Pick your sizes and set two prices each. Change them any time.',
       primaryLabel: 'Continue',
       primaryEnabled: application.catalogComplete,
-      onPrimary: () {
-        notifier.submit();
-        context.goNamed(AppRoutes.sellerVerification);
+      onPrimary: () async {
+        // The waiting room reflects a real server status, so navigation waits
+        // for the submission rather than assuming it worked.
+        final result = await notifier.submit();
+        if (!context.mounted) return;
+
+        result.when(
+          success: (_) => context.goNamed(AppRoutes.sellerVerification),
+          failure: (f) => ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(f.message))),
+        );
       },
       // The count on the left, what comes next on the right — the design
       // uses the width rather than stacking the two.

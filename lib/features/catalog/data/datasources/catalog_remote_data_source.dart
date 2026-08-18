@@ -37,30 +37,23 @@ class CatalogApiDataSource implements CatalogRemoteDataSource {
     required String addressId,
     String? query,
   }) async {
-    final json = await _client.get<Map<String, dynamic>>(
+    final items = await _client.getList(
       ApiEndpoints.sellersNearby,
       query: {'address_id': addressId, if (query != null) 'q': query},
     );
-    return _sellerList(json);
+    return items.map(SellerDto.fromJson).toList();
   }
 
   @override
   Future<SellerDto> fetchSeller(String sellerId) async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.seller(sellerId),
-    );
-    return SellerDto.fromJson(json['data'] as Map<String, dynamic>? ?? json);
+    final json = await _client.getObject(ApiEndpoints.seller(sellerId));
+    return SellerDto.fromJson(json ?? const {});
   }
 
   @override
   Future<List<BottleDto>> fetchSellerBottles(String sellerId) async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.sellerBottles(sellerId),
-    );
-    final items = (json['data'] ?? json['bottles']) as List? ?? const [];
-    return items
-        .map((e) => BottleDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final items = await _client.getList(ApiEndpoints.sellerBottles(sellerId));
+    return items.map(BottleDto.fromJson).toList();
   }
 
   @override
@@ -70,7 +63,7 @@ class CatalogApiDataSource implements CatalogRemoteDataSource {
     String? sort,
     bool openOnly = false,
   }) async {
-    final json = await _client.get<Map<String, dynamic>>(
+    final items = await _client.getList(
       ApiEndpoints.searchSellers,
       query: {
         'q': query,
@@ -79,13 +72,6 @@ class CatalogApiDataSource implements CatalogRemoteDataSource {
         if (openOnly) 'open_now': true,
       },
     );
-    return _sellerList(json);
-  }
-
-  List<SellerDto> _sellerList(Map<String, dynamic> json) {
-    final items = (json['data'] ?? json['sellers']) as List? ?? const [];
-    return items
-        .map((e) => SellerDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    return items.map(SellerDto.fromJson).toList();
   }
 }

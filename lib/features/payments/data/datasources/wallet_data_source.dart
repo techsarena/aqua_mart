@@ -32,8 +32,7 @@ class WalletApiDataSource implements WalletRemoteDataSource {
 
   @override
   Future<Wallet> fetchWallet() async {
-    final json = await _client.get<Map<String, dynamic>>(ApiEndpoints.wallet);
-    final data = json['data'] as Map<String, dynamic>? ?? json;
+    final data = await _client.getObject(ApiEndpoints.wallet) ?? const {};
     return Wallet(
       balance: (data['balance'] as num?)?.toInt() ?? 0,
       pendingDeposits: (data['pending_deposits'] as num?)?.toInt() ?? 0,
@@ -60,19 +59,17 @@ class WalletApiDataSource implements WalletRemoteDataSource {
     required int amount,
     required TopUpProvider provider,
   }) async {
-    final json = await _client.post<Map<String, dynamic>>(
+    final json = await _client.postObject(
       ApiEndpoints.walletTopUp,
       body: {'amount': amount, 'provider': provider.name},
     );
-    return _topUpFrom(json['data'] as Map<String, dynamic>? ?? json);
+    return _topUpFrom(json ?? const {});
   }
 
   @override
   Future<TopUp> checkTopUp(String id) async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.topUpStatus(id),
-    );
-    return _topUpFrom(json['data'] as Map<String, dynamic>? ?? json);
+    final json = await _client.getObject(ApiEndpoints.topUpStatus(id));
+    return _topUpFrom(json ?? const {});
   }
 
   @override

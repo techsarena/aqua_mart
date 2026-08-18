@@ -47,6 +47,9 @@ dependencies:
   intl: ^0.20.2
   freezed_annotation: ^3.1.0
   json_annotation: ^4.12.0
+  # Realtime (API_SPEC 8). Frappe ships a Socket.IO v4 server; this is the
+  # matching Dart client.
+  socket_io_client: ^3.1.2
 
 dev_dependencies:
   flutter_test:

@@ -271,6 +271,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Continue'));
     await tester.tap(find.text('Continue'));
+    // Step 1 registers the store before it advances, and the mock data source
+    // has a 600 ms latency, so the navigation is pumped past it explicitly.
+    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
     // 2 of 4 — the required documents gate the step.
@@ -288,6 +291,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Continue'));
     await tester.tap(find.text('Continue'));
+    // Submitting the catalogue hits the mock too.
+    await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
     // The waiting room, reflecting what was entered on step 1.

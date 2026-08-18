@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/localization/app_language.dart';
@@ -79,9 +81,21 @@ class SessionController extends Notifier<SessionState> {
   Future<void> _restore() async {
     final result = await ref.read(authRepositoryProvider).currentUser();
     state = result.when(
-      success: (user) => state.copyWith(user: user, isLoading: false),
+      success: (user) {
+        _openSocket();
+        return state.copyWith(user: user, isLoading: false);
+      },
       failure: (_) => state.copyWith(isLoading: false),
     );
+  }
+
+  /// The socket carries a token, so it can only open once one exists — on
+  /// restore and on sign-in, never at app start (API_SPEC 8.2).
+  void _openSocket() {
+    if (useMockData) return;
+    // Fire-and-forget: a socket that fails to open must never block sign-in,
+    // because every screen still works without it (8.6).
+    unawaited(ref.read(socketClientProvider).connect());
   }
 
   Future<void> setLanguage(AppLanguage language) async {
@@ -100,10 +114,15 @@ class SessionController extends Notifier<SessionState> {
   void updateDraft(SignUpDraft Function(SignUpDraft) update) =>
       state = state.copyWith(draft: update(state.draft));
 
-  void signIn(AppUser user) =>
-      state = state.copyWith(user: user, isLoading: false);
+  void signIn(AppUser user) {
+    state = state.copyWith(user: user, isLoading: false);
+    _openSocket();
+  }
 
   Future<void> signOut() async {
+    // Drop the socket before the tokens go, so the server sees a clean
+    // disconnect rather than an auth failure on the next emit.
+    ref.read(socketClientProvider).disconnect();
     await ref.read(authRepositoryProvider).signOut();
     await ref.read(appPreferencesProvider).clear();
     state = const SessionState(isLoading: false);

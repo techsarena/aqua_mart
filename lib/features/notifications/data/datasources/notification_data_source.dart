@@ -7,6 +7,19 @@ abstract interface class NotificationRemoteDataSource {
   Future<List<NotificationDto>> fetchNotifications();
   Future<void> markAllRead();
   Future<void> markRead(String id);
+
+  /// Claim this device for push (API_SPEC 9.1). A token can move between
+  /// accounts when a phone is handed on, so the server re-points it rather
+  /// than duplicating.
+  Future<void> registerDevice({
+    required String fcmToken,
+    required String platform,
+    String? appVersion,
+  });
+
+  /// Drop this device — called on sign-out so a signed-out phone stops
+  /// receiving another account's notifications.
+  Future<void> unregisterDevice(String fcmToken);
 }
 
 class NotificationApiDataSource implements NotificationRemoteDataSource {
@@ -16,13 +29,8 @@ class NotificationApiDataSource implements NotificationRemoteDataSource {
 
   @override
   Future<List<NotificationDto>> fetchNotifications() async {
-    final json = await _client.get<Map<String, dynamic>>(
-      ApiEndpoints.notifications,
-    );
-    final items = (json['data'] ?? json['notifications']) as List? ?? const [];
-    return items
-        .map((e) => NotificationDto.fromJson(e as Map<String, dynamic>))
-        .toList();
+    final items = await _client.getList(ApiEndpoints.notifications);
+    return items.map(NotificationDto.fromJson).toList();
   }
 
   @override
@@ -30,7 +38,27 @@ class NotificationApiDataSource implements NotificationRemoteDataSource {
 
   @override
   Future<void> markRead(String id) =>
-      _client.patch<void>('${ApiEndpoints.notifications}/$id');
+      _client.patch<void>(ApiEndpoints.notification(id));
+
+  @override
+  Future<void> registerDevice({
+    required String fcmToken,
+    required String platform,
+    String? appVersion,
+  }) => _client.post<void>(
+    ApiEndpoints.devices,
+    body: {
+      'fcm_token': fcmToken,
+      'platform': platform,
+      if (appVersion != null) 'app_version': appVersion,
+    },
+  );
+
+  @override
+  Future<void> unregisterDevice(String fcmToken) => _client.delete<void>(
+    ApiEndpoints.devices,
+    body: {'fcm_token': fcmToken},
+  );
 }
 
 /// Serves a different feed per role — customers see order updates, sellers see
@@ -59,6 +87,17 @@ class MockNotificationDataSource implements NotificationRemoteDataSource {
         if (n.id == id) n.copyWith(isRead: true) else n,
     ];
   }
+
+  // Push has no mock equivalent — there is no FCM registration to fake.
+  @override
+  Future<void> registerDevice({
+    required String fcmToken,
+    required String platform,
+    String? appVersion,
+  }) async {}
+
+  @override
+  Future<void> unregisterDevice(String fcmToken) async {}
 
   static List<NotificationDto> _seedFor(UserRole role) {
     final now = DateTime.now();
