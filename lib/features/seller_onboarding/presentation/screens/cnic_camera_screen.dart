@@ -105,6 +105,9 @@ class _CnicCameraScreenState extends State<CnicCameraScreen>
     );
     try {
       await controller.initialize();
+      // Keep the preview upright even if the phone briefly reports a
+      // landscape orientation while the camera is opening.
+      await controller.lockCaptureOrientation(DeviceOrientation.portraitUp);
       await controller.setFlashMode(
         _flashEnabled ? FlashMode.auto : FlashMode.off,
       );
@@ -391,7 +394,25 @@ class _CnicCameraScreenState extends State<CnicCameraScreen>
   Widget _buildCameraPreview() {
     final controller = _controller;
     if (controller != null && controller.value.isInitialized) {
-      return CameraPreview(controller);
+      // CameraPreview has a portrait aspect ratio while this document window
+      // is landscape. Giving it StackFit.expand distorts the texture. Size it
+      // at its real ratio first, then centre-crop it into the CNIC window.
+      final cameraAspectRatio = controller.value.aspectRatio;
+      final previewAspectRatio = cameraAspectRatio == 0
+          ? 3 / 4
+          : 1 / cameraAspectRatio;
+      return ClipRect(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          alignment: Alignment.center,
+          child: SizedBox(
+            key: const Key('cnic-camera-live-preview'),
+            width: 1000 * previewAspectRatio,
+            height: 1000,
+            child: CameraPreview(controller),
+          ),
+        ),
+      );
     }
 
     final error = _cameraError;

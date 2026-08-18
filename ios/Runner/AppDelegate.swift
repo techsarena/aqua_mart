@@ -32,29 +32,30 @@ import Vision
           return
         }
 
-        let request = VNRecognizeTextRequest { request, error in
-          DispatchQueue.main.async {
-            if let error = error {
-              result(FlutterError(
-                code: "ocr_failed",
-                message: error.localizedDescription,
-                details: nil
-              ))
-              return
-            }
-            let text = (request.results as? [VNRecognizedTextObservation])?
-              .compactMap { $0.topCandidates(1).first?.string }
-              .joined(separator: "\n") ?? ""
-            result(text)
-          }
-        }
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
-        request.recognitionLanguages = ["en-US"]
+        let textRequest = VNRecognizeTextRequest()
+        textRequest.recognitionLevel = .accurate
+        textRequest.usesLanguageCorrection = true
+        textRequest.recognitionLanguages = ["en-US"]
+
+        let barcodeRequest = VNDetectBarcodesRequest()
+        barcodeRequest.symbologies = [.qr, .dataMatrix, .pdf417, .aztec]
 
         DispatchQueue.global(qos: .userInitiated).async {
           do {
-            try VNImageRequestHandler(cgImage: image).perform([request])
+            try VNImageRequestHandler(cgImage: image).perform([
+              textRequest,
+              barcodeRequest,
+            ])
+            let text = textRequest.results?
+              .compactMap { $0.topCandidates(1).first?.string }
+              .joined(separator: "\n") ?? ""
+            let hasBackBarcode = !(barcodeRequest.results?.isEmpty ?? true)
+            DispatchQueue.main.async {
+              result([
+                "text": text,
+                "hasBackBarcode": hasBackBarcode,
+              ])
+            }
           } catch {
             DispatchQueue.main.async {
               result(FlutterError(

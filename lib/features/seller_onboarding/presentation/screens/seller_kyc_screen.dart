@@ -216,9 +216,13 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
 
     setState(() => _validating.add(slot));
     try {
-      final text = await _cnicOcr.recognise(file);
+      final scan = await _cnicOcr.recognise(file);
       final side = slot == _KycSlot.cnicFront ? CnicSide.front : CnicSide.back;
-      final result = CnicValidator.validateSide(text, side);
+      final result = CnicValidator.validateSide(
+        scan.text,
+        side,
+        hasBackBarcode: scan.hasBackBarcode,
+      );
       if (!mounted) return;
       if (!result.isValid) {
         _showMessage(result.message ?? 'This is not a valid CNIC photo.');

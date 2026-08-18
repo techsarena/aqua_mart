@@ -1,6 +1,10 @@
 package com.example.aqua_mart
 
 import android.net.Uri
+import com.google.android.gms.tasks.Tasks
+import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.common.Barcode
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
@@ -30,14 +34,41 @@ class MainActivity : FlutterActivity() {
                 try {
                     val image = InputImage.fromFilePath(this, Uri.fromFile(File(path)))
                     val recognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
-                    recognizer.process(image)
-                        .addOnSuccessListener { text ->
-                            result.success(text.text)
+                    val barcodeOptions = BarcodeScannerOptions.Builder()
+                        .setBarcodeFormats(
+                            Barcode.FORMAT_QR_CODE,
+                            Barcode.FORMAT_DATA_MATRIX,
+                            Barcode.FORMAT_PDF417,
+                            Barcode.FORMAT_AZTEC,
+                        )
+                        .build()
+                    val barcodeScanner = BarcodeScanning.getClient(barcodeOptions)
+                    val textTask = recognizer.process(image)
+                    val barcodeTask = barcodeScanner.process(image)
+
+                    Tasks.whenAllComplete(textTask, barcodeTask)
+                        .addOnCompleteListener {
+                            val text = if (textTask.isSuccessful) textTask.result.text else ""
+                            val hasBackBarcode =
+                                barcodeTask.isSuccessful && barcodeTask.result.isNotEmpty()
+
+                            if (!textTask.isSuccessful && !hasBackBarcode) {
+                                val error = textTask.exception ?: barcodeTask.exception
+                                result.error(
+                                    "ocr_failed",
+                                    error?.message ?: "Could not read this CNIC.",
+                                    null,
+                                )
+                            } else {
+                                result.success(
+                                    mapOf(
+                                        "text" to text,
+                                        "hasBackBarcode" to hasBackBarcode,
+                                    ),
+                                )
+                            }
                             recognizer.close()
-                        }
-                        .addOnFailureListener { error ->
-                            result.error("ocr_failed", error.message ?: "Could not read this CNIC.", null)
-                            recognizer.close()
+                            barcodeScanner.close()
                         }
                 } catch (error: Exception) {
                     result.error("invalid_image", error.message ?: "Could not open this CNIC image.", null)

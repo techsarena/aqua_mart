@@ -42,8 +42,22 @@ abstract final class CnicValidator {
     'country of stay',
   };
 
+  // These labels belong to the biographical/front face. They deliberately do
+  // not include broad words such as "Pakistan" or "identity", which may also
+  // be printed on the reverse face.
+  static const _frontSideSignals = {
+    'name',
+    'father',
+    'husband',
+    'gender',
+    'birth',
+    'country of stay',
+  };
+
   static const _backSignals = {
     'address',
+    'present',
+    'current',
     'permanent',
     'issue',
     'expiry',
@@ -51,18 +65,47 @@ abstract final class CnicValidator {
     'family',
     'nadra',
     'return',
+    'serial',
+    'issuing authority',
+    'qr',
   };
 
-  static CnicValidationResult validateSide(String rawText, CnicSide side) {
+  // Strong reverse-face labels. One of these is enough because phone OCR
+  // often reads only one English line among the Urdu address text.
+  static const _backSideSignals = {
+    'present address',
+    'current address',
+    'permanent address',
+    'card serial',
+    'serial no',
+    'serial number',
+    'family no',
+    'family number',
+    'issuing authority',
+    'qr code',
+    'machine readable',
+    'visa free entry',
+  };
+
+  static CnicValidationResult validateSide(
+    String rawText,
+    CnicSide side, {
+    bool hasBackBarcode = false,
+  }) {
     final text = _normalise(rawText);
-    if (text.length < 20) {
+    final frontScore = _score(text, _frontSignals);
+    final frontSideScore = _score(text, _frontSideSignals);
+    final backScore = _score(text, _backSignals);
+    final backSideScore = _score(text, _backSideSignals);
+    final hasStrongBackEvidence = backSideScore >= 1 || hasBackBarcode;
+
+    if (text.length < 20 &&
+        !(side == CnicSide.back && hasStrongBackEvidence && text.length >= 8)) {
       return const CnicValidationResult.invalid(
         'We could not read this card. Retake it in good light and keep all four corners visible.',
       );
     }
 
-    final frontScore = _score(text, _frontSignals);
-    final backScore = _score(text, _backSignals);
     final number = extractNumber(rawText);
 
     if (side == CnicSide.front) {
@@ -79,13 +122,17 @@ abstract final class CnicValidator {
         );
       }
     } else {
-      if (frontScore >= 3 && backScore < 2) {
+      // A real CNIC front also contains issue/expiry dates, a signature, and
+      // sometimes NADRA text. Those words previously raised backScore enough
+      // to let the front face pass as the back. Front-only biographical labels
+      // take precedence regardless of those shared labels.
+      if (frontSideScore >= 1) {
         return CnicValidationResult.invalid(
-          'This looks like the front of the CNIC. Add the back side here.',
+          'This is the front side of the CNIC. Please take or upload a picture of the back side.',
           ocrText: rawText,
         );
       }
-      if (backScore < 2) {
+      if (!hasStrongBackEvidence && backScore < 2) {
         return CnicValidationResult.invalid(
           'This does not look like a readable Pakistani CNIC back. Retake the correct card.',
           ocrText: rawText,
