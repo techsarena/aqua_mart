@@ -16,9 +16,9 @@ import '../widgets/onboarding_scaffold.dart';
 /// Picking a role is the whole step, so the tap itself advances: there is no
 /// Continue button to confirm a choice the card already shows.
 ///
-/// The code has been entered on the previous screen but is verified here,
-/// together with the chosen role. The backend can therefore create the right
-/// account type while the visible flow remains phone → OTP → role.
+/// Existing users never reach this screen: OTP verification signs them in
+/// immediately. This role is therefore only the initial role for a new,
+/// profile-incomplete account.
 class RoleScreen extends ConsumerStatefulWidget {
   const RoleScreen({super.key});
 
@@ -29,7 +29,7 @@ class RoleScreen extends ConsumerStatefulWidget {
 class _RoleScreenState extends ConsumerState<RoleScreen> {
   UserRole? _selected;
 
-  /// Guards against a second tap while the OTP is being verified.
+  /// Guards against a second tap while the selection is persisted.
   bool _busy = false;
 
   Future<void> _select(UserRole role) async {
@@ -44,57 +44,6 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
 
     await ref.read(sessionProvider.notifier).setRole(role);
     if (!mounted) return;
-
-    final session = ref.read(sessionProvider);
-    final repository = ref.read(authRepositoryProvider);
-    final result = await repository.verifyOtp(
-      phone: session.draft.phone,
-      code: session.pendingOtpCode,
-      draft: session.draft,
-    );
-    if (!mounted) return;
-
-    final user = result.valueOrNull;
-    if (user == null) {
-      setState(() {
-        _busy = false;
-        _selected = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            '${result.failureOrNull!.message} '
-            'Go back and enter the code again.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    if (user.role != role) {
-      // Verification returned an existing account of another role. Remove
-      // the freshly persisted tokens so a restart cannot sign it in silently.
-      await repository.signOut();
-      if (!mounted) return;
-      setState(() {
-        _busy = false;
-        _selected = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'This number is already registered as '
-            '${user.role.title.toLowerCase()}.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    if (user.fullName.trim().isNotEmpty) {
-      ref.read(sessionProvider.notifier).signIn(user);
-      return;
-    }
     setState(() => _busy = false);
     context.pushNamed(AppRoutes.signUpName);
   }

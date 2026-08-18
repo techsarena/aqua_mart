@@ -65,6 +65,9 @@ class AuthApiDataSource implements AuthRemoteDataSource {
       ApiEndpoints.completeProfile,
       body: {
         'full_name': draft.fullName,
+        // The role is set once while the OTP-created profile is incomplete.
+        // Backends must ignore/reject role changes for completed profiles.
+        'role': draft.role.name,
         'gender': draft.gender.name,
         'date_of_birth': draft.dateOfBirth?.toIso8601String(),
       },

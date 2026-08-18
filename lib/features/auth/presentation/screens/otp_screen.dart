@@ -25,6 +25,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   static const _resendSeconds = 30;
 
   String _code = '';
+  bool _verifying = false;
+  String? _error;
   int _secondsLeft = _resendSeconds;
   Timer? _timer;
 
@@ -57,8 +59,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     if (_code.length >= _length) return;
     setState(() {
       _code += digit;
+      _error = null;
     });
-    if (_code.length == _length) _continueToRole();
+    if (_code.length == _length) _verify();
   }
 
   void _backspace() {
@@ -66,9 +69,34 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     setState(() => _code = _code.substring(0, _code.length - 1));
   }
 
-  void _continueToRole() {
-    ref.read(sessionProvider.notifier).setPendingOtpCode(_code);
-    context.pushNamed(AppRoutes.rolePicker);
+  Future<void> _verify() async {
+    setState(() => _verifying = true);
+    final session = ref.read(sessionProvider);
+    final result = await ref
+        .read(authRepositoryProvider)
+        .verifyOtp(
+          phone: session.draft.phone,
+          code: _code,
+          draft: session.draft,
+        );
+    if (!mounted) return;
+    setState(() => _verifying = false);
+
+    result.when(
+      success: (user) {
+        // A completed name distinguishes a registered account from the
+        // provisional profile just created for a first-time phone number.
+        if (user.fullName.trim().isNotEmpty) {
+          ref.read(sessionProvider.notifier).signIn(user);
+        } else {
+          context.pushNamed(AppRoutes.rolePicker);
+        }
+      },
+      failure: (failure) => setState(() {
+        _error = failure.message;
+        _code = '';
+      }),
+    );
   }
 
   Future<void> _resend() async {
@@ -128,12 +156,19 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   child: _CodeBox(
                     digit: i < _code.length ? _code[i] : null,
                     active: i == _code.length,
-                    hasError: false,
+                    hasError: _error != null,
                   ),
                 ),
               ],
             ],
           ),
+          if (_error != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              _error!,
+              style: AppTypography.body(size: 13, color: AppColors.danger),
+            ),
+          ],
           const SizedBox(height: AppSpacing.lg),
           // The prompt and the timer sit at opposite edges. Both are
           // flexible so a long translation shrinks rather than overflows.
@@ -183,6 +218,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 ),
             ],
           ),
+          if (_verifying) ...[
+            const SizedBox(height: AppSpacing.xl),
+            const Center(child: CircularProgressIndicator()),
+          ],
         ],
       ),
     );
