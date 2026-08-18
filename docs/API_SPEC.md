@@ -432,13 +432,13 @@ for this device (§9.1).
 The client's onboarding is ordered, and the order is load-bearing:
 
 ```
-intro → phone (step 1) → role (step 2) → OTP (step 2) → name (step 3) → details (step 4, customer only)
+intro → phone (step 1) → OTP (step 1) → role (step 2) → name (step 3) → details (step 4, customer only)
 ```
 
-- Role must be chosen before OTP verification because `/auth/otp/verify`
-  creates the account and role is immutable in v1.
-- OTP shares step 2 with role; it creates the correctly typed account before
-  the remaining profile fields are patched.
+- The customer enters the OTP before choosing a role, but the client holds the
+  code in memory until the role card is tapped. It then sends the code and role
+  together to `/auth/otp/verify`, because that request creates the account and
+  role is immutable in v1.
 - **`/auth/otp/verify` creates the account, but the profile is only complete
   after `PATCH /auth/profile`.** The client's router redirect sends a
   signed-in user straight into the app — so if you treat the user as

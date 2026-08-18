@@ -14,8 +14,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// the navigation stack), and the rider invitation not being reachable while
 /// signed out.
 ///
-/// Registration is four steps with role chosen before the account-creating OTP
-/// verification: intro → phone → role → OTP → name → details.
+/// Registration is four visible steps: intro → phone → OTP → role → name →
+/// details. The entered code is verified together with the role selection.
 Future<ProviderContainer> _pumpApp(WidgetTester tester) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();

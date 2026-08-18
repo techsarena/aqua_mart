@@ -46,7 +46,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<Result<void>> signOut() => Result.guard(() async {
-    await _remote.signOut();
-    await _tokens.clear();
+    try {
+      await _remote.signOut();
+    } finally {
+      // Local credentials must disappear even when the revoke call cannot
+      // reach the server (including a role mismatch during sign-up).
+      await _tokens.clear();
+    }
   });
 }

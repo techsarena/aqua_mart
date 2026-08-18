@@ -27,6 +27,7 @@ class SessionState {
     this.user,
     this.language,
     this.pendingRole,
+    this.pendingOtpCode = '',
     this.draft = const SignUpDraft(),
     this.isLoading = true,
   });
@@ -38,6 +39,10 @@ class SessionState {
 
   /// The role picked on the "Who are you?" screen, before an account exists.
   final UserRole? pendingRole;
+
+  /// Kept in memory between the OTP and role screens. Verification is sent
+  /// only after the role is chosen so account creation receives both values.
+  final String pendingOtpCode;
 
   /// Collected across the three sign-up steps.
   final SignUpDraft draft;
@@ -53,6 +58,7 @@ class SessionState {
     AppUser? user,
     AppLanguage? language,
     UserRole? pendingRole,
+    String? pendingOtpCode,
     SignUpDraft? draft,
     bool? isLoading,
     bool clearUser = false,
@@ -60,6 +66,7 @@ class SessionState {
     user: clearUser ? null : (user ?? this.user),
     language: language ?? this.language,
     pendingRole: pendingRole ?? this.pendingRole,
+    pendingOtpCode: pendingOtpCode ?? this.pendingOtpCode,
     draft: draft ?? this.draft,
     isLoading: isLoading ?? this.isLoading,
   );
@@ -112,8 +119,11 @@ class SessionController extends Notifier<SessionState> {
   void updateDraft(SignUpDraft Function(SignUpDraft) update) =>
       state = state.copyWith(draft: update(state.draft));
 
+  void setPendingOtpCode(String code) =>
+      state = state.copyWith(pendingOtpCode: code);
+
   void signIn(AppUser user) {
-    state = state.copyWith(user: user, isLoading: false);
+    state = state.copyWith(user: user, pendingOtpCode: '', isLoading: false);
     _openSocket();
   }
 

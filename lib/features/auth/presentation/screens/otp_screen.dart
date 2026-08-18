@@ -25,8 +25,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   static const _resendSeconds = 30;
 
   String _code = '';
-  bool _verifying = false;
-  String? _error;
   int _secondsLeft = _resendSeconds;
   Timer? _timer;
 
@@ -59,9 +57,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     if (_code.length >= _length) return;
     setState(() {
       _code += digit;
-      _error = null;
     });
-    if (_code.length == _length) _verify();
+    if (_code.length == _length) _continueToRole();
   }
 
   void _backspace() {
@@ -69,48 +66,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     setState(() => _code = _code.substring(0, _code.length - 1));
   }
 
-  Future<void> _verify() async {
-    setState(() => _verifying = true);
-    final session = ref.read(sessionProvider);
-
-    final result = await ref
-        .read(authRepositoryProvider)
-        .verifyOtp(
-          phone: session.draft.phone,
-          code: _code,
-          draft: session.draft,
-        );
-
-    if (!mounted) return;
-    setState(() => _verifying = false);
-
-    result.when(
-      success: (user) {
-        if (!mounted) return;
-        final requestedRole = session.draft.role;
-        if (user.role != requestedRole) {
-          setState(() {
-            _error =
-                'This number is already registered as '
-                '${user.role.title.toLowerCase()}.';
-            _code = '';
-          });
-          return;
-        }
-
-        // Existing accounts already have a completed profile, so sign them
-        // straight in. New accounts continue to the name/profile step first.
-        if (user.fullName.trim().isNotEmpty) {
-          ref.read(sessionProvider.notifier).signIn(user);
-          return;
-        }
-        context.pushNamed(AppRoutes.signUpName);
-      },
-      failure: (f) => setState(() {
-        _error = f.message;
-        _code = '';
-      }),
-    );
+  void _continueToRole() {
+    ref.read(sessionProvider.notifier).setPendingOtpCode(_code);
+    context.pushNamed(AppRoutes.rolePicker);
   }
 
   Future<void> _resend() async {
@@ -124,8 +82,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final phone = ref.watch(sessionProvider).draft.phone;
 
     return OnboardingScaffold(
-      // Role and phone are both final before this account-creating check.
-      step: 2,
+      step: 1,
       totalSteps: 4,
       title: 'Enter the 6-digit code',
       subtitle: null,
@@ -171,19 +128,12 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                   child: _CodeBox(
                     digit: i < _code.length ? _code[i] : null,
                     active: i == _code.length,
-                    hasError: _error != null,
+                    hasError: false,
                   ),
                 ),
               ],
             ],
           ),
-          if (_error != null) ...[
-            const SizedBox(height: AppSpacing.md),
-            Text(
-              _error!,
-              style: AppTypography.body(size: 13, color: AppColors.danger),
-            ),
-          ],
           const SizedBox(height: AppSpacing.lg),
           // The prompt and the timer sit at opposite edges. Both are
           // flexible so a long translation shrinks rather than overflows.
@@ -233,10 +183,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                 ),
             ],
           ),
-          if (_verifying) ...[
-            const SizedBox(height: AppSpacing.xl),
-            const Center(child: CircularProgressIndicator()),
-          ],
         ],
       ),
     );

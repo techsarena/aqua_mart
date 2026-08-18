@@ -47,9 +47,7 @@ class _SignUpPhoneScreenState extends ConsumerState<SignUpPhoneScreen> {
     setState(() => _sending = false);
 
     result.when(
-      // Pick the role before OTP verification because verification is the
-      // account-creating request and must receive the final role.
-      success: (_) => context.pushNamed(AppRoutes.rolePicker),
+      success: (_) => context.pushNamed(AppRoutes.otp),
       failure: (f) => ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(f.message))),
