@@ -146,11 +146,13 @@ class _AddressList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (addresses.isEmpty) {
-      return const Center(
+      return Center(
         child: EmptyView(
           icon: Icons.location_on_outlined,
           title: 'No saved addresses',
           message: 'Add the place you want your water delivered to.',
+          primaryLabel: 'Add address',
+          onPrimary: () => context.pushNamed(AppRoutes.addAddress),
         ),
       );
     }
