@@ -85,12 +85,26 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     setState(() => _verifying = false);
 
     result.when(
-      // Verifying the number does NOT sign the user in — the profile is
-      // only created at the end, and signing in here would let the router
-      // redirect straight past the remaining steps into the app.
-      success: (_) {
+      success: (user) {
         if (!mounted) return;
-        context.pushNamed(AppRoutes.rolePicker);
+        final requestedRole = session.draft.role;
+        if (user.role != requestedRole) {
+          setState(() {
+            _error =
+                'This number is already registered as '
+                '${user.role.title.toLowerCase()}.';
+            _code = '';
+          });
+          return;
+        }
+
+        // Existing accounts already have a completed profile, so sign them
+        // straight in. New accounts continue to the name/profile step first.
+        if (user.fullName.trim().isNotEmpty) {
+          ref.read(sessionProvider.notifier).signIn(user);
+          return;
+        }
+        context.pushNamed(AppRoutes.signUpName);
       },
       failure: (f) => setState(() {
         _error = f.message;
@@ -110,8 +124,8 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     final phone = ref.watch(sessionProvider).draft.phone;
 
     return OnboardingScaffold(
-      // The code belongs to the same step as the number it was sent to.
-      step: 1,
+      // Role and phone are both final before this account-creating check.
+      step: 2,
       totalSteps: 4,
       title: 'Enter the 6-digit code',
       subtitle: null,

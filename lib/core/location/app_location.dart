@@ -1,0 +1,113 @@
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+
+/// A map point plus the human-readable value shown in address fields.
+class AppLocation {
+  const AppLocation({
+    required this.latitude,
+    required this.longitude,
+    required this.label,
+  });
+
+  final double latitude;
+  final double longitude;
+  final String label;
+}
+
+/// Keeps permission, GPS and native geocoding details out of the UI layer.
+class AppLocationService {
+  AppLocationService({Geocoding? geocoding})
+    : _geocoding = geocoding ?? Geocoding();
+
+  final Geocoding _geocoding;
+
+  Future<AppLocation?> currentLocation() async {
+    if (!await Geolocator.isLocationServiceEnabled()) return null;
+
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      return null;
+    }
+
+    final cached = await Geolocator.getLastKnownPosition();
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+          timeLimit: Duration(seconds: 12),
+        ),
+      );
+      return reverse(position.latitude, position.longitude);
+    } catch (_) {
+      if (cached == null) rethrow;
+      return reverse(cached.latitude, cached.longitude);
+    }
+  }
+
+  Future<AppLocation> reverse(double latitude, double longitude) async {
+    try {
+      final places = await _geocoding.placemarkFromCoordinates(
+        latitude,
+        longitude,
+      );
+      if (places.isNotEmpty) {
+        return AppLocation(
+          latitude: latitude,
+          longitude: longitude,
+          label: _placemarkLabel(places.first),
+        );
+      }
+    } catch (_) {
+      // Coordinates are still useful if the platform geocoder is unavailable.
+    }
+    return AppLocation(
+      latitude: latitude,
+      longitude: longitude,
+      label: _coordinateLabel(latitude, longitude),
+    );
+  }
+
+  /// Uses the platform geocoder, then reverse-geocodes each result so the
+  /// picker can show and save the exact value selected by the customer.
+  Future<List<AppLocation>> search(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return const [];
+
+    final matches = await _geocoding.locationFromAddress(trimmed);
+    final results = <AppLocation>[];
+    for (final match in matches.take(5)) {
+      final location = await reverse(match.latitude, match.longitude);
+      final duplicate = results.any(
+        (item) =>
+            item.label == location.label &&
+            item.latitude == location.latitude &&
+            item.longitude == location.longitude,
+      );
+      if (!duplicate) results.add(location);
+    }
+    return results;
+  }
+
+  String _placemarkLabel(Placemark place) {
+    final parts = <String>[];
+    void add(String? value) {
+      final clean = value?.trim();
+      if (clean == null || clean.isEmpty || parts.contains(clean)) return;
+      parts.add(clean);
+    }
+
+    add(place.street);
+    add(place.subLocality);
+    add(place.locality);
+    add(place.administrativeArea);
+    add(place.country);
+    return parts.isEmpty ? 'Selected location' : parts.join(', ');
+  }
+
+  String _coordinateLabel(double latitude, double longitude) =>
+      '${latitude.toStringAsFixed(5)}, ${longitude.toStringAsFixed(5)}';
+}

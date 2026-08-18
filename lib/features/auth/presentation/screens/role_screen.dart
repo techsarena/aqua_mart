@@ -16,9 +16,9 @@ import '../widgets/onboarding_scaffold.dart';
 /// Picking a role is the whole step, so the tap itself advances: there is no
 /// Continue button to confirm a choice the card already shows.
 ///
-/// Riders divert to their invitation from here and sellers divert to business
-/// registration; only customers carry on to the name step, where their profile
-/// is created at the end of step 4.
+/// This step intentionally sits before OTP verification. The verification
+/// request creates the backend account, so it must already know which role the
+/// customer selected.
 class RoleScreen extends ConsumerStatefulWidget {
   const RoleScreen({super.key});
 
@@ -29,7 +29,7 @@ class RoleScreen extends ConsumerStatefulWidget {
 class _RoleScreenState extends ConsumerState<RoleScreen> {
   UserRole? _selected;
 
-  /// Guards against a second tap while the seller's account is being created.
+  /// Guards against a second tap while the selection is persisted.
   bool _busy = false;
 
   Future<void> _select(UserRole role) async {
@@ -37,53 +37,15 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
 
     // Paint the selection before navigating, so the card is visibly chosen
     // on the way out and still chosen if the user comes back.
-    setState(() => _selected = role);
+    setState(() {
+      _selected = role;
+      _busy = true;
+    });
 
     await ref.read(sessionProvider.notifier).setRole(role);
     if (!mounted) return;
-
-    // Sellers register their business and riders register themselves, instead
-    // of finishing the personal steps — so both accounts are created here
-    // rather than at step 4. Their onboarding routes sit outside the
-    // onboarding stack, and a signed-out user would be redirected straight
-    // back to the intro.
-    if (role == UserRole.seller || role == UserRole.rider) {
-      await _startRegistration(
-        role == UserRole.seller
-            ? AppRoutes.sellerOnboarding
-            : AppRoutes.riderIdentity,
-      );
-      return;
-    }
-
-    context.pushNamed(AppRoutes.signUpName);
-  }
-
-  /// Creates the account from the draft, then hands off to [nextRoute].
-  Future<void> _startRegistration(String nextRoute) async {
-    setState(() => _busy = true);
-
-    final draft = ref.read(sessionProvider).draft;
-    final result = await ref
-        .read(authRepositoryProvider)
-        .completeProfile(draft);
-    if (!mounted) return;
-
-    result.when(
-      success: (user) {
-        ref.read(sessionProvider.notifier).signIn(user);
-        context.goNamed(nextRoute);
-      },
-      failure: (f) {
-        setState(() {
-          _busy = false;
-          _selected = null;
-        });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(f.message)));
-      },
-    );
+    setState(() => _busy = false);
+    context.pushNamed(AppRoutes.otp);
   }
 
   @override

@@ -7,6 +7,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_section.dart';
+import '../../domain/entities/user_role.dart';
 import '../providers/auth_providers.dart';
 import '../widgets/onboarding_scaffold.dart';
 
@@ -22,6 +23,7 @@ class _SignUpNameScreenState extends ConsumerState<SignUpNameScreen> {
   late final _controller = TextEditingController(
     text: ref.read(sessionProvider).draft.fullName,
   );
+  bool _saving = false;
 
   @override
   void dispose() {
@@ -29,11 +31,40 @@ class _SignUpNameScreenState extends ConsumerState<SignUpNameScreen> {
     super.dispose();
   }
 
-  void _continue() {
+  Future<void> _continue() async {
+    if (_saving) return;
     ref
         .read(sessionProvider.notifier)
         .updateDraft((d) => d.copyWith(fullName: _controller.text.trim()));
-    context.pushNamed(AppRoutes.signUpDetails);
+    final session = ref.read(sessionProvider);
+
+    if (session.draft.role == UserRole.customer) {
+      context.pushNamed(AppRoutes.signUpDetails);
+      return;
+    }
+
+    setState(() => _saving = true);
+    final result = await ref
+        .read(authRepositoryProvider)
+        .completeProfile(session.draft);
+    if (!mounted) return;
+
+    result.when(
+      success: (user) {
+        ref.read(sessionProvider.notifier).signIn(user);
+        context.goNamed(
+          session.draft.role == UserRole.seller
+              ? AppRoutes.sellerOnboarding
+              : AppRoutes.riderIdentity,
+        );
+      },
+      failure: (failure) {
+        setState(() => _saving = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(failure.message)));
+      },
+    );
   }
 
   @override
@@ -42,8 +73,8 @@ class _SignUpNameScreenState extends ConsumerState<SignUpNameScreen> {
     totalSteps: 4,
     title: 'What should we call you?',
     subtitle: 'Your rider will see this name at the door.',
-    primaryLabel: 'Continue',
-    primaryEnabled: _controller.text.trim().isNotEmpty,
+    primaryLabel: _saving ? 'Saving…' : 'Continue',
+    primaryEnabled: _controller.text.trim().isNotEmpty && !_saving,
     onPrimary: _continue,
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,

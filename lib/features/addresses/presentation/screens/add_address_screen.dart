@@ -1,13 +1,18 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../../../../core/location/app_location.dart';
+import '../../../../core/location/location_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_section.dart';
 import '../../../../shared/widgets/back_disc_button.dart';
-import '../../../../shared/widgets/map_placeholder.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
 import '../../../../shared/widgets/toggle_panel.dart';
 import '../../domain/entities/address.dart';
@@ -26,12 +31,25 @@ class AddAddressScreen extends ConsumerStatefulWidget {
 }
 
 class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
+  static const _lahore = AppLocation(
+    latitude: 31.5204,
+    longitude: 74.3587,
+    label: 'Lahore, Punjab, Pakistan',
+  );
+
+  final _searchController = TextEditingController();
   final _houseController = TextEditingController();
   final _noteController = TextEditingController();
+  Timer? _reverseDebounce;
+  AppLocation? _selectedLocation;
   AddressLabel _label = AddressLabel.home;
   bool _makeDefault = false;
   bool _saving = false;
+  bool _searching = false;
+  bool _locating = false;
   bool _seeded = false;
+  bool _currentLocationApplied = false;
+  int _reverseRequest = 0;
 
   Address? get _editing {
     final id = widget.addressId;
@@ -42,6 +60,8 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
 
   @override
   void dispose() {
+    _reverseDebounce?.cancel();
+    _searchController.dispose();
     _houseController.dispose();
     _noteController.dispose();
     super.dispose();
@@ -57,22 +77,130 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
     _noteController.text = existing.riderNote;
     _label = existing.label;
     _makeDefault = existing.isDefault;
+    _selectedLocation = AppLocation(
+      latitude: existing.latitude ?? _lahore.latitude,
+      longitude: existing.longitude ?? _lahore.longitude,
+      label: existing.area,
+    );
+    _searchController.text = existing.area;
     _seeded = true;
+  }
+
+  void _applyLocation(AppLocation location) {
+    if (!mounted) return;
+    setState(() {
+      _selectedLocation = location;
+      _searchController.text = location.label;
+      _searchController.selection = TextSelection.collapsed(
+        offset: _searchController.text.length,
+      );
+    });
+  }
+
+  void _onMapMoved(LatLng centre) {
+    _reverseDebounce?.cancel();
+    final request = ++_reverseRequest;
+    final coordinateLocation = AppLocation(
+      latitude: centre.latitude,
+      longitude: centre.longitude,
+      label:
+          '${centre.latitude.toStringAsFixed(5)}, '
+          '${centre.longitude.toStringAsFixed(5)}',
+    );
+    _applyLocation(coordinateLocation);
+    _reverseDebounce = Timer(const Duration(milliseconds: 550), () async {
+      final location = await ref
+          .read(appLocationServiceProvider)
+          .reverse(centre.latitude, centre.longitude);
+      if (mounted && request == _reverseRequest) _applyLocation(location);
+    });
+  }
+
+  Future<void> _useCurrentLocation() async {
+    if (_locating) return;
+    setState(() => _locating = true);
+    final location = await ref.refresh(currentLocationProvider.future);
+    if (!mounted) return;
+    setState(() => _locating = false);
+    if (location != null) {
+      _currentLocationApplied = true;
+      _applyLocation(location);
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Turn on location access to use your current position.'),
+      ),
+    );
+  }
+
+  Future<void> _search(String query) async {
+    if (_searching || query.trim().isEmpty) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _searching = true);
+    try {
+      final results = await ref.read(appLocationServiceProvider).search(query);
+      if (!mounted) return;
+      if (results.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No matching location found.')),
+        );
+      } else if (results.length == 1) {
+        _applyLocation(results.first);
+      } else {
+        final selected = await showModalBottomSheet<AppLocation>(
+          context: context,
+          showDragHandle: true,
+          builder: (context) => SafeArea(
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              itemCount: results.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, index) {
+                final result = results[index];
+                return ListTile(
+                  leading: const Icon(Icons.location_on_outlined),
+                  title: Text(result.label),
+                  onTap: () => Navigator.pop(context, result),
+                );
+              },
+            ),
+          ),
+        );
+        if (selected != null) _applyLocation(selected);
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location search is unavailable. Try again.'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _searching = false);
+    }
   }
 
   Future<void> _save() async {
     setState(() => _saving = true);
     final existing = _editing;
+    final location = _selectedLocation;
+    if (location == null) {
+      setState(() => _saving = false);
+      return;
+    }
 
     final address = Address(
       id: existing?.id ?? '',
       label: _label,
       title: _label.text,
-      area: existing?.area ?? 'Gulberg III, Lahore',
+      area: location.label,
       houseNumber: _houseController.text.trim(),
       riderNote: _noteController.text.trim(),
-      latitude: existing?.latitude ?? 31.5204,
-      longitude: existing?.longitude ?? 74.3587,
+      latitude: location.latitude,
+      longitude: location.longitude,
       isDefault: _makeDefault,
     );
 
@@ -96,7 +224,19 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
     ref.watch(addressBookProvider);
     _seedIfNeeded();
 
-    final area = _editing?.area ?? 'Gulberg III, Lahore';
+    final currentLocation = ref.watch(currentLocationProvider).value;
+    if (widget.addressId == null &&
+        !_currentLocationApplied &&
+        currentLocation != null) {
+      _currentLocationApplied = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _selectedLocation == null) {
+          _applyLocation(currentLocation);
+        }
+      });
+    }
+
+    final mapLocation = _selectedLocation ?? currentLocation ?? _lahore;
 
     return Scaffold(
       // The map runs to the edges with the controls floating on it, so the
@@ -104,10 +244,16 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
       body: Column(
         children: [
           _MapPane(
-            area: area,
+            location: mapLocation,
+            searchController: _searchController,
+            searching: _searching,
+            locating: _locating,
             hint: widget.addressId == null
                 ? 'Drag to your gate'
                 : 'Edit address',
+            onSearch: _search,
+            onMapMoved: _onMapMoved,
+            onCurrentLocation: _useCurrentLocation,
           ),
           Expanded(
             child: ListView(
@@ -175,7 +321,10 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
       ),
       bottomNavigationBar: StickyActionBar(
         label: _saving ? 'Saving…' : 'Save address',
-        enabled: !_saving && _houseController.text.trim().isNotEmpty,
+        enabled:
+            !_saving &&
+            _selectedLocation != null &&
+            _houseController.text.trim().isNotEmpty,
         onPressed: _save,
       ),
     );
@@ -190,22 +339,80 @@ class _AddAddressScreenState extends ConsumerState<AddAddressScreen> {
       );
 }
 
-/// The map, with the back button and the area search floating over it.
-class _MapPane extends StatelessWidget {
-  const _MapPane({required this.area, required this.hint});
+/// A real, draggable OpenStreetMap picker with search and GPS recentering.
+class _MapPane extends StatefulWidget {
+  const _MapPane({
+    required this.location,
+    required this.searchController,
+    required this.searching,
+    required this.locating,
+    required this.hint,
+    required this.onSearch,
+    required this.onMapMoved,
+    required this.onCurrentLocation,
+  });
 
-  final String area;
-
-  /// What the pin is for — "Drag to your gate" while placing a new address.
+  final AppLocation location;
+  final TextEditingController searchController;
+  final bool searching;
+  final bool locating;
   final String hint;
+  final ValueChanged<String> onSearch;
+  final ValueChanged<LatLng> onMapMoved;
+  final VoidCallback onCurrentLocation;
+
+  @override
+  State<_MapPane> createState() => _MapPaneState();
+}
+
+class _MapPaneState extends State<_MapPane> {
+  final MapController _mapController = MapController();
+
+  LatLng get _point =>
+      LatLng(widget.location.latitude, widget.location.longitude);
+
+  @override
+  void didUpdateWidget(covariant _MapPane oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location.latitude == widget.location.latitude &&
+        oldWidget.location.longitude == widget.location.longitude) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _mapController.move(_point, _mapController.camera.zoom);
+    });
+  }
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: MediaQuery.sizeOf(context).height * 0.34,
+    height: MediaQuery.sizeOf(context).height * 0.38,
     child: Stack(
       children: [
         Positioned.fill(
-          child: MapPlaceholder(radius: 0, showCentrePin: true, height: null),
+          child: FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: _point,
+              initialZoom: 16,
+              minZoom: 3,
+              maxZoom: 19,
+              onPositionChanged: (camera, hasGesture) {
+                if (hasGesture) widget.onMapMoved(camera.center);
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.example.aqua_mart',
+              ),
+              const RichAttributionWidget(
+                showFlutterMapAttribution: false,
+                attributions: [
+                  TextSourceAttribution('OpenStreetMap contributors'),
+                ],
+              ),
+            ],
+          ),
         ),
         Positioned(
           left: AppSpacing.gutter,
@@ -215,42 +422,84 @@ class _MapPane extends StatelessWidget {
             children: [
               const BackDiscButton(),
               const SizedBox(width: AppSpacing.md),
-              // The area, presented as a search field — the pin is placed by
-              // dragging, but the area is how you get to the right part of town.
               Expanded(
-                child: Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.lg,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.search_rounded,
-                        size: 22,
-                        color: AppColors.textMuted(0.5),
+                child: Material(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                  child: SizedBox(
+                    height: 48,
+                    child: TextField(
+                      key: const Key('address-location-search'),
+                      controller: widget.searchController,
+                      textInputAction: TextInputAction.search,
+                      onSubmitted: widget.onSearch,
+                      textAlignVertical: TextAlignVertical.center,
+                      strutStyle: const StrutStyle(
+                        fontSize: 17,
+                        height: 1,
+                        forceStrutHeight: true,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Expanded(
-                        child: Text(
-                          area,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTypography.body(size: 17),
+                      style: AppTypography.body(
+                        size: 17,
+                        height: 1,
+                        color: AppColors.neutral600,
+                      ),
+                      decoration: InputDecoration(
+                        filled: false,
+                        isDense: true,
+                        hintText: 'Search area or address',
+                        hintStyle: AppTypography.body(
+                          size: 17,
+                          height: 1,
+                          color: AppColors.textMuted(0.45),
+                        ),
+                        prefixIcon: Padding(
+                          padding: const EdgeInsets.only(
+                            left: AppSpacing.lg,
+                            right: AppSpacing.sm,
+                          ),
+                          child: Icon(
+                            Icons.search_rounded,
+                            size: 22,
+                            color: AppColors.neutral500,
+                          ),
+                        ),
+                        prefixIconConstraints: const BoxConstraints(
+                          minWidth: 50,
+                          minHeight: 48,
+                        ),
+                        suffixIcon: widget.searching
+                            ? const Padding(
+                                padding: EdgeInsets.only(
+                                  left: AppSpacing.sm,
+                                  right: AppSpacing.lg,
+                                ),
+                                child: SizedBox.square(
+                                  dimension: 17,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                              )
+                            : null,
+                        suffixIconConstraints: const BoxConstraints(
+                          minHeight: 48,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: const EdgeInsets.only(
+                          right: AppSpacing.lg,
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
             ],
           ),
         ),
-        // Sits just above the pin, telling you what the drag is for.
+        const IgnorePointer(child: Center(child: _PickerPin())),
         Align(
           alignment: const Alignment(0, -0.16),
           child: Container(
@@ -263,7 +512,7 @@ class _MapPane extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.pill),
             ),
             child: Text(
-              hint,
+              widget.hint,
               style: AppTypography.body(
                 size: 15,
                 weight: FontWeight.w700,
@@ -272,7 +521,39 @@ class _MapPane extends StatelessWidget {
             ),
           ),
         ),
+        Positioned(
+          right: AppSpacing.gutter,
+          bottom: AppSpacing.lg,
+          child: FloatingActionButton.small(
+            heroTag: 'address-current-location',
+            tooltip: 'Use current location',
+            backgroundColor: AppColors.surface,
+            foregroundColor: AppColors.accent,
+            onPressed: widget.locating ? null : widget.onCurrentLocation,
+            child: widget.locating
+                ? const Padding(
+                    padding: EdgeInsets.all(11),
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.my_location_rounded),
+          ),
+        ),
       ],
+    ),
+  );
+}
+
+class _PickerPin extends StatelessWidget {
+  const _PickerPin();
+
+  @override
+  Widget build(BuildContext context) => Transform.translate(
+    offset: const Offset(0, -20),
+    child: const Icon(
+      Icons.location_pin,
+      size: 48,
+      color: AppColors.accent,
+      shadows: [Shadow(color: Colors.black38, blurRadius: 8)],
     ),
   );
 }

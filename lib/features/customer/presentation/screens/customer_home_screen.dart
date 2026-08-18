@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/router/app_routes.dart';
+import '../../../../core/location/location_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -11,6 +12,7 @@ import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_section.dart';
 import '../../../../shared/widgets/state_views.dart';
+import '../../../addresses/domain/entities/address.dart';
 import '../../../addresses/presentation/providers/address_providers.dart';
 import '../../../catalog/presentation/providers/catalog_providers.dart';
 import '../../../catalog/presentation/widgets/seller_card.dart';
@@ -29,6 +31,25 @@ import '../widgets/delivery_header.dart';
 class CustomerHomeScreen extends ConsumerWidget {
   const CustomerHomeScreen({super.key});
 
+  void _showAddressPicker(BuildContext context, Address? currentAddress) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => _AddressPickerSheet(
+        currentAddress: currentAddress,
+        onSeeAll: () {
+          Navigator.pop(sheetContext);
+          context.pushNamed(AppRoutes.addressBook);
+        },
+        onAddAddress: () {
+          Navigator.pop(sheetContext);
+          context.pushNamed(AppRoutes.addAddress);
+        },
+      ),
+    );
+  }
+
   /// Puts the previous order back in the cart and opens it for review.
   void _reorder(BuildContext context, WidgetRef ref, Order usual) {
     ref
@@ -44,6 +65,21 @@ class CustomerHomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final address = ref.watch(selectedAddressProvider);
+    final selectedAddressId = ref.watch(deliveryAddressSelectionProvider);
+    final currentLocation = ref.watch(currentLocationProvider).value;
+    final currentAddress = currentLocation == null
+        ? null
+        : Address(
+            id: 'current-location',
+            label: AddressLabel.other,
+            title: 'Current location',
+            area: currentLocation.label,
+            latitude: currentLocation.latitude,
+            longitude: currentLocation.longitude,
+          );
+    final displayAddress = selectedAddressId == null
+        ? currentAddress ?? address
+        : address;
     final unread = ref.watch(unreadNotificationCountProvider);
     final usual = ref.watch(usualOrderProvider);
 
@@ -59,7 +95,11 @@ class CustomerHomeScreen extends ConsumerWidget {
             // ── Pinned: where to, and how to find a seller ────────────────
             // Outside the scroll view so the address and search stay put —
             // both are how you change what the list below is showing.
-            DeliveryHeader(address: address, unreadCount: unread),
+            DeliveryHeader(
+              address: displayAddress,
+              unreadCount: unread,
+              onAddressTap: () => _showAddressPicker(context, currentAddress),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.gutter,
@@ -147,6 +187,205 @@ class CustomerHomeScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _AddressPickerSheet extends ConsumerWidget {
+  const _AddressPickerSheet({
+    required this.currentAddress,
+    required this.onSeeAll,
+    required this.onAddAddress,
+  });
+
+  final Address? currentAddress;
+  final VoidCallback onSeeAll;
+  final VoidCallback onAddAddress;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final addressesAsync = ref.watch(addressBookProvider);
+    final selectedId = ref.watch(deliveryAddressSelectionProvider);
+
+    return SafeArea(
+      top: false,
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.62,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.gutter,
+                0,
+                AppSpacing.gutter,
+                AppSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Choose delivery address',
+                      style: AppTypography.heading(size: 24),
+                    ),
+                  ),
+                  TextButton(onPressed: onSeeAll, child: const Text('See all')),
+                ],
+              ),
+            ),
+            Expanded(
+              child: switch (addressesAsync) {
+                AsyncLoading() => const Center(
+                  child: CircularProgressIndicator(),
+                ),
+                AsyncError() => Center(
+                  child: TextButton(
+                    onPressed: () => ref.invalidate(addressBookProvider),
+                    child: const Text('Try loading addresses again'),
+                  ),
+                ),
+                AsyncValue(value: final addresses) => ListView(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.gutter,
+                    0,
+                    AppSpacing.gutter,
+                    AppSpacing.lg,
+                  ),
+                  children: [
+                    if (currentAddress != null) ...[
+                      _AddressPickerRow(
+                        icon: Icons.my_location_rounded,
+                        title: 'Current location',
+                        subtitle: currentAddress!.area,
+                        selected: selectedId == null,
+                        onTap: () {
+                          ref
+                              .read(deliveryAddressSelectionProvider.notifier)
+                              .select(null);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+                    for (final address in addresses ?? const <Address>[]) ...[
+                      _AddressPickerRow(
+                        icon: switch (address.label) {
+                          AddressLabel.home => Icons.home_outlined,
+                          AddressLabel.office => Icons.business_outlined,
+                          AddressLabel.other => Icons.location_on_outlined,
+                        },
+                        title: address.title,
+                        subtitle: address.shortLine,
+                        selected:
+                            selectedId == address.id ||
+                            (currentAddress == null &&
+                                selectedId == null &&
+                                address.isDefault),
+                        onTap: () {
+                          ref
+                              .read(deliveryAddressSelectionProvider.notifier)
+                              .select(address.id);
+                          ref.read(cartProvider.notifier).setAddress(address);
+                          Navigator.pop(context);
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+                    _AddressPickerRow(
+                      icon: Icons.add_location_alt_outlined,
+                      title: 'Add new address',
+                      subtitle: 'Choose a location on the map',
+                      onTap: onAddAddress,
+                    ),
+                  ],
+                ),
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddressPickerRow extends StatelessWidget {
+  const _AddressPickerRow({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+    this.selected = false,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: selected ? AppColors.onTint : AppColors.surface,
+    borderRadius: BorderRadius.circular(AppRadius.lg),
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppRadius.lg),
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppRadius.lg),
+          border: Border.all(
+            color: selected ? AppColors.accent : AppColors.divider,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 23,
+              color: selected ? AppColors.accent : AppColors.neutral600,
+            ),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.body(
+                      size: 16,
+                      weight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.body(
+                      size: 13.5,
+                      height: 1.3,
+                      color: AppColors.textMuted(0.58),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (selected)
+              const Padding(
+                padding: EdgeInsets.only(left: AppSpacing.md),
+                child: Icon(
+                  Icons.check_circle_rounded,
+                  color: AppColors.accent,
+                  size: 22,
+                ),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 /// The search field. A button rather than an input — tapping opens the search

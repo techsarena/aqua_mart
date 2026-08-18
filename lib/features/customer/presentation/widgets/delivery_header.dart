@@ -17,11 +17,13 @@ class DeliveryHeader extends StatelessWidget {
     required this.address,
     this.unreadCount = 0,
     this.onSearch,
+    this.onAddressTap,
   });
 
   final Address? address;
   final int unreadCount;
   final VoidCallback? onSearch;
+  final VoidCallback? onAddressTap;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -36,7 +38,8 @@ class DeliveryHeader extends StatelessWidget {
       children: [
         Expanded(
           child: InkWell(
-            onTap: () => context.pushNamed(AppRoutes.addressBook),
+            onTap:
+                onAddressTap ?? () => context.pushNamed(AppRoutes.addressBook),
             borderRadius: BorderRadius.circular(AppRadius.md),
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 4),

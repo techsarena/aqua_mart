@@ -50,11 +50,31 @@ final addressBookProvider =
       AddressBookNotifier.new,
     );
 
+/// A per-session delivery choice. Null means "use current location" on the
+/// home screen and fall back to the persisted default wherever an API needs a
+/// saved address id.
+class DeliveryAddressSelectionNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void select(String? addressId) => state = addressId;
+}
+
+final deliveryAddressSelectionProvider =
+    NotifierProvider<DeliveryAddressSelectionNotifier, String?>(
+      DeliveryAddressSelectionNotifier.new,
+    );
+
 /// The address the app is currently delivering to — the default, unless the
 /// customer picked another for this order.
 final selectedAddressProvider = Provider<Address?>((ref) {
   final addresses = ref.watch(addressBookProvider).value ?? const [];
   if (addresses.isEmpty) return null;
+  final selectedId = ref.watch(deliveryAddressSelectionProvider);
+  if (selectedId != null) {
+    final selected = addresses.where((a) => a.id == selectedId).firstOrNull;
+    if (selected != null) return selected;
+  }
   return addresses.firstWhere(
     (a) => a.isDefault,
     orElse: () => addresses.first,

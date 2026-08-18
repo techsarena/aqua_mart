@@ -190,6 +190,9 @@ class _AddressList extends ConsumerWidget {
           onTap: address.isServiceable
               ? () {
                   ref.read(cartProvider.notifier).setAddress(address);
+                  ref
+                      .read(deliveryAddressSelectionProvider.notifier)
+                      .select(address.id);
                   ref.read(addressBookProvider.notifier).setDefault(address.id);
                   context.pop();
                 }

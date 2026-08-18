@@ -50,6 +50,10 @@ dependencies:
   # Realtime (API_SPEC 8). Frappe ships a Socket.IO v4 server; this is the
   # matching Dart client.
   socket_io_client: ^3.1.2
+  flutter_map: ^8.3.1
+  latlong2: ^0.10.1
+  geolocator: ^14.0.2
+  geocoding: ^5.0.0
 
 dev_dependencies:
   flutter_test:
