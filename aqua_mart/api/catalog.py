@@ -135,8 +135,31 @@ def sellers_nearby(**kwargs):
 @frappe.whitelist()
 @aqua_endpoint(role=C.ROLE_CUSTOMER)
 def sellers_list(**kwargs):
-	"""GET /sellers - the whole serviceable shelf."""
-	return sellers_nearby(**kwargs)
+	"""GET /sellers - every approved seller.
+
+	Unlike /sellers/nearby this does NOT fall back to the customer's default
+	address. A customer browsing the whole catalogue - or one who has not
+	saved an address yet - must see who exists; silently filtering to their
+	default address made the app look empty for anyone outside a seller's
+	radius, with nothing on screen to explain why.
+	"""
+	customer = current_user()
+	limit, offset = paginate(frappe.local.form_dict)
+
+	# An explicit address_id still filters, so callers that want the
+	# serviceable shelf can ask for it.
+	address_id = frappe.local.form_dict.get("address_id")
+	address = _address_for(customer, address_id) if address_id else None
+
+	return ok(
+		_shelf(
+			customer,
+			address,
+			query=frappe.local.form_dict.get("q"),
+			limit=limit,
+			offset=offset,
+		)
+	)
 
 
 @frappe.whitelist()
