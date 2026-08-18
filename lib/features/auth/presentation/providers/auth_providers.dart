@@ -63,10 +63,13 @@ class SessionState {
     bool? isLoading,
     bool clearUser = false,
     bool clearRegistrationRoute = false,
+    bool clearPendingRole = false,
   }) => SessionState(
     user: clearUser ? null : (user ?? this.user),
     language: language ?? this.language,
-    pendingRole: pendingRole ?? this.pendingRole,
+    // `??` alone cannot clear this, and a stale role must be clearable: it
+    // decides which app shell a signed-in person sees.
+    pendingRole: clearPendingRole ? null : (pendingRole ?? this.pendingRole),
     draft: draft ?? this.draft,
     registrationRoute: clearRegistrationRoute
         ? null
@@ -103,7 +106,15 @@ class SessionController extends Notifier<SessionState> {
     state = result.when(
       success: (user) {
         _openSocket();
-        return state.copyWith(user: user, isLoading: false);
+        // As in signIn: for a finished account the server's role is the
+        // truth, so a stale local preference cannot pick the shell.
+        final isComplete = user != null && user.isProfileComplete;
+        return state.copyWith(
+          user: user,
+          pendingRole: isComplete ? user.role : null,
+          clearPendingRole: !isComplete,
+          isLoading: false,
+        );
       },
       failure: (_) => state.copyWith(isLoading: false),
     );
@@ -163,8 +174,19 @@ class SessionController extends Notifier<SessionState> {
     state = state.copyWith(clearRegistrationRoute: true);
   }
 
+  /// Signs in a fully-registered account.
+  ///
+  /// The server's role wins outright. `pendingRole` is a persisted local
+  /// preference — someone may have tapped "I sell water", abandoned sign-up,
+  /// and later signed in with a phone registered as a customer. Leaving that
+  /// stale choice in place would route them into the wrong app.
   void signIn(AppUser user) {
-    state = state.copyWith(user: user, isLoading: false);
+    state = state.copyWith(
+      user: user,
+      pendingRole: user.role,
+      isLoading: false,
+    );
+    unawaited(ref.read(appPreferencesProvider).setRole(user.role));
     _openSocket();
   }
 

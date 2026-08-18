@@ -1,7 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+// `hide Path`: latlong2 exports its own Path, which shadows the one
+// CustomPainter draws with.
+import 'package:latlong2/latlong.dart' hide Path;
 
+import '../../../../core/location/pakistan.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
@@ -9,7 +16,6 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/back_disc_button.dart';
-import '../../../../shared/widgets/map_placeholder.dart';
 import '../../../addresses/presentation/providers/address_providers.dart';
 import '../../domain/entities/seller.dart';
 import '../providers/catalog_providers.dart';
@@ -23,7 +29,21 @@ class SellerMapScreen extends ConsumerStatefulWidget {
 }
 
 class _SellerMapScreenState extends ConsumerState<SellerMapScreen> {
-  int _selected = 0;
+  final _mapController = MapController();
+
+  /// Tracked by id, not index: the nearby list re-sorts as distances refresh,
+  /// so an index would silently select a different shop.
+  String? _selectedId;
+
+  /// True once the camera has been framed around the sellers, so a later
+  /// rebuild does not yank the map back while the customer is panning.
+  bool _framed = false;
+
+  @override
+  void dispose() {
+    _mapController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,47 +53,123 @@ class _SellerMapScreenState extends ConsumerState<SellerMapScreen> {
         : (ref.watch(nearbySellersProvider(address.id)).value ??
               const <Seller>[]);
 
-    final selected = sellers.isEmpty
+    // A seller with no coordinates cannot be drawn. They stay in the list
+    // view; plotting them at 0,0 would put a Lahore shop in the Atlantic.
+    final plottable = [
+      for (final seller in sellers)
+        if (seller.latitude != null && seller.longitude != null) seller,
+    ];
+
+    // Shops genuinely share a point — a plaza, a market street, or several
+    // branches at one address. Stacked markers look like ONE seller and only
+    // the top one can be tapped, so a cluster is fanned into a small ring.
+    final points = _fanOut(plottable);
+
+    final selected = plottable.isEmpty
         ? null
-        : sellers[_selected.clamp(0, sellers.length - 1)];
+        : plottable.firstWhere(
+            (s) => s.id == _selectedId,
+            orElse: () => plottable.first,
+          );
+
+    final home = address?.latitude != null && address?.longitude != null
+        ? LatLng(address!.latitude!, address.longitude!)
+        : null;
+
+    // Frame everything once the sellers arrive.
+    if (!_framed && plottable.isNotEmpty) {
+      _framed = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _fit(plottable, home);
+      });
+    }
 
     return Scaffold(
       body: Stack(
         children: [
-          // The map fills the screen; pins sit at each seller's position.
+          // The map fills the screen; each seller is a real marker at their
+          // own coordinates.
           Positioned.fill(
-            child: MapPlaceholder(
-              radius: 0,
-              height: double.infinity,
-              pins: [
-                for (var i = 0; i < sellers.length; i++)
-                  MapPin(
-                    x: _spread(i, sellers.length).$1,
-                    y: _spread(i, sellers.length).$2,
-                    label: sellers[i].isOpen
-                        ? Formatters.rupees(sellers[i].cheapestRefillPrice ?? 0)
-                        : 'Closed',
-                    isPrimary: i == _selected,
-                    isMuted: !sellers[i].isOpen,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter:
+                    home ??
+                    (plottable.isNotEmpty
+                        ? LatLng(
+                            plottable.first.latitude!,
+                            plottable.first.longitude!,
+                          )
+                        : Pakistan.defaultCity),
+                initialZoom: 13,
+                minZoom: 5,
+                maxZoom: 19,
+                cameraConstraint: CameraConstraint.containCenter(
+                  bounds: LatLngBounds(Pakistan.southWest, Pakistan.northEast),
+                ),
+                // Tapping bare map dismisses the preview card, so the map
+                // underneath can be read.
+                onTap: (_, _) => setState(() => _selectedId = null),
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.aqua_mart',
+                ),
+
+                // "You are here", drawn under the sellers so a shop at the
+                // same spot stays tappable.
+                if (home != null)
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: home,
+                        width: 30,
+                        height: 30,
+                        child: const _HomeDot(),
+                      ),
+                    ],
                   ),
+
+                MarkerLayer(
+                  markers: [
+                    // Sellers can share a spot (a plaza, or two shops on one
+                    // street). Drawing the selected one LAST puts it on top,
+                    // so the card and the highlighted pin always agree.
+                    for (final seller in [
+                      for (final s in plottable)
+                        if (s.id != selected?.id) s,
+                      if (selected != null) selected,
+                    ])
+                      Marker(
+                        point: points[seller.id]!,
+                        width: 108,
+                        height: 54,
+                        alignment: Alignment.topCenter,
+                        child: _SellerMarker(
+                          seller: seller,
+                          isSelected: seller.id == selected?.id,
+                          onTap: () {
+                            setState(() => _selectedId = seller.id);
+                            _mapController.move(
+                              points[seller.id]!,
+                              _mapController.camera.zoom.clamp(13, 19),
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                ),
+
+                const RichAttributionWidget(
+                  showFlutterMapAttribution: false,
+                  attributions: [
+                    TextSourceAttribution('OpenStreetMap contributors'),
+                  ],
+                ),
               ],
             ),
           ),
-
-          // Where you are, so the prices around it have a reference point.
-          const Center(child: UserLocationDot()),
-
-          // Tapping anywhere cycles the selection — a stand-in for real pin
-          // hit-testing, which arrives with the Maps SDK.
-          if (sellers.isNotEmpty)
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: () => setState(
-                  () => _selected = (_selected + 1) % sellers.length,
-                ),
-              ),
-            ),
 
           // Above the tap layer, so the controls stay usable.
           Positioned(
@@ -105,8 +201,11 @@ class _SellerMapScreenState extends ConsumerState<SellerMapScreen> {
                         const SizedBox(width: AppSpacing.sm),
                         Flexible(
                           child: Text(
+                            // Counts what is actually ON the map, so the
+                            // number matches the pins the customer can see.
                             '${address?.area ?? 'Nearby'} · '
-                            '${sellers.length} sellers',
+                            '${plottable.length} '
+                            '${plottable.length == 1 ? 'seller' : 'sellers'}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTypography.body(
@@ -137,6 +236,37 @@ class _SellerMapScreenState extends ConsumerState<SellerMapScreen> {
               ],
             ),
           ),
+
+          // Sellers exist but none can be placed: say so, rather than
+          // leaving an empty map that reads as "nobody delivers here".
+          if (plottable.isEmpty && sellers.isNotEmpty)
+            Positioned(
+              left: AppSpacing.gutter,
+              right: AppSpacing.gutter,
+              bottom: AppSpacing.gutter,
+              child: SafeArea(
+                child: AppCard(
+                  elevated: true,
+                  padding: const EdgeInsets.all(AppSpacing.lg),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.location_off_outlined,
+                        color: AppColors.accent,
+                      ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          '${sellers.length} sellers deliver here, but none '
+                          'have pinned their shop yet. Open the list to order.',
+                          style: AppTypography.body(size: 13.5, height: 1.4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
           if (selected != null)
             Positioned(
@@ -247,16 +377,65 @@ class _SellerMapScreenState extends ConsumerState<SellerMapScreen> {
     );
   }
 
-  /// Spreads pins across the map so they do not stack on one another.
-  static (double, double) _spread(int index, int total) {
-    const positions = [
-      (-0.45, -0.4),
-      (0.4, -0.15),
-      (-0.2, 0.25),
-      (0.5, 0.45),
-      (-0.55, 0.5),
+  /// Nudges sellers that share a coordinate onto a small ring around it, so
+  /// each one is separately visible and tappable.
+  ///
+  /// The offset is metres-scale — far too small to misrepresent where a shop
+  /// is, but enough to separate the bubbles at street zoom.
+  static Map<String, LatLng> _fanOut(List<Seller> sellers) {
+    final byPoint = <String, List<Seller>>{};
+    for (final seller in sellers) {
+      // Rounded so coordinates that differ only in noise still group.
+      final key =
+          '${seller.latitude!.toStringAsFixed(5)},'
+          '${seller.longitude!.toStringAsFixed(5)}';
+      byPoint.putIfAbsent(key, () => []).add(seller);
+    }
+
+    const spreadDegrees = 0.00035; // ~40 m
+    final placed = <String, LatLng>{};
+
+    for (final group in byPoint.values) {
+      final origin = LatLng(group.first.latitude!, group.first.longitude!);
+      if (group.length == 1) {
+        placed[group.first.id] = origin;
+        continue;
+      }
+      for (var i = 0; i < group.length; i++) {
+        final angle = (2 * math.pi * i) / group.length;
+        placed[group[i].id] = LatLng(
+          origin.latitude + spreadDegrees * math.sin(angle),
+          origin.longitude + spreadDegrees * math.cos(angle),
+        );
+      }
+    }
+    return placed;
+  }
+
+  /// Frames the camera so every seller — and the customer's own address —
+  /// is on screen at once, rather than opening on an arbitrary one.
+  void _fit(List<Seller> sellers, LatLng? home) {
+    final fanned = _fanOut(sellers);
+    final points = <LatLng>[
+      ...fanned.values,
+      if (home != null) home,
     ];
-    return positions[index % positions.length];
+    if (points.isEmpty) return;
+
+    if (points.length == 1) {
+      _mapController.move(points.first, 14);
+      return;
+    }
+
+    _mapController.fitCamera(
+      CameraFit.bounds(
+        bounds: LatLngBounds.fromPoints(points),
+        // Padding keeps a pin from sitting under the search bar or the
+        // preview card, both of which float over the map.
+        padding: const EdgeInsets.fromLTRB(48, 130, 48, 220),
+        maxZoom: 16,
+      ),
+    );
   }
 }
 
@@ -286,4 +465,124 @@ class _PricePill extends StatelessWidget {
       ),
     ),
   );
+}
+
+/// The customer's own address — a dark dot, deliberately unlike the seller
+/// bubbles so it never reads as one of them.
+class _HomeDot extends StatelessWidget {
+  const _HomeDot();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(4),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      shape: BoxShape.circle,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.2),
+          blurRadius: 6,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: const SizedBox.square(
+      dimension: 14,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.text,
+          shape: BoxShape.circle,
+        ),
+      ),
+    ),
+  );
+}
+
+/// A seller on the map: a price bubble with a tail pointing at the shop.
+///
+/// The price is the thing being compared across sellers, so it is what the
+/// bubble carries; a closed shop says so instead and is faded back.
+class _SellerMarker extends StatelessWidget {
+  const _SellerMarker({
+    required this.seller,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final Seller seller;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final background = isSelected
+        ? AppColors.accent
+        : (seller.isOpen ? Colors.white : AppColors.neutral200);
+    final foreground = isSelected
+        ? Colors.white
+        : (seller.isOpen ? AppColors.text : AppColors.textMuted(0.7));
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        opacity: seller.isOpen ? 1 : 0.75,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Text(
+                seller.isOpen
+                    ? Formatters.rupees(seller.cheapestRefillPrice ?? 0)
+                    : 'Closed',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.body(
+                  size: 14,
+                  weight: FontWeight.w800,
+                  color: foreground,
+                ),
+              ),
+            ),
+            CustomPaint(
+              size: const Size(14, 8),
+              painter: _TailPainter(color: background),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The little triangle under a price bubble.
+class _TailPainter extends CustomPainter {
+  const _TailPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(size.width, 0)
+      ..lineTo(size.width / 2, size.height)
+      ..close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TailPainter oldDelegate) =>
+      oldDelegate.color != color;
 }
