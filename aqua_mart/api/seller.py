@@ -788,6 +788,10 @@ def get_service_area(**kwargs):
 		{
 			"areas": [a.area for a in seller.areas],
 			"radius_km": float(seller.radius_km or 0),
+			# The centre the radius is measured from. `geo.py` matches
+			# customers against it, so without it the radius covers nobody.
+			"latitude": float(seller.latitude) if seller.latitude else None,
+			"longitude": float(seller.longitude) if seller.longitude else None,
 		}
 	)
 
@@ -811,8 +815,31 @@ def set_service_area(**kwargs):
 	if "radius_km" in body:
 		seller.radius_km = float(body.get("radius_km") or 0)
 
+	# The radius needs a centre to be measured from. Both coordinates move
+	# together or not at all - a half-set point would place the store on the
+	# equator and silently serve nobody.
+	latitude = body.get("latitude")
+	longitude = body.get("longitude")
+	if latitude not in (None, "") and longitude not in (None, ""):
+		try:
+			latitude = float(latitude)
+			longitude = float(longitude)
+		except (TypeError, ValueError):
+			invalid({"latitude": "Drop the pin on your shop to set your area."})
+		if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+			invalid({"latitude": "Drop the pin on your shop to set your area."})
+		seller.latitude = latitude
+		seller.longitude = longitude
+
 	seller.save(ignore_permissions=True)
-	return ok({"areas": [a.area for a in seller.areas], "radius_km": float(seller.radius_km or 0)})
+	return ok(
+		{
+			"areas": [a.area for a in seller.areas],
+			"radius_km": float(seller.radius_km or 0),
+			"latitude": float(seller.latitude) if seller.latitude else None,
+			"longitude": float(seller.longitude) if seller.longitude else None,
+		}
+	)
 
 
 @frappe.whitelist()

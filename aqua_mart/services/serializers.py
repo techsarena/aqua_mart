@@ -134,11 +134,20 @@ def serialize_seller(seller, customer=None, distance_metres=None):
 		),
 		"logo_url": seller.logo_url,
 		"is_regular": _is_regular(seller.name, customer),
-		"latitude": float(seller.latitude) if seller.latitude else None,
-		"longitude": float(seller.longitude) if seller.longitude else None,
+		# 0,0 is "never set", not a place in the Gulf of Guinea. Sent as null
+		# so the client can leave the shop off the map instead of plotting it
+		# in the Atlantic.
+		"latitude": float(seller.latitude) if _has_point(seller) else None,
+		"longitude": float(seller.longitude) if _has_point(seller) else None,
 		"business_type": seller.business_type,
 		"verification_status": seller.verification_status,
 	}
+
+
+def _has_point(seller):
+	from aqua_mart.services.geo import has_location
+
+	return has_location(seller.latitude, seller.longitude)
 
 
 def _is_regular(seller_name, customer):

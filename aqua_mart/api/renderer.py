@@ -92,6 +92,17 @@ class AquaApiHandler:
 				{"message": "We could not find that.", "code": "unknown_route"}, 404
 			)
 
+		# Query parameters are NOT in form_dict here. Frappe populates it from
+		# the query string later in its own request pipeline, which never runs
+		# for a before_request route - so `?address_id=`, `?q=`, `?limit=` and
+		# every other query parameter arrived empty and each handler silently
+		# fell back to its default. Merge them in before anything reads them.
+		try:
+			for key, value in (frappe.local.request.args or {}).items():
+				frappe.local.form_dict.setdefault(key, value)
+		except Exception:
+			pass
+
 		# Snapshot the client-supplied body BEFORE path parameters are merged
 		# in, so request_body() can never mistake a path segment for a field
 		# the client sent.
@@ -131,7 +142,18 @@ class AquaApiHandler:
 		if "data" in response:
 			payload["data"] = response.get("data")
 
-		for key in ("message", "code", "errors", "access_token", "refresh_token", "user"):
+		# `is_new_user` decides where the client sends someone after OTP: a
+		# returning account goes straight to its role's home, a brand-new one
+		# to "Who are you?". It was being computed and then dropped here.
+		for key in (
+			"message",
+			"code",
+			"errors",
+			"access_token",
+			"refresh_token",
+			"user",
+			"is_new_user",
+		):
 			if key in response and response.get(key) is not None:
 				payload[key] = response.get(key)
 

@@ -30,6 +30,11 @@ def build_dashboard(seller_name):
 	)
 
 	return {
+		# The store's own name, so the seller's header and profile show their
+		# shop rather than a placeholder. It is the only place the client can
+		# read it: /auth/me returns the PERSON, not the business.
+		"business_name": seller.business_name,
+		"verification_status": seller.verification_status,
 		"orders_today": orders_today,
 		"delivered": delivered,
 		"earned": _earned_today(seller_name, day_start),
