@@ -94,7 +94,9 @@ def send_push(user, kind, title, body, deep_link, notification_id):
 		frappe.get_attr(sender[-1])(tokens, payload)
 		return
 
-	server_key = frappe.conf.get("aqua_fcm_key")
+	from aqua_mart.aqua_mart.doctype.aqua_settings.aqua_settings import get_password
+
+	server_key = get_password("fcm_server_key") or frappe.conf.get("aqua_fcm_key")
 	if not server_key:
 		# No credentials configured yet - the in-app feed and socket still work.
 		return

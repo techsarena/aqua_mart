@@ -10,6 +10,7 @@ import string
 
 import frappe
 
+from aqua_mart.aqua_mart.doctype.aqua_settings.aqua_settings import get_settings
 from aqua_mart.services import constants as C
 from aqua_mart.services import order_state, realtime
 from aqua_mart.services.dashboard import build_dashboard
@@ -200,7 +201,9 @@ def submit_verification(**kwargs):
 		values = {
 			"refill_price": int(bottle.get("refill_price") or 0),
 			"new_price": int(bottle.get("new_price") or 0),
-			"deposit": int(bottle.get("deposit") or C.DEFAULT_DEPOSIT),
+			"deposit": int(
+				bottle.get("deposit") or get_settings().default_deposit
+			),
 		}
 		if existing:
 			frappe.db.set_value("Aqua Bottle", existing, values)

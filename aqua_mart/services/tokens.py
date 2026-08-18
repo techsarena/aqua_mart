@@ -16,7 +16,7 @@ from datetime import datetime, timedelta, timezone
 import frappe
 import jwt
 
-from aqua_mart.services.constants import ACCESS_TOKEN_TTL_MINUTES, REFRESH_TOKEN_TTL_DAYS
+from aqua_mart.aqua_mart.doctype.aqua_settings.aqua_settings import get_settings
 from aqua_mart.services.response import unauthorised
 
 ALGORITHM = "HS256"
@@ -65,10 +65,14 @@ def _hash(token):
 
 def issue_pair(user, role, device=None):
 	"""Mint a fresh access+refresh pair and record the refresh token."""
-	access = _encode(user, role, ACCESS, timedelta(minutes=ACCESS_TOKEN_TTL_MINUTES), uuid.uuid4().hex)
+	settings = get_settings()
+	access_ttl = int(settings.access_token_ttl_minutes)
+	refresh_ttl = int(settings.refresh_token_ttl_days)
+
+	access = _encode(user, role, ACCESS, timedelta(minutes=access_ttl), uuid.uuid4().hex)
 
 	jti = uuid.uuid4().hex
-	refresh = _encode(user, role, REFRESH, timedelta(days=REFRESH_TOKEN_TTL_DAYS), jti)
+	refresh = _encode(user, role, REFRESH, timedelta(days=refresh_ttl), jti)
 
 	doc = frappe.get_doc(
 		{
@@ -77,7 +81,7 @@ def issue_pair(user, role, device=None):
 			"jti": jti,
 			"token_hash": _hash(refresh),
 			"device": device,
-			"expires_at": frappe.utils.add_days(frappe.utils.now(), REFRESH_TOKEN_TTL_DAYS),
+			"expires_at": frappe.utils.add_days(frappe.utils.now(), refresh_ttl),
 		}
 	)
 	doc.insert(ignore_permissions=True)

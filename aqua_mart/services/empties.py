@@ -8,6 +8,7 @@ then the money sits in `pending_deposits`.
 
 import frappe
 
+from aqua_mart.aqua_mart.doctype.aqua_settings.aqua_settings import get_settings
 from aqua_mart.services import constants as C
 
 
@@ -21,8 +22,8 @@ def record_empties_for_order(order):
 		if line.kind != C.KIND_BUY_NEW:
 			continue
 
-		deposit_each = (
-			frappe.db.get_value("Aqua Bottle", line.bottle, "deposit") or C.DEFAULT_DEPOSIT
+		deposit_each = frappe.db.get_value("Aqua Bottle", line.bottle, "deposit") or int(
+			get_settings().default_deposit
 		)
 		_add_holding(
 			order.customer,

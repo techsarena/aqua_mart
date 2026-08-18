@@ -12,18 +12,15 @@
 
 import frappe
 
+from aqua_mart.aqua_mart.doctype.aqua_settings.aqua_settings import get_settings
 from aqua_mart.services import constants as C
 from aqua_mart.services.notifications import notify
-
-# Commission rate. Appendix C question 2 is still open (the rate, and
-# whether it applies to deposits); this implements 10% of gross sales
-# excluding deposits, which is the reading the payout arithmetic supports.
-COMMISSION_RATE = 0.10
 
 
 def expire_otps():
 	"""Delete codes past their TTL - nothing should linger that can be tried."""
-	cutoff = frappe.utils.add_to_date(frappe.utils.now_datetime(), minutes=-C.OTP_TTL_MINUTES)
+	ttl = int(get_settings().otp_ttl_seconds)
+	cutoff = frappe.utils.add_to_date(frappe.utils.now_datetime(), seconds=-ttl)
 	for name in frappe.get_all("Aqua OTP", filters={"expires_at": ["<", cutoff]}, pluck="name"):
 		frappe.delete_doc("Aqua OTP", name, ignore_permissions=True, force=True)
 	frappe.db.commit()
@@ -87,11 +84,13 @@ def khata_reminders():
 
 
 def escalate_stale_disputes():
-	"""Unsettled past 24 hours -> escalate (6.7).
+	"""Unsettled past the dispute window -> escalate (6.7).
 
 	The seller's rating is protected pending review, and support picks it up.
+	The window is configured in Aqua Settings; the spec's default is 24 h.
 	"""
-	cutoff = frappe.utils.add_to_date(frappe.utils.now_datetime(), hours=-24)
+	window = int(get_settings().dispute_window_hours)
+	cutoff = frappe.utils.add_to_date(frappe.utils.now_datetime(), hours=-window)
 	names = frappe.get_all(
 		"Aqua Dispute",
 		filters={"status": "open", "raised_at": ["<", cutoff]},
@@ -108,7 +107,7 @@ def escalate_stale_disputes():
 			seller_user,
 			"complaint",
 			"A complaint was escalated",
-			f"{dispute.order_reference} went past 24 hours and is now with Aqua Mart support.",
+			f"{dispute.order_reference} went past {window} hours and is now with Aqua Mart support.",
 			f"/seller/disputes/{dispute.name}",
 		)
 	frappe.db.commit()
@@ -154,6 +153,8 @@ def build_weekly_payouts():
 	today = frappe.utils.getdate()
 	week_end = frappe.utils.add_days(today, -1)
 	week_start = frappe.utils.add_days(week_end, -6)
+
+	commission_rate = float(get_settings().commission_rate) / 100.0
 
 	sellers = frappe.get_all(
 		"Aqua Seller Profile", filters={"verification_status": C.APPROVED}, pluck="name"
@@ -231,7 +232,7 @@ def build_weekly_payouts():
 			or 0
 		)
 
-		commission = int(round(gross * COMMISSION_RATE))
+		commission = int(round(gross * commission_rate))
 
 		net_paid = (
 			gross

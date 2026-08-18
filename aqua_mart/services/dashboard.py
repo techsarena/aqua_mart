@@ -8,6 +8,7 @@ than hard-coded to zero.
 
 import frappe
 
+from aqua_mart.aqua_mart.doctype.aqua_settings.aqua_settings import get_settings
 from aqua_mart.services import constants as C
 from aqua_mart.services.serializers import compute_is_open, iso
 
@@ -67,12 +68,15 @@ def _earned_today(seller_name, day_start):
 	return int(total or 0) + int(fees or 0)
 
 
-def low_stock_label(seller_name, threshold=5):
+def low_stock_label(seller_name, threshold=None):
 	"""A ready-made sentence, or None (6.2).
 
 	Composed server-side so the threshold logic lives in exactly one place;
 	the client prints it verbatim.
 	"""
+	if threshold is None:
+		threshold = int(get_settings().low_stock_threshold)
+
 	rows = frappe.get_all(
 		"Aqua Bottle",
 		filters={"seller": seller_name, "is_visible": 1, "filled_stock": ["<=", threshold]},

@@ -98,17 +98,16 @@ DISPUTE_RESOLUTIONS = ("replacement", "refund", "escalate")
 # collapses to 25L on its side, so reject unknown sizes at the edge.
 BOTTLE_LITRES = (6, 10, 25)
 
-# Deposit default (Appendix C, open question 5) - platform-wide for now.
+# Deposit default (Appendix C, open question 5). The live value is the
+# `default_deposit` field on Aqua Settings; this is only the fallback used
+# when a bottle carries no deposit and settings cannot be read.
 DEFAULT_DEPOSIT = 300
 
-# Pagination (1.8)
+# Pagination (1.8). Fixed by the contract, so not configurable.
 DEFAULT_LIMIT = 20
 MAX_LIMIT = 100
 
-# Token lifetimes (4.2)
-ACCESS_TOKEN_TTL_MINUTES = 60
-REFRESH_TOKEN_TTL_DAYS = 60
-
-OTP_TTL_MINUTES = 5
-OTP_MAX_ATTEMPTS = 5
-OTP_RESEND_AFTER_SECONDS = 30
+# NOTE: token lifetimes and every OTP limit live on the **Aqua Settings**
+# single DocType, not here - they are operational settings rather than parts
+# of the contract. Read them with
+# `aqua_mart.aqua_mart.doctype.aqua_settings.aqua_settings.get_settings()`.
