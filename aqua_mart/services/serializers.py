@@ -64,6 +64,7 @@ def serialize_user(profile):
 		"khata_seller_name": khata.get("seller_name"),
 		"khata_due_date": khata.get("due_date"),
 		"is_verified": bool(profile.is_verified),
+		"is_profile_complete": bool(profile.is_profile_complete),
 	}
 
 

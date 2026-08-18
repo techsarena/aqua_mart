@@ -5,7 +5,9 @@ seller_id parameter anywhere in this module and one must never be accepted -
 that would let any seller drive another's store (6).
 """
 
+import hashlib
 import random
+import re
 import string
 
 import frappe
@@ -113,17 +115,42 @@ def documents(**kwargs):
 	optional = ("licence", "plant_photo")
 
 	files = getattr(frappe.local.request, "files", None) or {}
-	saved = {}
+	body = request_body()
+	contents = {}
 
 	for field in required + optional:
 		upload = files.get(field)
 		if not upload:
 			continue
-		saved[field] = _save_private_file(upload, doc.name, field)
+		contents[field] = _read_private_upload(upload, field)
 
-	missing = {f: "This document is required." for f in required if not (saved.get(f) or doc.get(f))}
+	missing = {f: "This document is required." for f in required if not (contents.get(f) or doc.get(f))}
 	if missing:
 		invalid(missing)
+
+	# A new CNIC is accepted only when both sides have passed on-device OCR,
+	# and the server independently checks the OCR evidence and image bytes.
+	if "cnic_front" in contents or "cnic_back" in contents:
+		if not {"cnic_front", "cnic_back"}.issubset(contents):
+			invalid(
+				{
+					"cnic_front": "Upload both CNIC sides together.",
+					"cnic_back": "Upload both CNIC sides together.",
+				}
+			)
+		cnic_errors = _cnic_validation_errors(
+			_multipart_text(body, "cnic_front_ocr"),
+			_multipart_text(body, "cnic_back_ocr"),
+			contents["cnic_front"],
+			contents["cnic_back"],
+		)
+		if cnic_errors:
+			invalid(cnic_errors, message=next(iter(cnic_errors.values())))
+
+	saved = {
+		field: _save_private_file(files[field], content, doc.name, field)
+		for field, content in contents.items()
+	}
 
 	for field, url in saved.items():
 		setattr(doc, field, url)
@@ -138,14 +165,26 @@ MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 ALLOWED_UPLOAD_TYPES = {"image/jpeg", "image/png", "application/pdf"}
 
 
-def _save_private_file(upload, seller_name, field):
-	"""Store one KYC file privately, capped at 5 MB, EXIF stripped."""
+def _read_private_upload(upload, field):
+	"""Read and validate one KYC upload before anything is persisted."""
 	content = upload.stream.read()
+	if not content:
+		invalid({field: "This file is empty. Choose it again."})
 	if len(content) > MAX_UPLOAD_BYTES:
 		invalid({field: "This file is too large. The limit is 5 MB."})
 
 	if upload.mimetype and upload.mimetype not in ALLOWED_UPLOAD_TYPES:
 		invalid({field: "Upload a JPEG, PNG or PDF."})
+	if field in ("cnic_front", "cnic_back") and upload.mimetype not in (
+		"image/jpeg",
+		"image/png",
+	):
+		invalid({field: "Take or choose a clear CNIC photo."})
+	return content
+
+
+def _save_private_file(upload, content, seller_name, field):
+	"""Store a validated KYC file privately, stripping image EXIF."""
 
 	if upload.mimetype in ("image/jpeg", "image/png"):
 		content = _strip_exif(content)
@@ -161,6 +200,138 @@ def _save_private_file(upload, seller_name, field):
 		}
 	).insert(ignore_permissions=True)
 	return saved.file_url
+
+
+CNIC_NUMBER_PATTERN = re.compile(r"(?:^|\D)(\d{5})[\s\-–—]*(\d{7})[\s\-–—]*(\d)(?:\D|$)")
+CNIC_FRONT_SIGNALS = {
+	"pakistan",
+	"identity",
+	"national",
+	"name",
+	"father",
+	"husband",
+	"gender",
+	"birth",
+	"country of stay",
+}
+CNIC_FRONT_SIDE_SIGNALS = {
+	"name",
+	"father",
+	"husband",
+	"gender",
+	"birth",
+	"country of stay",
+}
+CNIC_BACK_SIGNALS = {
+	"address",
+	"present",
+	"current",
+	"permanent",
+	"issue",
+	"expiry",
+	"signature",
+	"family",
+	"nadra",
+	"return",
+	"serial",
+	"issuing authority",
+	"qr",
+}
+CNIC_BACK_SIDE_SIGNALS = {
+	"present address",
+	"current address",
+	"permanent address",
+	"card serial",
+	"serial no",
+	"serial number",
+	"family no",
+	"family number",
+	"issuing authority",
+	"qr code",
+	"machine readable",
+	"visa free entry",
+}
+
+
+def _multipart_text(body, field):
+	"""Read a text field reliably from Frappe/Werkzeug multipart parsing."""
+	request = getattr(frappe.local, "request", None)
+	form = getattr(request, "form", None)
+	if form is not None:
+		value = form.get(field)
+		if value not in (None, ""):
+			return value
+
+	value = body.get(field)
+	if value not in (None, ""):
+		return value
+
+	form_dict = getattr(frappe.local, "form_dict", None)
+	return form_dict.get(field) if form_dict else None
+
+
+def _cnic_validation_errors(front_ocr, back_ocr, front_content, back_content):
+	"""Reject non-CNIC, wrong-side, duplicate, and mismatched CNIC images."""
+	front_ocr = str(front_ocr or "")[:10000]
+	back_ocr = str(back_ocr or "")[:10000]
+	front_text = _normalise_ocr(front_ocr)
+	back_text = _normalise_ocr(back_ocr)
+	front_score = _signal_score(front_text, CNIC_FRONT_SIGNALS)
+	front_back_score = _signal_score(front_text, CNIC_BACK_SIGNALS)
+	front_back_side_score = _signal_score(front_text, CNIC_BACK_SIDE_SIGNALS)
+	back_score = _signal_score(back_text, CNIC_BACK_SIGNALS)
+	back_side_score = _signal_score(back_text, CNIC_BACK_SIDE_SIGNALS)
+	back_front_side_score = _signal_score(back_text, CNIC_FRONT_SIDE_SIGNALS)
+	front_number = _extract_cnic_number(front_ocr)
+	back_number = _extract_cnic_number(back_ocr)
+
+	errors = {}
+	if len(front_text) < 20 or not front_number or front_score < 2:
+		errors["cnic_front"] = (
+			"This looks like the CNIC back. Add the front side here."
+			if (front_back_side_score >= 1 or front_back_score >= 2) and front_score < 2
+			else "This is not a readable Pakistani CNIC front. Retake the correct card."
+		)
+
+	# Front-only biographical labels take precedence because a real front also
+	# contains shared words such as issue, expiry, signature, and NADRA.
+	if back_front_side_score >= 1:
+		errors["cnic_back"] = (
+			"This is the front side of the CNIC. Please take or upload a picture of the back side."
+		)
+	elif (len(back_text) < 20 and not (back_side_score >= 1 and len(back_text) >= 8)) or (
+		back_side_score < 1 and back_score < 2
+	):
+		errors["cnic_back"] = (
+			"This is not a readable Pakistani CNIC back. Retake the correct card."
+		)
+
+	if hashlib.sha256(front_content).digest() == hashlib.sha256(back_content).digest():
+		errors["cnic_back"] = "The same CNIC photo was selected twice. Add the other side."
+	elif front_text and front_text == back_text:
+		errors["cnic_back"] = "The same CNIC side was selected twice. Add the other side."
+	elif front_number and back_number and front_number != back_number:
+		errors["cnic_back"] = "The CNIC front and back are from different cards."
+	return errors
+
+
+def _normalise_ocr(text):
+	return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", text.lower())).strip()
+
+
+def _signal_score(text, signals):
+	return sum(1 for signal in signals if signal in text)
+
+
+def _extract_cnic_number(text):
+	match = CNIC_NUMBER_PATTERN.search(text)
+	if match:
+		return "".join(match.groups())
+	for line in re.split(r"[\r\n]+", text):
+		digits = re.sub(r"\D", "", line)
+		if len(digits) == 13:
+			return digits
+	return None
 
 
 def _strip_exif(content):
