@@ -224,27 +224,33 @@ def _send_whatsapp_ultramsg(phone, message, settings):
 
 
 def _send_whatsapp_openwaapi(phone, message, settings):
+	from urllib.parse import quote
+
 	import requests
 
 	api_key = get_password("openwaapi_api_key")
-	if not api_key or not settings.openwaapi_base_url:
+	session_id = (settings.openwaapi_session_id or "").strip()
+	if not api_key or not settings.openwaapi_base_url or not session_id:
 		return
 
-	# The base URL is accepted with or without the trailing /api.
+	# Accept the service root, API root, or the Swagger URL operators commonly
+	# copy while configuring the integration.
 	base = (settings.openwaapi_base_url or "").rstrip("/")
+	if base.endswith("/api/docs"):
+		base = base.removesuffix("/docs")
 	if not base.endswith("/api"):
 		base = f"{base}/api"
 
-	requests.post(
-		f"{base}/sendText",
-		headers={"x-api-key": api_key, "Content-Type": "application/json"},
+	response = requests.post(
+		f"{base}/sessions/{quote(session_id, safe='')}/messages/send-text",
+		headers={"X-API-Key": api_key, "Content-Type": "application/json"},
 		json={
-			"session": settings.openwaapi_session_id,
-			"to": phone.lstrip("+"),
+			"chatId": f"{phone.lstrip('+')}@c.us",
 			"text": message,
 		},
 		timeout=15,
 	)
+	response.raise_for_status()
 
 
 def _send_sms(phone, message, settings):
