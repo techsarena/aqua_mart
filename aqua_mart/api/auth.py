@@ -48,11 +48,15 @@ def otp_verify(**kwargs):
 
 	if profile_name:
 		profile = frappe.get_doc("Aqua Profile", profile_name)
+		# An abandoned first registration must resume its remaining steps rather
+		# than being treated as a returning, fully registered account.
+		is_new_user = not bool(profile.is_profile_complete)
 	else:
 		role = body.get("role")
 		if role not in C.ROLES:
 			role = C.ROLE_CUSTOMER
 		profile = _create_account(phone, body.get("full_name"), role)
+		is_new_user = True
 
 	pair = tokens.issue_pair(profile.user, profile.role)
 
@@ -61,6 +65,7 @@ def otp_verify(**kwargs):
 	frappe.local.response.pop("message", None)
 	frappe.local.response["access_token"] = pair["access_token"]
 	frappe.local.response["refresh_token"] = pair["refresh_token"]
+	frappe.local.response["is_new_user"] = is_new_user
 	frappe.local.response["user"] = serialize_user(profile)
 	return None
 
@@ -100,11 +105,6 @@ def _create_account(phone, full_name, role):
 			"is_verified": 0,
 		}
 	).insert(ignore_permissions=True)
-
-	if role == C.ROLE_CUSTOMER:
-		from aqua_mart.services.wallet import get_wallet
-
-		get_wallet(user.name)
 
 	return profile
 
@@ -149,6 +149,7 @@ def profile(**kwargs):
 	body = request_body()
 
 	errors = {}
+	requested_role = None
 
 	if "full_name" in body:
 		full_name = (body.get("full_name") or "").strip()
@@ -175,8 +176,19 @@ def profile(**kwargs):
 			else:
 				doc.date_of_birth = parsed
 
+	# OTP creates a provisional customer account because the visible flow asks
+	# for the role afterwards. The role may therefore be finalized exactly once,
+	# while that profile is still incomplete. Completed accounts are immutable.
+	if not doc.is_profile_complete and "role" in body:
+		requested_role = body.get("role")
+		if requested_role not in C.ROLES:
+			errors["role"] = "Choose one of the account types."
+
 	if errors:
 		invalid(errors)
+
+	if requested_role and requested_role != doc.role:
+		_set_initial_role(doc, requested_role)
 
 	doc.is_profile_complete = 1
 	doc.save(ignore_permissions=True)
@@ -184,7 +196,26 @@ def profile(**kwargs):
 	if doc.full_name:
 		frappe.db.set_value("User", user, "first_name", doc.full_name)
 
+	if doc.role == C.ROLE_CUSTOMER:
+		from aqua_mart.services.wallet import get_wallet
+
+		get_wallet(user)
+
 	return ok(serialize_user(doc))
+
+
+def _set_initial_role(profile, role):
+	"""Finalize a provisional profile's app role and Frappe role together."""
+	profile.role = role
+
+	user = frappe.get_doc("User", profile.user)
+	app_roles = set(C.FRAPPE_ROLE.values())
+	user.set("roles", [row for row in user.roles if row.role not in app_roles])
+
+	frappe_role = C.FRAPPE_ROLE.get(role)
+	if frappe_role and frappe.db.exists("Role", frappe_role):
+		user.append("roles", {"role": frappe_role})
+	user.save(ignore_permissions=True)
 
 
 @frappe.whitelist()
