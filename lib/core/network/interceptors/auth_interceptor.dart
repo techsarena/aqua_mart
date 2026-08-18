@@ -51,6 +51,7 @@ class AuthInterceptor extends Interceptor {
     }
 
     _isRefreshing = true;
+    var refreshSucceeded = false;
     try {
       final response = await _refreshDio.post<Map<String, dynamic>>(
         '${ApiEndpoints.baseUrl}${ApiEndpoints.refreshToken}',
@@ -64,6 +65,7 @@ class AuthInterceptor extends Interceptor {
       final newRefresh = data['refresh_token'] as String? ?? refreshToken;
 
       if (newAccess == null) {
+        await _tokens.clear();
         onSessionExpired?.call();
         return handler.next(err);
       }
@@ -72,15 +74,35 @@ class AuthInterceptor extends Interceptor {
         accessToken: newAccess,
         refreshToken: newRefresh,
       );
+      refreshSucceeded = true;
 
-      // Replay the original request with the fresh token.
-      final retryOptions = err.requestOptions
-        ..headers['Authorization'] = 'Bearer $newAccess';
+      // FormData and MultipartFile streams are consumed by the first request.
+      // Clone them before replaying an upload after token refresh; otherwise
+      // Dio throws "FormData has already been finalized" and the valid,
+      // freshly-refreshed session is incorrectly cleared.
+      final original = err.requestOptions;
+      final retryOptions = original.copyWith(
+        data: original.data is FormData
+            ? (original.data as FormData).clone()
+            : original.data,
+        headers: {...original.headers, 'Authorization': 'Bearer $newAccess'},
+      );
       final retried = await _refreshDio.fetch<dynamic>(retryOptions);
       return handler.resolve(retried);
-    } on DioException {
-      await _tokens.clear();
-      onSessionExpired?.call();
+    } on DioException catch (retryError) {
+      if (!refreshSucceeded) {
+        await _tokens.clear();
+        onSessionExpired?.call();
+        return handler.next(err);
+      }
+      // The refreshed session is valid. Surface only the retry's transport or
+      // server failure and keep the new tokens for the next attempt.
+      return handler.next(retryError);
+    } catch (_) {
+      if (!refreshSucceeded) {
+        await _tokens.clear();
+        onSessionExpired?.call();
+      }
       return handler.next(err);
     } finally {
       _isRefreshing = false;
