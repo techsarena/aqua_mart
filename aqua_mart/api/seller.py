@@ -7,7 +7,6 @@ that would let any seller drive another's store (6).
 
 import hashlib
 import random
-import re
 import string
 
 import frappe
@@ -128,8 +127,14 @@ def documents(**kwargs):
 	if missing:
 		invalid(missing)
 
-	# A new CNIC is accepted only when both sides have passed on-device OCR,
-	# and the server independently checks the OCR evidence and image bytes.
+	# CNIC content is validated ON THE DEVICE, at capture time, where the card
+	# is still in front of the camera and a retake costs one tap. The server
+	# deliberately does NOT re-run that check: it only ever saw OCR text the
+	# client sent, so it could not judge the image itself, and disagreeing with
+	# the client stranded people on an upload they had no way to fix.
+	#
+	# The one check kept is byte-level: it needs no OCR and catches the same
+	# photo being sent as both sides.
 	if "cnic_front" in contents or "cnic_back" in contents:
 		if not {"cnic_front", "cnic_back"}.issubset(contents):
 			invalid(
@@ -138,14 +143,13 @@ def documents(**kwargs):
 					"cnic_back": "Upload both CNIC sides together.",
 				}
 			)
-		cnic_errors = _cnic_validation_errors(
-			_multipart_text(body, "cnic_front_ocr"),
-			_multipart_text(body, "cnic_back_ocr"),
-			contents["cnic_front"],
-			contents["cnic_back"],
-		)
-		if cnic_errors:
-			invalid(cnic_errors, message=next(iter(cnic_errors.values())))
+		if hashlib.sha256(contents["cnic_front"]).digest() == hashlib.sha256(
+			contents["cnic_back"]
+		).digest():
+			invalid(
+				{"cnic_back": "The same CNIC photo was selected twice. Add the other side."},
+				message="The same CNIC photo was selected twice. Add the other side.",
+			)
 
 	saved = {
 		field: _save_private_file(files[field], content, doc.name, field)
@@ -201,137 +205,6 @@ def _save_private_file(upload, content, seller_name, field):
 	).insert(ignore_permissions=True)
 	return saved.file_url
 
-
-CNIC_NUMBER_PATTERN = re.compile(r"(?:^|\D)(\d{5})[\s\-–—]*(\d{7})[\s\-–—]*(\d)(?:\D|$)")
-CNIC_FRONT_SIGNALS = {
-	"pakistan",
-	"identity",
-	"national",
-	"name",
-	"father",
-	"husband",
-	"gender",
-	"birth",
-	"country of stay",
-}
-CNIC_FRONT_SIDE_SIGNALS = {
-	"name",
-	"father",
-	"husband",
-	"gender",
-	"birth",
-	"country of stay",
-}
-CNIC_BACK_SIGNALS = {
-	"address",
-	"present",
-	"current",
-	"permanent",
-	"issue",
-	"expiry",
-	"signature",
-	"family",
-	"nadra",
-	"return",
-	"serial",
-	"issuing authority",
-	"qr",
-}
-CNIC_BACK_SIDE_SIGNALS = {
-	"present address",
-	"current address",
-	"permanent address",
-	"card serial",
-	"serial no",
-	"serial number",
-	"family no",
-	"family number",
-	"issuing authority",
-	"qr code",
-	"machine readable",
-	"visa free entry",
-}
-
-
-def _multipart_text(body, field):
-	"""Read a text field reliably from Frappe/Werkzeug multipart parsing."""
-	request = getattr(frappe.local, "request", None)
-	form = getattr(request, "form", None)
-	if form is not None:
-		value = form.get(field)
-		if value not in (None, ""):
-			return value
-
-	value = body.get(field)
-	if value not in (None, ""):
-		return value
-
-	form_dict = getattr(frappe.local, "form_dict", None)
-	return form_dict.get(field) if form_dict else None
-
-
-def _cnic_validation_errors(front_ocr, back_ocr, front_content, back_content):
-	"""Reject non-CNIC, wrong-side, duplicate, and mismatched CNIC images."""
-	front_ocr = str(front_ocr or "")[:10000]
-	back_ocr = str(back_ocr or "")[:10000]
-	front_text = _normalise_ocr(front_ocr)
-	back_text = _normalise_ocr(back_ocr)
-	front_score = _signal_score(front_text, CNIC_FRONT_SIGNALS)
-	front_back_score = _signal_score(front_text, CNIC_BACK_SIGNALS)
-	front_back_side_score = _signal_score(front_text, CNIC_BACK_SIDE_SIGNALS)
-	back_score = _signal_score(back_text, CNIC_BACK_SIGNALS)
-	back_side_score = _signal_score(back_text, CNIC_BACK_SIDE_SIGNALS)
-	back_front_side_score = _signal_score(back_text, CNIC_FRONT_SIDE_SIGNALS)
-	front_number = _extract_cnic_number(front_ocr)
-	back_number = _extract_cnic_number(back_ocr)
-
-	errors = {}
-	if len(front_text) < 20 or not front_number or front_score < 2:
-		errors["cnic_front"] = (
-			"This looks like the CNIC back. Add the front side here."
-			if (front_back_side_score >= 1 or front_back_score >= 2) and front_score < 2
-			else "This is not a readable Pakistani CNIC front. Retake the correct card."
-		)
-
-	# Front-only biographical labels take precedence because a real front also
-	# contains shared words such as issue, expiry, signature, and NADRA.
-	if back_front_side_score >= 1:
-		errors["cnic_back"] = (
-			"This is the front side of the CNIC. Please take or upload a picture of the back side."
-		)
-	elif (len(back_text) < 20 and not (back_side_score >= 1 and len(back_text) >= 8)) or (
-		back_side_score < 1 and back_score < 2
-	):
-		errors["cnic_back"] = (
-			"This is not a readable Pakistani CNIC back. Retake the correct card."
-		)
-
-	if hashlib.sha256(front_content).digest() == hashlib.sha256(back_content).digest():
-		errors["cnic_back"] = "The same CNIC photo was selected twice. Add the other side."
-	elif front_text and front_text == back_text:
-		errors["cnic_back"] = "The same CNIC side was selected twice. Add the other side."
-	elif front_number and back_number and front_number != back_number:
-		errors["cnic_back"] = "The CNIC front and back are from different cards."
-	return errors
-
-
-def _normalise_ocr(text):
-	return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", text.lower())).strip()
-
-
-def _signal_score(text, signals):
-	return sum(1 for signal in signals if signal in text)
-
-
-def _extract_cnic_number(text):
-	match = CNIC_NUMBER_PATTERN.search(text)
-	if match:
-		return "".join(match.groups())
-	for line in re.split(r"[\r\n]+", text):
-		digits = re.sub(r"\D", "", line)
-		if len(digits) == 13:
-			return digits
-	return None
 
 
 def _strip_exif(content):
