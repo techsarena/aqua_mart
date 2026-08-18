@@ -1939,17 +1939,20 @@ improvement, not enablement.
 
 ## 11. Client-side switch-over
 
-The Flutter app already has both a mock and a REST implementation of every data
-source. Going live is configuration, not a rewrite:
+**Done.** The switch-over is complete: the mock data sources and the
+`USE_MOCK_DATA` flag have been removed, and every feature constructs its
+`*ApiDataSource`. The app is API-only and needs a reachable backend to run.
+
+Hosts are the only configuration left:
 
 ```bash
-flutter run --dart-define=USE_MOCK_DATA=false \
-            --dart-define=AQUA_API_BASE_URL=https://api.aquamart.pk/v1
+flutter run --dart-define=AQUA_API_BASE_URL=https://api.aquamart.pk/v1 \
+            --dart-define=AQUA_SOCKET_URL=https://api.aquamart.pk \
+            --dart-define=AQUA_SITE_NAME=api.aquamart.pk
 ```
 
-Or migrate one feature at a time by editing that feature's data-source provider
-to construct the `*ApiDataSource` instead of the `Mock*DataSource`. Nothing
-above the data source changes.
+See [BACKEND_INTEGRATION.md](BACKEND_INTEGRATION.md) for the wiring details,
+including the socket handshake, which is stricter than §8.2 describes.
 
 **Recommended integration order:** auth → catalogue → orders → seller → rider,
 matching §10.7. Keep the rest on mocks while you go; the two coexist happily.

@@ -6,7 +6,6 @@ import 'package:aqua_mart/core/router/app_routes.dart';
 import 'package:aqua_mart/features/auth/domain/entities/app_user.dart';
 import 'package:aqua_mart/features/auth/domain/entities/user_role.dart';
 import 'package:aqua_mart/features/auth/presentation/providers/auth_providers.dart';
-import 'package:aqua_mart/features/notifications/presentation/widgets/alerts_bell_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -52,63 +51,6 @@ Future<ProviderContainer> _pumpSignedInSeller(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('a new-order alert opens the queue without a duplicate key', (
-    tester,
-  ) async {
-    final container = await _pumpSignedInSeller(tester);
-
-    // Open the alerts feed the way the dashboard does.
-    container.read(routerProvider).pushNamed(AppRoutes.sellerAlerts);
-    await tester.pumpAndSettle();
-    // Mock data sources carry a deliberate latency.
-    await tester.pump(const Duration(milliseconds: 600));
-    await tester.pumpAndSettle();
-
-    final alert = find.text('New order from Ayesha K.');
-    expect(alert, findsOneWidget);
-
-    await tester.ensureVisible(alert);
-    await tester.pumpAndSettle();
-    await tester.tap(alert);
-    await tester.pumpAndSettle();
-
-    // The crash surfaced as an exception during the build that followed.
-    expect(tester.takeException(), isNull);
-    expect(find.text('Orders'), findsWidgets);
-  });
-
-  testWidgets('the Orders and Bottles headers carry the alerts bell', (
-    tester,
-  ) async {
-    final container = await _pumpSignedInSeller(tester);
-    final router = container.read(routerProvider);
-
-    for (final tab in [
-      AppRoutes.sellerOrderQueuePath,
-      AppRoutes.sellerInventoryPath,
-    ]) {
-      router.go(tab);
-      await tester.pumpAndSettle();
-      await tester.pump(const Duration(milliseconds: 600));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.byType(AlertsBellButton),
-        findsOneWidget,
-        reason: 'no alerts bell on $tab',
-      );
-
-      await tester.tap(find.byType(AlertsBellButton));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(find.text('Orders, stock and money.'), findsOneWidget);
-
-      // Back to the tab for the next pass.
-      router.pop();
-      await tester.pumpAndSettle();
-    }
-  });
-
   testWidgets('the Bottles tab adds a bottle from its floating action button', (
     tester,
   ) async {

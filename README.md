@@ -2,18 +2,26 @@
 
 Water delivery for Pakistan — three apps in one codebase: **customer**, **seller**, and **rider**.
 
-Built from the Aqua Mart design system. Currently runs on in-memory mock data;
-the data layer is structured so switching to a REST API is a one-line change.
+Built from the Aqua Mart design system. Talks to the ERPNext/Frappe backend in
+`frappe-bench-v16/apps/aqua_mart` — see
+[docs/BACKEND_INTEGRATION.md](docs/BACKEND_INTEGRATION.md).
 
 ## Running it
 
 ```bash
 flutter pub get
-flutter run
+flutter run \
+  --dart-define=AQUA_API_BASE_URL=http://localhost:8001/v1 \
+  --dart-define=AQUA_SOCKET_URL=http://localhost:9001 \
+  --dart-define=AQUA_SITE_NAME=aqua.mart
 ```
 
-The app opens on the language picker → role picker. Pick any role to enter that
-app. Any 6-digit OTP code is accepted while mock data is on.
+The app is **API-only** — every screen reads from the backend, so it needs a
+reachable one to get past the sign-in flow. The defines above match a local
+bench and are the defaults, so a bare `flutter run` works against one.
+
+The app opens on the language picker → role picker. Sign-in sends a real OTP;
+in development, enable the fixed dev code in Aqua Settings.
 
 | Role | Lands on | Notable flows |
 | --- | --- | --- |
@@ -31,9 +39,9 @@ lib/
 ├── core/                     cross-cutting concerns
 │   ├── error/                Failure hierarchy (typed, not strings)
 │   ├── localization/         AppLanguage — English / اردو / Roman Urdu
-│   ├── mock/                 MockFixtures — all designed data, one file
 │   ├── network/              ApiClient, endpoint registry, interceptors
-│   ├── providers/            Riverpod roots + the useMockData switch
+│   ├── realtime/             Socket.IO client + event registry
+│   ├── providers/            Riverpod roots (ApiClient, socket, storage)
 │   ├── router/               GoRouter config + route-name registry
 │   ├── storage/              token + preference persistence
 │   ├── theme/                design tokens: colours, type, spacing
@@ -81,14 +89,17 @@ Screen → Provider → Repository → DataSource → ApiClient → REST
 `Failure` (`NetworkFailure`, `AuthFailure`, `ValidationFailure`, …). Features
 never import `dio`. Auth token attach + refresh-on-401 is an interceptor.
 
-**2. Data sources** — one interface, two implementations:
+**2. Data sources** — an interface per feature with one REST implementation:
 
 ```dart
 abstract interface class CatalogRemoteDataSource { ... }
 
 class CatalogApiDataSource implements CatalogRemoteDataSource { ... }   // REST
-class MockCatalogDataSource implements CatalogRemoteDataSource { ... }  // fixtures
 ```
+
+The interface stays because it is the seam the repository depends on — a
+second implementation (a cache, a fake in a test) plugs in without touching
+the feature.
 
 **3. DTOs** — own all JSON parsing (`fromJson` / `toJson` / `toDomain`), so
 entities carry no serialisation concerns and a backend field rename touches one file.
@@ -103,24 +114,23 @@ result.when(
 );
 ```
 
-### Going live
+### Pointing at another backend
 
-Every endpoint the app will call is already registered in
-[api_endpoints.dart](lib/core/network/api_endpoints.dart).
-
-Flip the whole app over:
+Every endpoint is registered in
+[api_endpoints.dart](lib/core/network/api_endpoints.dart); hosts come from
+[api_environment.dart](lib/core/network/api_environment.dart).
 
 ```bash
-flutter run --dart-define=USE_MOCK_DATA=false \
-            --dart-define=AQUA_API_BASE_URL=https://api.aquamart.pk/v1
+flutter run --dart-define=AQUA_API_BASE_URL=https://api.aquamart.pk/v1 \
+            --dart-define=AQUA_SOCKET_URL=https://api.aquamart.pk \
+            --dart-define=AQUA_SITE_NAME=api.aquamart.pk
 ```
 
-Or migrate one feature at a time by editing its data-source provider:
+### Tests
 
-```dart
-final catalogDataSourceProvider = Provider<CatalogRemoteDataSource>((ref) {
-  return CatalogApiDataSource(ref.watch(apiClientProvider));  // was: MockCatalogDataSource()
-});
+```bash
+flutter test                                       # 38, no backend needed
+flutter test test/live --run-skipped --tags live   # against a live bench
 ```
 
 Nothing above the data source changes — not the repository, providers, or screens.

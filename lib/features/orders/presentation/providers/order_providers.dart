@@ -11,7 +11,6 @@ import '../../domain/repositories/order_repository.dart';
 import 'cart_providers.dart';
 
 final orderDataSourceProvider = Provider<OrderRemoteDataSource>((ref) {
-  if (useMockData) return MockOrderDataSource();
   return OrderApiDataSource(ref.watch(apiClientProvider));
 });
 

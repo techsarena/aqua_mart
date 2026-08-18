@@ -1,7 +1,9 @@
 # Aqua Mart — working notes
 
 Flutter water-delivery app for Pakistan. Three roles in one codebase: **customer**,
-**seller**, **rider**. Runs on in-memory mocks by default.
+**seller**, **rider**. **API-only** — it talks to the ERPNext/Frappe backend in
+`frappe-bench-v16/apps/aqua_mart`; there are no mock data sources, so a
+reachable API is required to run it.
 
 [README.md](README.md) documents the architecture (layering, data flow, going live).
 **Read it first** — this file covers only what the README doesn't: conventions to
@@ -12,10 +14,12 @@ follow and traps that have already cost time.
 ```bash
 flutter analyze lib/ test/     # must be clean before you call anything done
 flutter test                   # full suite
-flutter run                    # mocks on, any 6-digit OTP is accepted
+flutter run                    # needs a reachable backend
 ```
 
-Live API: `flutter run --dart-define=USE_MOCK_DATA=false --dart-define=AQUA_API_BASE_URL=...`
+Point it at a backend with `--dart-define=AQUA_API_BASE_URL=` (plus
+`AQUA_SOCKET_URL` / `AQUA_SITE_NAME`). Defaults target a local bench — see
+[docs/BACKEND_INTEGRATION.md](docs/BACKEND_INTEGRATION.md).
 
 ## The design is the spec
 
@@ -62,8 +66,9 @@ Current flow: intro → phone (1) → OTP (1) → role (2) → name (3) → deta
 - Sellers must be signed in **before** routing to `/seller/onboarding` — that path
   sits outside the onboarding stack, so a signed-out seller bounces to the intro.
 - The intro `push`es (not `go`es) to step 1, so step 1 has a back route.
-- If you reorder steps, update every `step:` **and** the mock's
-  `completeProfile`, which derives the account fixture from `draft.role`.
+- If you reorder steps, update every `step:`. The account is created by
+  `PATCH /auth/profile` at the last step, so the backend decides what the
+  finished profile looks like.
 
 **Urdu.** `AppLanguage.urdu` sets locale `ur`, which mirrors the whole layout.
 `localizationsDelegates` in [app.dart](lib/app.dart) is load-bearing — without it,

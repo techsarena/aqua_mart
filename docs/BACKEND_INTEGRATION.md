@@ -9,7 +9,6 @@ backend, not the spec, is authoritative.
 
 ```bash
 flutter run \
-  --dart-define=USE_MOCK_DATA=false \
   --dart-define=AQUA_API_BASE_URL=http://localhost:8001/v1 \
   --dart-define=AQUA_SOCKET_URL=http://localhost:9001 \
   --dart-define=AQUA_SITE_NAME=aqua.mart
@@ -20,9 +19,9 @@ and match a local bench (`webserver_port` 8001, `socketio_port` 9001, site
 `aqua.mart` — all from `sites/common_site_config.json`). Point them at the
 real host for staging or production.
 
-`USE_MOCK_DATA` still defaults to `true`, so nothing about the mock flow
-changed: every data source keeps its `Mock*` implementation behind the same
-one-line switch in its provider.
+The app is **API-only** — there are no mock data sources and no
+`USE_MOCK_DATA` switch. Every screen talks to the backend, so a reachable API
+is required to run it at all.
 
 `/v1/*` is served from a `before_request` hook straight off the site root, so
 **the nginx rewrite in §1.1 is optional** and `AQUA_API_BASE_URL` carries the
@@ -91,9 +90,8 @@ Rooms are joined **server-side** from the authenticated identity (§8.3);
 | `seller:dashboard` | seller dashboard |
 
 Sockets are an **accelerator, not a source of truth** (§8.6): every screen
-still loads over REST, and the socket is never opened at all under mocks. The
-connection is opened on sign-in/restore and dropped on sign-out, so a
-signed-out app holds no socket.
+still loads over REST. The connection is opened on sign-in/restore and
+dropped on sign-out, so a signed-out app holds no socket.
 
 `subscribe:order` is re-sent on reconnect, because the server does not
 remember subscriptions across connections.
@@ -134,6 +132,38 @@ Worth knowing, because they are easy to "fix" wrongly:
 | notifications | `api/notifications.py` (§5.6, §9.1) |
 | seller, seller_onboarding | `api/seller.py` (§6) |
 | rider | `api/rider.py` (§7) |
+
+## Live tests
+
+`test/live/` drives the data sources against a running bench. Excluded from
+the default run so `flutter test` still passes with no backend:
+
+```bash
+flutter test                                       # 38 unit/widget, no backend
+flutter test test/live --run-skipped --tags live   # against a live bench
+```
+
+The 38 offline tests cover routing, typography and widgets that need no data.
+Tests that drove whole flows through seeded data were removed along with the
+mocks — flow cover now belongs in `test/live/`.
+
+`--run-skipped` is what re-enables them — the tag alone will not, because
+`dart_test.yaml` marks the tag skipped.
+
+They need the fixed dev OTP code turned on, or every verify fails with
+"That code is not right":
+
+```python
+s = frappe.get_single('Aqua Settings')
+s.provider = 'console'          # NB: `provider`, not `otp_provider`
+s.use_fixed_dev_code = 1
+s.fixed_dev_code = '472901'
+s.save(ignore_permissions=True); frappe.db.commit()
+```
+
+Each test uses a **fresh phone number**: codes are single-use and re-requesting
+one for the same number inside the resend window is throttled (correctly).
+Numbers must be `+92` + 10 digits starting with `3` — anything else is a 422.
 
 ## Verified against a live bench
 

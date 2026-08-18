@@ -7,7 +7,6 @@ import '../../domain/entities/address.dart';
 import '../../domain/repositories/address_repository.dart';
 
 final addressDataSourceProvider = Provider<AddressRemoteDataSource>((ref) {
-  if (useMockData) return MockAddressDataSource();
   return AddressApiDataSource(ref.watch(apiClientProvider));
 });
 

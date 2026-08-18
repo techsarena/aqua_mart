@@ -6,7 +6,6 @@ import '../../data/datasources/wallet_data_source.dart';
 import '../../domain/entities/wallet.dart';
 
 final walletDataSourceProvider = Provider<WalletRemoteDataSource>((ref) {
-  if (useMockData) return MockWalletDataSource();
   return WalletApiDataSource(ref.watch(apiClientProvider));
 });
 

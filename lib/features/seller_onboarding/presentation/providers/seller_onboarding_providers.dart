@@ -213,7 +213,6 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
 
 final sellerOnboardingDataSourceProvider =
     Provider<SellerOnboardingRemoteDataSource>((ref) {
-      if (useMockData) return MockSellerOnboardingDataSource();
       return SellerOnboardingApiDataSource(ref.watch(apiClientProvider));
     });
 

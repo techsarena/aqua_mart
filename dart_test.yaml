@@ -1,0 +1,11 @@
+# Tests tagged `live` drive the real data sources against a running bench.
+# They are excluded from the default run so `flutter test` passes on a machine
+# with no backend, and are opted into explicitly:
+#
+#   flutter test                                    # unit + widget, mocks only
+#   flutter test test/live --run-skipped --tags live  # against a live bench
+#
+# `--run-skipped` is what re-enables them; the tag alone will not.
+tags:
+  live:
+    skip: "needs a running backend (see docs/BACKEND_INTEGRATION.md)"

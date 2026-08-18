@@ -2,7 +2,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/core_providers.dart';
 import '../../data/datasources/catalog_remote_data_source.dart';
-import '../../data/datasources/mock_catalog_data_source.dart';
 import '../../data/repositories/catalog_repository_impl.dart';
 import '../../domain/entities/bottle.dart';
 import '../../domain/entities/seller.dart';
@@ -10,7 +9,6 @@ import '../../domain/repositories/catalog_repository.dart';
 
 /// The one line to change when the REST API goes live.
 final catalogDataSourceProvider = Provider<CatalogRemoteDataSource>((ref) {
-  if (useMockData) return const MockCatalogDataSource();
   return CatalogApiDataSource(ref.watch(apiClientProvider));
 });
 

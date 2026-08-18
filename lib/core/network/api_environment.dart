@@ -7,17 +7,16 @@
 /// Socket.IO is a **separate port** (Frappe's own realtime server, 9000/9001),
 /// never the web port — see [socketUrl].
 abstract final class ApiEnvironment {
-  /// REST origin including the `/v1` prefix.
   static const baseUrl = String.fromEnvironment(
     'AQUA_API_BASE_URL',
-    defaultValue: 'http://localhost:8001/v1',
+    defaultValue: 'http://192.168.1.39:8001/v1',
   );
 
   /// Socket.IO origin. Frappe's realtime server listens on its own port
   /// (`socketio_port` in common_site_config.json), not the web port.
   static const socketUrl = String.fromEnvironment(
     'AQUA_SOCKET_URL',
-    defaultValue: 'http://localhost:9001',
+    defaultValue: 'http://192.168.1.39:9001',
   );
 
   /// The Frappe site name — load-bearing for sockets, not decoration.

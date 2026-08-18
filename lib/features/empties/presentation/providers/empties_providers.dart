@@ -7,7 +7,6 @@ import '../../domain/entities/empty_holding.dart';
 import '../../domain/repositories/empties_repository.dart';
 
 final emptiesRemoteDataSourceProvider = Provider<EmptiesRemoteDataSource>((ref) {
-  if (useMockData) return MockEmptiesDataSource();
   return EmptiesApiDataSource(ref.watch(apiClientProvider));
 });
 

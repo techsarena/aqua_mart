@@ -68,9 +68,3 @@ final socketEventProvider =
     StreamProvider.autoDispose.family<Map<String, dynamic>, String>(
   (ref, event) => ref.watch(socketClientProvider).on(event),
 );
-
-/// Flip to `false` to run every repository against the live REST API.
-///
-/// Kept as a single switch so the whole app can be moved over at once, or
-/// feature by feature by editing the individual data-source providers.
-const useMockData = bool.fromEnvironment('USE_MOCK_DATA', defaultValue: true);

@@ -9,7 +9,6 @@ import '../../domain/entities/rider_application.dart';
 import '../../domain/entities/rider_run.dart';
 
 final riderDataSourceProvider = Provider<RiderRemoteDataSource>((ref) {
-  if (useMockData) return MockRiderDataSource();
   return RiderApiDataSource(ref.watch(apiClientProvider));
 });
 

@@ -11,7 +11,6 @@ import '../../domain/entities/user_role.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
-  if (useMockData) return MockAuthDataSource(ref.watch(tokenStorageProvider));
   return AuthApiDataSource(ref.watch(apiClientProvider));
 });
 
@@ -92,7 +91,6 @@ class SessionController extends Notifier<SessionState> {
   /// The socket carries a token, so it can only open once one exists — on
   /// restore and on sign-in, never at app start (API_SPEC 8.2).
   void _openSocket() {
-    if (useMockData) return;
     // Fire-and-forget: a socket that fails to open must never block sign-in,
     // because every screen still works without it (8.6).
     unawaited(ref.read(socketClientProvider).connect());

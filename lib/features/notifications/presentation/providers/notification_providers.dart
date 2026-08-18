@@ -2,20 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/core_providers.dart';
 import '../../../../core/realtime/socket_events.dart';
-import '../../../auth/presentation/providers/auth_providers.dart';
 import '../../data/datasources/notification_data_source.dart';
 import '../../data/models/notification_dto.dart';
 import '../../domain/entities/app_notification.dart';
 
-final notificationDataSourceProvider = Provider<NotificationRemoteDataSource>((
-  ref,
-) {
-  if (useMockData) {
-    // The feed differs per role, so it is rebuilt when the role changes.
-    return MockNotificationDataSource(ref.watch(sessionProvider).activeRole);
-  }
-  return NotificationApiDataSource(ref.watch(apiClientProvider));
-});
+final notificationDataSourceProvider = Provider<NotificationRemoteDataSource>(
+  (ref) => NotificationApiDataSource(ref.watch(apiClientProvider)),
+);
 
 class NotificationsNotifier extends AsyncNotifier<List<AppNotification>> {
   @override

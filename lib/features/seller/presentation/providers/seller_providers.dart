@@ -12,7 +12,6 @@ import '../../data/datasources/seller_data_source.dart';
 import '../../domain/entities/seller_dashboard.dart';
 
 final sellerDataSourceProvider = Provider<SellerRemoteDataSource>((ref) {
-  if (useMockData) return MockSellerDataSource();
   return SellerApiDataSource(ref.watch(apiClientProvider));
 });
 
