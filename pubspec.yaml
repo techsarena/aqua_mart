@@ -56,6 +56,7 @@ dependencies:
   geocoding: ^5.0.0
   image_picker: ^1.2.2
   file_picker: ^11.0.3
+  camera: ^0.12.0+1
 
 dev_dependencies:
   flutter_test:

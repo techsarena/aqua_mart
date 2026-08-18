@@ -16,6 +16,7 @@ import '../../../auth/presentation/widgets/onboarding_scaffold.dart';
 import '../../data/services/cnic_ocr_service.dart';
 import '../../domain/services/cnic_validator.dart';
 import '../providers/seller_onboarding_providers.dart';
+import 'cnic_camera_screen.dart';
 
 /// Seller sign-up 2 of 4 — real camera, gallery, and PDF uploads for KYC.
 class SellerKycScreen extends ConsumerStatefulWidget {
@@ -87,7 +88,11 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
     if (!mounted || action == null) return;
     switch (action) {
       case _PickerAction.camera:
-        await _pickImage(slot, ImageSource.camera);
+        if (slot.isCnic) {
+          await _openCnicCamera(slot);
+        } else {
+          await _pickImage(slot, ImageSource.camera);
+        }
       case _PickerAction.gallery:
         await _pickImage(slot, ImageSource.gallery);
       case _PickerAction.document:
@@ -98,6 +103,25 @@ class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
           _cnicResults.remove(slot);
         });
     }
+  }
+
+  Future<void> _openCnicCamera(_KycSlot slot) async {
+    final result = await Navigator.of(context).push<CnicCameraResult>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => CnicCameraScreen(
+          initialSide: slot == _KycSlot.cnicFront
+              ? CnicCameraSide.front
+              : CnicCameraSide.back,
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+
+    final resultSlot = result.side == CnicCameraSide.front
+        ? _KycSlot.cnicFront
+        : _KycSlot.cnicBack;
+    await _acceptFile(resultSlot, File(result.path));
   }
 
   Future<void> _pickImage(_KycSlot slot, ImageSource source) async {
