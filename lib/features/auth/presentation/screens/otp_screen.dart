@@ -87,7 +87,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
         if (!verification.isNewUser) {
           ref.read(sessionProvider.notifier).signIn(verification.user);
         } else {
-          context.pushNamed(AppRoutes.rolePicker);
+          ref
+              .read(sessionProvider.notifier)
+              .beginRegistration(verification.user, AppRoutes.rolePath);
+          context.goNamed(AppRoutes.rolePicker);
         }
       },
       failure: (failure) => setState(() {

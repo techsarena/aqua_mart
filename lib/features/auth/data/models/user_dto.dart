@@ -15,6 +15,7 @@ class UserDto {
     this.khataSellerName,
     this.khataDueDate,
     this.isVerified = false,
+    this.isProfileComplete = true,
   });
 
   final String id;
@@ -29,6 +30,7 @@ class UserDto {
   final String? khataSellerName;
   final String? khataDueDate;
   final bool isVerified;
+  final bool isProfileComplete;
 
   factory UserDto.fromJson(Map<String, dynamic> json) => UserDto(
     id: '${json['id']}',
@@ -43,6 +45,7 @@ class UserDto {
     khataSellerName: json['khata_seller_name'] as String?,
     khataDueDate: json['khata_due_date'] as String?,
     isVerified: json['is_verified'] as bool? ?? false,
+    isProfileComplete: json['is_profile_complete'] as bool? ?? true,
   );
 
   Map<String, dynamic> toJson() => {
@@ -58,6 +61,7 @@ class UserDto {
     'khata_seller_name': khataSellerName,
     'khata_due_date': khataDueDate,
     'is_verified': isVerified,
+    'is_profile_complete': isProfileComplete,
   };
 
   AppUser toDomain() => AppUser(
@@ -79,6 +83,7 @@ class UserDto {
         ? null
         : DateTime.tryParse(khataDueDate!),
     isVerified: isVerified,
+    isProfileComplete: isProfileComplete,
   );
 
   static UserDto fromDomain(AppUser user) => UserDto(
@@ -94,5 +99,6 @@ class UserDto {
     khataSellerName: user.khataSellerName,
     khataDueDate: user.khataDueDate?.toIso8601String(),
     isVerified: user.isVerified,
+    isProfileComplete: user.isProfileComplete,
   );
 }

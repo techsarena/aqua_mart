@@ -85,7 +85,12 @@ class _SignUpNameScreenState extends ConsumerState<SignUpNameScreen> {
           autofocus: true,
           textCapitalization: TextCapitalization.words,
           textInputAction: TextInputAction.done,
-          onChanged: (_) => setState(() {}),
+          onChanged: (value) {
+            ref
+                .read(sessionProvider.notifier)
+                .updateDraft((draft) => draft.copyWith(fullName: value));
+            setState(() {});
+          },
           onSubmitted: (_) {
             if (_controller.text.trim().isNotEmpty) _continue();
           },

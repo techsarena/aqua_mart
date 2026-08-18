@@ -8,6 +8,7 @@ import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
+import '../../../auth/presentation/providers/auth_providers.dart';
 import '../providers/seller_onboarding_providers.dart';
 
 /// The waiting room. Deliberately not a dead end: the seller can set up their
@@ -130,7 +131,12 @@ class SellerVerificationScreen extends ConsumerWidget {
       bottomNavigationBar: StickyActionBar(
         label: 'Set up my delivery area',
         // Straight into the seller app, where area and stock live.
-        onPressed: () => context.goNamed(AppRoutes.sellerServiceArea),
+        onPressed: () async {
+          await ref.read(sessionProvider.notifier).completeRegistration();
+          if (context.mounted) {
+            context.goNamed(AppRoutes.sellerServiceArea);
+          }
+        },
         secondaryLabel: 'Call support · 0800-AQUAMART',
         onSecondary: () => ScaffoldMessenger.of(
           context,

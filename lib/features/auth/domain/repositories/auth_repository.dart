@@ -25,6 +25,30 @@ class SignUpDraft {
   final Gender gender;
   final DateTime? dateOfBirth;
 
+  factory SignUpDraft.fromJson(Map<String, dynamic> json) => SignUpDraft(
+    fullName: json['full_name'] as String? ?? '',
+    phone: json['phone'] as String? ?? '',
+    role:
+        UserRole.values
+            .where((role) => role.name == json['role'])
+            .firstOrNull ??
+        UserRole.customer,
+    gender:
+        Gender.values
+            .where((gender) => gender.name == json['gender'])
+            .firstOrNull ??
+        Gender.unspecified,
+    dateOfBirth: DateTime.tryParse(json['date_of_birth'] as String? ?? ''),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'full_name': fullName,
+    'phone': phone,
+    'role': role.name,
+    'gender': gender.name,
+    'date_of_birth': dateOfBirth?.toIso8601String(),
+  };
+
   SignUpDraft copyWith({
     String? fullName,
     String? phone,

@@ -26,9 +26,7 @@ class RiderPendingApprovalScreen extends ConsumerWidget {
     final application = ref.watch(riderApplicationProvider);
     final seller = application.seller;
     final sellerName = seller?.sellerName ?? 'The seller';
-    final phone = ref.watch(
-      sessionProvider.select((s) => s.draft.phone),
-    );
+    final phone = ref.watch(sessionProvider.select((s) => s.draft.phone));
 
     return Scaffold(
       body: SafeArea(
@@ -108,7 +106,10 @@ class RiderPendingApprovalScreen extends ConsumerWidget {
         // Placeholder until dialling is wired up: opens the rider's run so
         // the app past approval is reachable. `goNamed`, not push — the run
         // is a shell tab, and pushing it mounts a second copy of the shell.
-        onPressed: () => context.goNamed(AppRoutes.riderRun),
+        onPressed: () async {
+          await ref.read(sessionProvider.notifier).completeRegistration();
+          if (context.mounted) context.goNamed(AppRoutes.riderRun);
+        },
         secondaryLabel: 'Change seller code',
         onSecondary: () => Navigator.maybePop(context),
       ),
@@ -131,11 +132,7 @@ class _CheckRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (done)
-          const Icon(
-            Icons.check_rounded,
-            size: 21,
-            color: AppColors.accent2,
-          )
+          const Icon(Icons.check_rounded, size: 21, color: AppColors.accent2)
         else
           Container(
             width: 19,

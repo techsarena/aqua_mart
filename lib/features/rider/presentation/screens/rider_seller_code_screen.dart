@@ -35,9 +35,13 @@ class _RiderSellerCodeScreenState extends ConsumerState<RiderSellerCodeScreen> {
     super.initState();
     _controller =
         TextEditingController(
-            text: ref.read(riderApplicationProvider).seller?.code ?? '',
-          )
-          ..addListener(() => setState(() {}));
+          text: ref.read(riderApplicationProvider).inviteCode,
+        )..addListener(() {
+          ref
+              .read(riderApplicationProvider.notifier)
+              .setInviteCode(_controller.text);
+          setState(() {});
+        });
     _focus = FocusNode();
   }
 
@@ -80,7 +84,8 @@ class _RiderSellerCodeScreenState extends ConsumerState<RiderSellerCodeScreen> {
       step: 5,
       totalSteps: 5,
       title: 'Who invited you?',
-      subtitle: 'Ask your seller for the 6-character rider code from their app.',
+      subtitle:
+          'Ask your seller for the 6-character rider code from their app.',
       primaryLabel: seller == null ? 'Join' : 'Join ${seller.sellerName}',
       primaryEnabled: seller != null,
       onPrimary: () => _join(seller!),
@@ -236,10 +241,7 @@ class _SellerCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                seller.sellerName,
-                style: AppTypography.heading(size: 17),
-              ),
+              Text(seller.sellerName, style: AppTypography.heading(size: 17)),
               const SizedBox(height: 2),
               Text(
                 seller.summary,
@@ -251,11 +253,7 @@ class _SellerCard extends StatelessWidget {
             ],
           ),
         ),
-        const Icon(
-          Icons.check_rounded,
-          size: 22,
-          color: AppColors.accent2_700,
-        ),
+        const Icon(Icons.check_rounded, size: 22, color: AppColors.accent2_700),
       ],
     ),
   );

@@ -19,6 +19,7 @@ class AppUser extends Equatable {
     this.khataSellerName,
     this.khataDueDate,
     this.isVerified = false,
+    this.isProfileComplete = true,
   });
 
   final String id;
@@ -40,6 +41,9 @@ class AppUser extends Equatable {
   /// Seller-only: whether verification has been approved.
   final bool isVerified;
 
+  /// False only for an OTP-created account that still has registration steps.
+  final bool isProfileComplete;
+
   bool get hasKhata => khataDue > 0;
 
   AppUser copyWith({
@@ -50,6 +54,7 @@ class AppUser extends Equatable {
     int? walletBalance,
     int? khataDue,
     bool? isVerified,
+    bool? isProfileComplete,
   }) => AppUser(
     id: id,
     fullName: fullName ?? this.fullName,
@@ -63,6 +68,7 @@ class AppUser extends Equatable {
     khataSellerName: khataSellerName,
     khataDueDate: khataDueDate,
     isVerified: isVerified ?? this.isVerified,
+    isProfileComplete: isProfileComplete ?? this.isProfileComplete,
   );
 
   @override
@@ -76,5 +82,6 @@ class AppUser extends Equatable {
     walletBalance,
     khataDue,
     isVerified,
+    isProfileComplete,
   ];
 }

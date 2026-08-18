@@ -32,6 +32,12 @@ class _RoleScreenState extends ConsumerState<RoleScreen> {
   /// Guards against a second tap while the selection is persisted.
   bool _busy = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _selected = ref.read(sessionProvider).pendingRole;
+  }
+
   Future<void> _select(UserRole role) async {
     if (_busy) return;
 

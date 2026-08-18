@@ -65,6 +65,7 @@ import 'app_routes.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 final _customerShellKey = GlobalKey<NavigatorState>(debugLabel: 'customer');
+final _registrationObserver = RouteObserver<ModalRoute<dynamic>>();
 
 /// The app's single [GoRouter].
 ///
@@ -83,6 +84,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     navigatorKey: _rootKey,
+    observers: [_registrationObserver],
     initialLocation: AppRoutes.splashPath,
     debugLogDiagnostics: true,
     refreshListenable: refresh,
@@ -114,6 +116,25 @@ final routerProvider = Provider<GoRouter>((ref) {
       if (!session.isSignedIn) {
         if (location == AppRoutes.splashPath) return AppRoutes.introPath;
         return inOnboarding ? null : AppRoutes.introPath;
+      }
+
+      final resumeRoute = session.registrationRoute;
+      if (resumeRoute != null) {
+        // A verified provisional session must resume instead of being sent to
+        // a role home. Registration routes remain freely navigable so Back
+        // works; each route checkpoints itself when it becomes visible.
+        if (_isResumableRegistrationPath(location)) return null;
+        if (location == AppRoutes.splashPath || inOnboarding) {
+          return resumeRoute;
+        }
+      }
+
+      // Migration/fallback for a provisional account created before local
+      // route checkpoints existed.
+      if (session.user?.isProfileComplete == false) {
+        return _isResumableRegistrationPath(location)
+            ? null
+            : AppRoutes.rolePath;
       }
 
       // Signed in but sitting on an onboarding screen — send them to their app.
@@ -151,12 +172,18 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.rolePath,
         name: AppRoutes.rolePicker,
-        builder: (_, _) => const RoleScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.rolePath,
+          child: RoleScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.signUpNamePath,
         name: AppRoutes.signUpName,
-        builder: (_, _) => const SignUpNameScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.signUpNamePath,
+          child: SignUpNameScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.signUpPhonePath,
@@ -171,7 +198,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.signUpDetailsPath,
         name: AppRoutes.signUpDetails,
-        builder: (_, _) => const SignUpDetailsScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.signUpDetailsPath,
+          child: SignUpDetailsScreen(),
+        ),
       ),
 
       // ── Customer shell ──────────────────────────────────────────────────
@@ -354,22 +384,34 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.sellerOnboardingPath,
         name: AppRoutes.sellerOnboarding,
-        builder: (_, _) => const SellerOnboardingScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.sellerOnboardingPath,
+          child: SellerOnboardingScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.sellerKycPath,
         name: AppRoutes.sellerKyc,
-        builder: (_, _) => const SellerKycScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.sellerKycPath,
+          child: SellerKycScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.sellerCatalogSetupPath,
         name: AppRoutes.sellerCatalogSetup,
-        builder: (_, _) => const SellerCatalogSetupScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.sellerCatalogSetupPath,
+          child: SellerCatalogSetupScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.sellerVerificationPath,
         name: AppRoutes.sellerVerification,
-        builder: (_, _) => const SellerVerificationScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.sellerVerificationPath,
+          child: SellerVerificationScreen(),
+        ),
       ),
 
       // ── Seller shell ────────────────────────────────────────────────────
@@ -518,25 +560,37 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.riderIdentityPath,
         name: AppRoutes.riderIdentity,
         parentNavigatorKey: _rootKey,
-        builder: (_, _) => const RiderIdentityScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.riderIdentityPath,
+          child: RiderIdentityScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.riderVehiclePath,
         name: AppRoutes.riderVehicle,
         parentNavigatorKey: _rootKey,
-        builder: (_, _) => const RiderVehicleScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.riderVehiclePath,
+          child: RiderVehicleScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.riderSellerCodePath,
         name: AppRoutes.riderSellerCode,
         parentNavigatorKey: _rootKey,
-        builder: (_, _) => const RiderSellerCodeScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.riderSellerCodePath,
+          child: RiderSellerCodeScreen(),
+        ),
       ),
       GoRoute(
         path: AppRoutes.riderPendingApprovalPath,
         name: AppRoutes.riderPendingApproval,
         parentNavigatorKey: _rootKey,
-        builder: (_, _) => const RiderPendingApprovalScreen(),
+        builder: (_, _) => const _RegistrationCheckpoint(
+          route: AppRoutes.riderPendingApprovalPath,
+          child: RiderPendingApprovalScreen(),
+        ),
       ),
     ],
   );
@@ -547,3 +601,67 @@ String _homeFor(UserRole role) => switch (role) {
   UserRole.seller => AppRoutes.sellerDashboardPath,
   UserRole.rider => AppRoutes.riderRunPath,
 };
+
+bool _isResumableRegistrationPath(String location) =>
+    location == AppRoutes.rolePath ||
+    location == AppRoutes.signUpNamePath ||
+    location == AppRoutes.signUpDetailsPath ||
+    location.startsWith('/seller/onboarding') ||
+    location.startsWith('/rider/signup');
+
+/// Persists the visible registration route, including when Back reveals it.
+class _RegistrationCheckpoint extends ConsumerStatefulWidget {
+  const _RegistrationCheckpoint({required this.route, required this.child});
+
+  final String route;
+  final Widget child;
+
+  @override
+  ConsumerState<_RegistrationCheckpoint> createState() =>
+      _RegistrationCheckpointState();
+}
+
+class _RegistrationCheckpointState
+    extends ConsumerState<_RegistrationCheckpoint>
+    with RouteAware {
+  ModalRoute<dynamic>? _route;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkpoint();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route == _route || route == null) return;
+    if (_route != null) _registrationObserver.unsubscribe(this);
+    _route = route;
+    _registrationObserver.subscribe(this, route);
+  }
+
+  void _checkpoint() {
+    Future.microtask(() {
+      if (mounted && ref.read(sessionProvider).isSignedIn) {
+        ref.read(sessionProvider.notifier).checkpointRegistration(widget.route);
+      }
+    });
+  }
+
+  @override
+  void didPush() => _checkpoint();
+
+  @override
+  void didPopNext() => _checkpoint();
+
+  @override
+  void dispose() {
+    _registrationObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}

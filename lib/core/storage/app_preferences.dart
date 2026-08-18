@@ -13,6 +13,10 @@ class AppPreferences {
   static const _languageKey = 'app.language';
   static const _roleKey = 'app.role';
   static const _onboardedKey = 'app.onboarded';
+  static const _registrationRouteKey = 'registration.route';
+  static const _signUpDraftKey = 'registration.signup_draft';
+  static const _sellerDraftKey = 'registration.seller_draft';
+  static const _riderDraftKey = 'registration.rider_draft';
 
   AppLanguage? get language {
     final code = _prefs.getString(_languageKey);
@@ -37,8 +41,35 @@ class AppPreferences {
   Future<void> setOnboarded({bool value = true}) =>
       _prefs.setBool(_onboardedKey, value);
 
+  String? get registrationRoute => _prefs.getString(_registrationRouteKey);
+
+  Future<void> setRegistrationRoute(String route) =>
+      _prefs.setString(_registrationRouteKey, route);
+
+  String? get signUpDraft => _prefs.getString(_signUpDraftKey);
+  Future<void> setSignUpDraft(String value) =>
+      _prefs.setString(_signUpDraftKey, value);
+
+  String? get sellerDraft => _prefs.getString(_sellerDraftKey);
+  Future<void> setSellerDraft(String value) =>
+      _prefs.setString(_sellerDraftKey, value);
+
+  String? get riderDraft => _prefs.getString(_riderDraftKey);
+  Future<void> setRiderDraft(String value) =>
+      _prefs.setString(_riderDraftKey, value);
+
+  Future<void> clearRegistrationProgress() async {
+    await Future.wait([
+      _prefs.remove(_registrationRouteKey),
+      _prefs.remove(_signUpDraftKey),
+      _prefs.remove(_sellerDraftKey),
+      _prefs.remove(_riderDraftKey),
+    ]);
+  }
+
   Future<void> clear() async {
     await _prefs.remove(_roleKey);
     await _prefs.remove(_onboardedKey);
+    await clearRegistrationProgress();
   }
 }

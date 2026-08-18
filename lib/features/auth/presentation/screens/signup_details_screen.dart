@@ -23,8 +23,30 @@ class SignUpDetailsScreen extends ConsumerStatefulWidget {
 }
 
 class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
-  Gender _gender = Gender.unspecified;
-  DateTime _dob = DateTime(1994, 4, 14);
+  late Gender _gender;
+  late DateTime _dob;
+
+  @override
+  void initState() {
+    super.initState();
+    final draft = ref.read(sessionProvider).draft;
+    _gender = draft.gender;
+    _dob = draft.dateOfBirth ?? DateTime(1994, 4, 14);
+  }
+
+  void _setGender(Gender gender) {
+    setState(() => _gender = gender);
+    ref
+        .read(sessionProvider.notifier)
+        .updateDraft((draft) => draft.copyWith(gender: gender));
+  }
+
+  void _setDateOfBirth(DateTime date) {
+    setState(() => _dob = date);
+    ref
+        .read(sessionProvider.notifier)
+        .updateDraft((draft) => draft.copyWith(dateOfBirth: date));
+  }
 
   /// Creates the account and signs in. Only customers reach this step —
   /// sellers branch to business registration at the role screen and riders to
@@ -44,7 +66,10 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
     if (!mounted) return;
 
     result.when(
-      success: (user) => ref.read(sessionProvider.notifier).signIn(user),
+      success: (user) async {
+        await ref.read(sessionProvider.notifier).completeRegistration();
+        if (mounted) ref.read(sessionProvider.notifier).signIn(user);
+      },
       failure: (f) {
         if (!mounted) return;
         ScaffoldMessenger.of(
@@ -77,7 +102,7 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
                 icon: Icons.female_rounded,
                 badgeColor: AppColors.accent,
                 selected: _gender == Gender.female,
-                onTap: () => setState(() => _gender = Gender.female),
+                onTap: () => _setGender(Gender.female),
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -87,17 +112,14 @@ class _SignUpDetailsScreenState extends ConsumerState<SignUpDetailsScreen> {
                 icon: Icons.male_rounded,
                 badgeColor: AppColors.neutral400,
                 selected: _gender == Gender.male,
-                onTap: () => setState(() => _gender = Gender.male),
+                onTap: () => _setGender(Gender.male),
               ),
             ),
           ],
         ),
         const SizedBox(height: AppSpacing.xl),
         const FieldLabel('DATE OF BIRTH'),
-        _DateOfBirthPicker(
-          value: _dob,
-          onChanged: (date) => setState(() => _dob = date),
-        ),
+        _DateOfBirthPicker(value: _dob, onChanged: _setDateOfBirth),
       ],
     ),
   );

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/core_providers.dart';
@@ -82,10 +85,67 @@ final riderInvitationProvider = FutureProvider<RiderInvitation?>(
 /// already typed, and so the review screen can read the whole application.
 class RiderApplicationNotifier extends Notifier<RiderApplication> {
   @override
-  RiderApplication build() => const RiderApplication();
+  RiderApplication build() {
+    final saved = ref.read(appPreferencesProvider).riderDraft;
+    if (saved == null || saved.isEmpty) return const RiderApplication();
+    try {
+      final json = jsonDecode(saved) as Map<String, dynamic>;
+      final sellerJson = json['seller'];
+      return RiderApplication(
+        fullName: json['full_name'] as String? ?? '',
+        cnic: json['cnic'] as String? ?? '',
+        phone: json['phone'] as String? ?? '',
+        vehicle: RiderVehicle.values
+            .where((vehicle) => vehicle.name == json['vehicle'])
+            .firstOrNull,
+        registrationNumber: json['registration_number'] as String? ?? '',
+        inviteCode: json['invite_code'] as String? ?? '',
+        seller: sellerJson is Map<String, dynamic>
+            ? RiderSellerMatch(
+                code: sellerJson['code'] as String? ?? '',
+                sellerName: sellerJson['seller_name'] as String? ?? '',
+                area: sellerJson['area'] as String? ?? '',
+                riderCount: (sellerJson['rider_count'] as num?)?.toInt() ?? 0,
+                joinedYear: (sellerJson['joined_year'] as num?)?.toInt() ?? 0,
+              )
+            : null,
+      );
+    } catch (_) {
+      return const RiderApplication();
+    }
+  }
 
-  void setIdentity({required String fullName, required String cnic}) =>
-      state = state.copyWith(fullName: fullName, cnic: cnic);
+  void _persist() {
+    final seller = state.seller;
+    unawaited(
+      ref
+          .read(appPreferencesProvider)
+          .setRiderDraft(
+            jsonEncode({
+              'full_name': state.fullName,
+              'cnic': state.cnic,
+              'phone': state.phone,
+              'vehicle': state.vehicle?.name,
+              'registration_number': state.registrationNumber,
+              'invite_code': state.inviteCode,
+              'seller': seller == null
+                  ? null
+                  : {
+                      'code': seller.code,
+                      'seller_name': seller.sellerName,
+                      'area': seller.area,
+                      'rider_count': seller.riderCount,
+                      'joined_year': seller.joinedYear,
+                    },
+            }),
+          ),
+    );
+  }
+
+  void setIdentity({required String fullName, required String cnic}) {
+    state = state.copyWith(fullName: fullName, cnic: cnic);
+    _persist();
+  }
 
   void setVehicle(RiderVehicle vehicle) {
     // Switching to on foot drops a plate typed for a previous choice, which
@@ -97,15 +157,26 @@ class RiderApplicationNotifier extends Notifier<RiderApplication> {
             cnic: state.cnic,
             phone: state.phone,
             vehicle: vehicle,
+            inviteCode: state.inviteCode,
             seller: state.seller,
           );
+    _persist();
   }
 
-  void setRegistrationNumber(String value) =>
-      state = state.copyWith(registrationNumber: value);
+  void setRegistrationNumber(String value) {
+    state = state.copyWith(registrationNumber: value);
+    _persist();
+  }
 
-  void setSeller(RiderSellerMatch seller) =>
-      state = state.copyWith(seller: seller);
+  void setInviteCode(String value) {
+    state = state.copyWith(inviteCode: value);
+    _persist();
+  }
+
+  void setSeller(RiderSellerMatch seller) {
+    state = state.copyWith(seller: seller, inviteCode: seller.code);
+    _persist();
+  }
 
   Future<Result<void>> submit() => Result.guard(
     () => ref.read(riderDataSourceProvider).submitApplication(state),

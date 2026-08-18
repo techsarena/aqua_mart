@@ -46,8 +46,7 @@ class RiderSellerMatch extends Equatable {
   final int joinedYear;
 
   /// "Gulberg III · 4 riders · joined 2024"
-  String get summary =>
-      '$area · $riderCount riders · joined $joinedYear';
+  String get summary => '$area · $riderCount riders · joined $joinedYear';
 
   /// The two-letter monogram on the avatar disc — the initials of the first
   /// two words, or the first two letters of a single-word name.
@@ -81,6 +80,7 @@ class RiderApplication extends Equatable {
     this.phone = '',
     this.vehicle,
     this.registrationNumber = '',
+    this.inviteCode = '',
     this.seller,
   });
 
@@ -94,13 +94,13 @@ class RiderApplication extends Equatable {
 
   /// The vehicle's plate, e.g. `KMR-4471`. Empty when [vehicle] is on foot.
   final String registrationNumber;
+  final String inviteCode;
 
   /// Resolved from the invite code at step 5.
   final RiderSellerMatch? seller;
 
   /// The CNIC is 13 digits, conventionally written `#####-#######-#`.
-  bool get hasValidCnic =>
-      cnic.replaceAll(RegExp(r'\D'), '').length == 13;
+  bool get hasValidCnic => cnic.replaceAll(RegExp(r'\D'), '').length == 13;
 
   bool get identityComplete => fullName.trim().isNotEmpty && hasValidCnic;
 
@@ -122,6 +122,7 @@ class RiderApplication extends Equatable {
     String? phone,
     RiderVehicle? vehicle,
     String? registrationNumber,
+    String? inviteCode,
     RiderSellerMatch? seller,
   }) => RiderApplication(
     fullName: fullName ?? this.fullName,
@@ -129,6 +130,7 @@ class RiderApplication extends Equatable {
     phone: phone ?? this.phone,
     vehicle: vehicle ?? this.vehicle,
     registrationNumber: registrationNumber ?? this.registrationNumber,
+    inviteCode: inviteCode ?? this.inviteCode,
     seller: seller ?? this.seller,
   );
 
@@ -139,6 +141,7 @@ class RiderApplication extends Equatable {
     phone,
     vehicle,
     registrationNumber,
+    inviteCode,
     seller,
   ];
 }

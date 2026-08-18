@@ -1,4 +1,6 @@
 import 'dart:io';
+import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -77,6 +79,60 @@ class SellerApplication {
   final bool sellsOtherSizes;
   final SellerVerificationStatus status;
 
+  factory SellerApplication.fromJson(Map<String, dynamic> json) =>
+      SellerApplication(
+        businessName: json['business_name'] as String? ?? '',
+        ownerName: json['owner_name'] as String? ?? '',
+        businessType: SellerBusinessType.values
+            .where((type) => type.name == json['business_type'])
+            .firstOrNull,
+        uploaded: (json['uploaded'] as List<dynamic>? ?? const [])
+            .map(
+              (name) => KycDocument.values
+                  .where((document) => document.name == name)
+                  .firstOrNull,
+            )
+            .nonNulls
+            .toSet(),
+        bottles: (json['bottles'] as List<dynamic>? ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .map(
+              (item) => DraftBottle(
+                size:
+                    BottleSize.values
+                        .where((size) => size.name == item['size'])
+                        .firstOrNull ??
+                    BottleSize.six,
+                refillPrice: (item['refill_price'] as num?)?.toInt() ?? 0,
+                newPrice: (item['new_price'] as num?)?.toInt() ?? 0,
+              ),
+            )
+            .toList(),
+        sellsOtherSizes: json['sells_other_sizes'] as bool? ?? false,
+        status:
+            SellerVerificationStatus.values
+                .where((status) => status.name == json['status'])
+                .firstOrNull ??
+            SellerVerificationStatus.detailsReceived,
+      );
+
+  Map<String, dynamic> toJson() => {
+    'business_name': businessName,
+    'owner_name': ownerName,
+    'business_type': businessType?.name,
+    'uploaded': uploaded.map((document) => document.name).toList(),
+    'bottles': [
+      for (final bottle in bottles)
+        {
+          'size': bottle.size.name,
+          'refill_price': bottle.refillPrice,
+          'new_price': bottle.newPrice,
+        },
+    ],
+    'sells_other_sizes': sellsOtherSizes,
+    'status': status.name,
+  };
+
   bool get detailsComplete =>
       businessName.trim().isNotEmpty &&
       ownerName.trim().isNotEmpty &&
@@ -109,17 +165,34 @@ class SellerApplication {
 
 class SellerApplicationNotifier extends Notifier<SellerApplication> {
   @override
-  SellerApplication build() => const SellerApplication();
+  SellerApplication build() {
+    final saved = ref.read(appPreferencesProvider).sellerDraft;
+    if (saved == null || saved.isEmpty) return const SellerApplication();
+    try {
+      return SellerApplication.fromJson(
+        jsonDecode(saved) as Map<String, dynamic>,
+      );
+    } catch (_) {
+      return const SellerApplication();
+    }
+  }
+
+  void _persist() => unawaited(
+    ref.read(appPreferencesProvider).setSellerDraft(jsonEncode(state.toJson())),
+  );
 
   void setDetails({
     String? businessName,
     String? ownerName,
     SellerBusinessType? businessType,
-  }) => state = state.copyWith(
-    businessName: businessName,
-    ownerName: ownerName,
-    businessType: businessType,
-  );
+  }) {
+    state = state.copyWith(
+      businessName: businessName,
+      ownerName: ownerName,
+      businessType: businessType,
+    );
+    _persist();
+  }
 
   /// Uploads real KYC files and only marks them complete after the backend
   /// confirms that private storage succeeded.
@@ -152,6 +225,7 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
         if (plantPhoto != null) KycDocument.plantPhoto,
       },
     );
+    _persist();
   });
 
   void toggleSize(BottleSize size) {
@@ -181,10 +255,13 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
       bottles.sort((a, b) => b.size.litres.compareTo(a.size.litres));
     }
     state = state.copyWith(bottles: bottles);
+    _persist();
   }
 
-  void toggleOtherSizes() =>
-      state = state.copyWith(sellsOtherSizes: !state.sellsOtherSizes);
+  void toggleOtherSizes() {
+    state = state.copyWith(sellsOtherSizes: !state.sellsOtherSizes);
+    _persist();
+  }
 
   void setPrice(BottleSize size, {int? refillPrice, int? newPrice}) {
     state = state.copyWith(
@@ -196,6 +273,7 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
             bottle,
       ],
     );
+    _persist();
   }
 
   /// Registers the store, so the account becomes a seller (step 1).
@@ -214,6 +292,7 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
           businessType: businessType,
         );
     state = state.copyWith(status: status);
+    _persist();
   });
 
   /// Submits the catalogue and moves the application into review.
@@ -235,6 +314,7 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
           sellsOtherSizes: state.sellsOtherSizes,
         );
     state = state.copyWith(status: status);
+    _persist();
   });
 }
 

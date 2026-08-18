@@ -46,8 +46,13 @@ class _RiderIdentityScreenState extends ConsumerState<RiderIdentityScreen> {
     super.dispose();
   }
 
-  /// Repaints so the Continue button tracks what is in the fields.
-  void _onChanged() => setState(() {});
+  /// Persists each edit so an app restart restores the unfinished form.
+  void _onChanged() {
+    ref
+        .read(riderApplicationProvider.notifier)
+        .setIdentity(fullName: _name.text, cnic: _cnic.text);
+    setState(() {});
+  }
 
   bool get _complete =>
       _name.text.trim().isNotEmpty &&
@@ -73,8 +78,7 @@ class _RiderIdentityScreenState extends ConsumerState<RiderIdentityScreen> {
     onPrimary: _continue,
     footer: const AppNote(
       icon: Icons.lock_outline_rounded,
-      text:
-          'Customers never see your CNIC — only your first name and vehicle.',
+      text: 'Customers never see your CNIC — only your first name and vehicle.',
     ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,

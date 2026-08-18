@@ -30,9 +30,15 @@ class _RiderVehicleScreenState extends ConsumerState<RiderVehicleScreen> {
   @override
   void initState() {
     super.initState();
-    _registration = TextEditingController(
-      text: ref.read(riderApplicationProvider).registrationNumber,
-    )..addListener(() => setState(() {}));
+    _registration =
+        TextEditingController(
+          text: ref.read(riderApplicationProvider).registrationNumber,
+        )..addListener(() {
+          ref
+              .read(riderApplicationProvider.notifier)
+              .setRegistrationNumber(_registration.text);
+          setState(() {});
+        });
   }
 
   @override

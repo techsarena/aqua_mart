@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -28,6 +29,7 @@ class SessionState {
     this.language,
     this.pendingRole,
     this.draft = const SignUpDraft(),
+    this.registrationRoute,
     this.isLoading = true,
   });
 
@@ -41,26 +43,34 @@ class SessionState {
 
   /// Collected across the three sign-up steps.
   final SignUpDraft draft;
+  final String? registrationRoute;
   final bool isLoading;
 
   bool get isSignedIn => user != null;
   bool get hasLanguage => language != null;
 
   /// The role that decides which shell to show.
-  UserRole get activeRole => user?.role ?? pendingRole ?? UserRole.customer;
+  UserRole get activeRole => user?.isProfileComplete == false
+      ? pendingRole ?? user!.role
+      : user?.role ?? pendingRole ?? UserRole.customer;
 
   SessionState copyWith({
     AppUser? user,
     AppLanguage? language,
     UserRole? pendingRole,
     SignUpDraft? draft,
+    String? registrationRoute,
     bool? isLoading,
     bool clearUser = false,
+    bool clearRegistrationRoute = false,
   }) => SessionState(
     user: clearUser ? null : (user ?? this.user),
     language: language ?? this.language,
     pendingRole: pendingRole ?? this.pendingRole,
     draft: draft ?? this.draft,
+    registrationRoute: clearRegistrationRoute
+        ? null
+        : (registrationRoute ?? this.registrationRoute),
     isLoading: isLoading ?? this.isLoading,
   );
 }
@@ -73,8 +83,19 @@ class SessionController extends Notifier<SessionState> {
     return SessionState(
       language: prefs.language,
       pendingRole: prefs.role,
+      draft: _readDraft(prefs.signUpDraft),
+      registrationRoute: prefs.registrationRoute,
       isLoading: true,
     );
+  }
+
+  SignUpDraft _readDraft(String? value) {
+    if (value == null || value.isEmpty) return const SignUpDraft();
+    try {
+      return SignUpDraft.fromJson(jsonDecode(value) as Map<String, dynamic>);
+    } catch (_) {
+      return const SignUpDraft();
+    }
   }
 
   Future<void> _restore() async {
@@ -102,15 +123,45 @@ class SessionController extends Notifier<SessionState> {
   }
 
   Future<void> setRole(UserRole role) async {
-    await ref.read(appPreferencesProvider).setRole(role);
-    state = state.copyWith(
-      pendingRole: role,
-      draft: state.draft.copyWith(role: role),
+    final prefs = ref.read(appPreferencesProvider);
+    await prefs.setRole(role);
+    final draft = state.draft.copyWith(role: role);
+    state = state.copyWith(pendingRole: role, draft: draft);
+    await prefs.setSignUpDraft(jsonEncode(draft.toJson()));
+  }
+
+  void updateDraft(SignUpDraft Function(SignUpDraft) update) {
+    final draft = update(state.draft);
+    state = state.copyWith(draft: draft);
+    unawaited(
+      ref
+          .read(appPreferencesProvider)
+          .setSignUpDraft(jsonEncode(draft.toJson())),
     );
   }
 
-  void updateDraft(SignUpDraft Function(SignUpDraft) update) =>
-      state = state.copyWith(draft: update(state.draft));
+  /// Marks the OTP-created session as resumable before leaving the OTP screen.
+  void beginRegistration(AppUser user, String route) {
+    state = state.copyWith(
+      user: user,
+      registrationRoute: route,
+      isLoading: false,
+    );
+    unawaited(ref.read(appPreferencesProvider).setRegistrationRoute(route));
+    _openSocket();
+  }
+
+  /// Called by each registration route, including after a back navigation.
+  void checkpointRegistration(String route) {
+    if (state.registrationRoute == route) return;
+    state = state.copyWith(registrationRoute: route);
+    unawaited(ref.read(appPreferencesProvider).setRegistrationRoute(route));
+  }
+
+  Future<void> completeRegistration() async {
+    await ref.read(appPreferencesProvider).clearRegistrationProgress();
+    state = state.copyWith(clearRegistrationRoute: true);
+  }
 
   void signIn(AppUser user) {
     state = state.copyWith(user: user, isLoading: false);
