@@ -6,7 +6,10 @@ import '../models/user_dto.dart';
 
 abstract interface class AuthRemoteDataSource {
   Future<int> requestOtp(String phone);
-  Future<({UserDto user, String accessToken, String refreshToken})> verifyOtp({
+  Future<
+    ({UserDto user, String accessToken, String refreshToken, bool isNewUser})
+  >
+  verifyOtp({
     required String phone,
     required String code,
     required SignUpDraft draft,
@@ -32,7 +35,10 @@ class AuthApiDataSource implements AuthRemoteDataSource {
   }
 
   @override
-  Future<({UserDto user, String accessToken, String refreshToken})> verifyOtp({
+  Future<
+    ({UserDto user, String accessToken, String refreshToken, bool isNewUser})
+  >
+  verifyOtp({
     required String phone,
     required String code,
     required SignUpDraft draft,
@@ -52,12 +58,35 @@ class AuthApiDataSource implements AuthRemoteDataSource {
     if (access == null || refresh == null || user == null) {
       throw const ParseFailure('The sign-in response was incomplete.');
     }
+    final explicitNew =
+        _boolValue(json['is_new_user']) ??
+        _boolValue(user['is_new_user']) ??
+        _boolValue(json['profile_incomplete']) ??
+        _boolValue(user['profile_incomplete']);
+    final explicitRegistered =
+        _boolValue(json['is_registered']) ??
+        _boolValue(user['is_registered']) ??
+        _boolValue(json['profile_complete']) ??
+        _boolValue(user['profile_complete']);
     return (
       user: UserDto.fromJson(user),
       accessToken: access,
       refreshToken: refresh,
+      // Missing metadata must never let a newly created account bypass its
+      // registration screens. Updated backends should always send the flag.
+      isNewUser:
+          explicitNew ??
+          (explicitRegistered == null ? true : !explicitRegistered),
     );
   }
+
+  bool? _boolValue(Object? value) => switch (value) {
+    bool value => value,
+    num value => value != 0,
+    String value when value.toLowerCase() == 'true' || value == '1' => true,
+    String value when value.toLowerCase() == 'false' || value == '0' => false,
+    _ => null,
+  };
 
   @override
   Future<UserDto> completeProfile(SignUpDraft draft) async {

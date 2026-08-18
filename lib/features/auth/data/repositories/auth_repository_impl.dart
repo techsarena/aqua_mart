@@ -15,7 +15,7 @@ class AuthRepositoryImpl implements AuthRepository {
       Result.guard(() => _remote.requestOtp(phone));
 
   @override
-  Future<Result<AppUser>> verifyOtp({
+  Future<Result<OtpVerification>> verifyOtp({
     required String phone,
     required String code,
     required SignUpDraft draft,
@@ -29,7 +29,10 @@ class AuthRepositoryImpl implements AuthRepository {
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
     );
-    return result.user.toDomain();
+    return OtpVerification(
+      user: result.user.toDomain(),
+      isNewUser: result.isNewUser,
+    );
   });
 
   @override

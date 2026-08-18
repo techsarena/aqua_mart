@@ -2,6 +2,13 @@ import '../../../../core/utils/result.dart';
 import '../entities/app_user.dart';
 import '../entities/user_role.dart';
 
+class OtpVerification {
+  const OtpVerification({required this.user, required this.isNewUser});
+
+  final AppUser user;
+  final bool isNewUser;
+}
+
 /// Draft collected across the three sign-up steps before the account exists.
 class SignUpDraft {
   const SignUpDraft({
@@ -38,7 +45,7 @@ abstract interface class AuthRepository {
   Future<Result<int>> requestOtp(String phone);
 
   /// Verifies the code and persists the session tokens.
-  Future<Result<AppUser>> verifyOtp({
+  Future<Result<OtpVerification>> verifyOtp({
     required String phone,
     required String code,
     required SignUpDraft draft,

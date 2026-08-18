@@ -56,7 +56,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   void _append(String digit) {
-    if (_code.length >= _length) return;
+    if (_verifying || _code.length >= _length) return;
     setState(() {
       _code += digit;
       _error = null;
@@ -65,7 +65,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
   }
 
   void _backspace() {
-    if (_code.isEmpty) return;
+    if (_verifying || _code.isEmpty) return;
     setState(() => _code = _code.substring(0, _code.length - 1));
   }
 
@@ -83,11 +83,9 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
     setState(() => _verifying = false);
 
     result.when(
-      success: (user) {
-        // A completed name distinguishes a registered account from the
-        // provisional profile just created for a first-time phone number.
-        if (user.fullName.trim().isNotEmpty) {
-          ref.read(sessionProvider.notifier).signIn(user);
+      success: (verification) {
+        if (!verification.isNewUser) {
+          ref.read(sessionProvider.notifier).signIn(verification.user);
         } else {
           context.pushNamed(AppRoutes.rolePicker);
         }

@@ -1,6 +1,11 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -10,21 +15,244 @@ import '../../../../shared/widgets/app_card.dart';
 import '../../../auth/presentation/widgets/onboarding_scaffold.dart';
 import '../providers/seller_onboarding_providers.dart';
 
-/// Seller sign-up 2 of 4 — proof of identity and water quality.
-///
-/// Photos are enough; no scanner needed. The privacy promise sits right under
-/// the uploads because that is where the hesitation is.
-class SellerKycScreen extends ConsumerWidget {
+/// Seller sign-up 2 of 4 — real camera, gallery, and PDF uploads for KYC.
+class SellerKycScreen extends ConsumerStatefulWidget {
   const SellerKycScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final application = ref.watch(sellerApplicationProvider);
+  ConsumerState<SellerKycScreen> createState() => _SellerKycScreenState();
+}
 
-    // The design calls out one tile at a time — the next required document
-    // still missing — so the eye has a single obvious target.
-    final nextRequired = KycDocument.values
-        .where((d) => d.isRequired && !application.uploaded.contains(d))
+class _SellerKycScreenState extends ConsumerState<SellerKycScreen> {
+  static const _maxFileBytes = 5 * 1024 * 1024;
+
+  final _imagePicker = ImagePicker();
+  final Map<_KycSlot, File> _files = {};
+  bool _uploading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _recoverLostAndroidImage();
+  }
+
+  Future<void> _recoverLostAndroidImage() async {
+    if (!Platform.isAndroid) return;
+
+    try {
+      final response = await _imagePicker.retrieveLostData();
+      if (response.isEmpty) return;
+
+      final recovered =
+          response.file ??
+          (response.files?.isNotEmpty ?? false ? response.files!.first : null);
+      if (recovered == null) return;
+
+      final slot = _KycSlot.values
+          .where((item) => item.acceptsCamera && !_files.containsKey(item))
+          .firstOrNull;
+      if (slot != null) await _acceptFile(slot, File(recovered.path));
+    } catch (_) {
+      // Lost-data recovery is best effort. Normal camera selection still works.
+    }
+  }
+
+  bool _isUploaded(_KycSlot slot, SellerApplication application) =>
+      _files.containsKey(slot) || application.uploaded.contains(slot.document);
+
+  bool _requiredReady(SellerApplication application) => _KycSlot.values
+      .where((slot) => slot.isRequired)
+      .every((slot) => _isUploaded(slot, application));
+
+  Future<void> _chooseSource(_KycSlot slot) async {
+    if (_uploading) return;
+
+    final action = await showModalBottomSheet<_PickerAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            0,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(slot.label, style: AppTypography.heading(size: 20)),
+              const SizedBox(height: AppSpacing.md),
+              if (slot.acceptsCamera)
+                ListTile(
+                  leading: const Icon(Icons.photo_camera_outlined),
+                  title: const Text('Take a photo'),
+                  subtitle: const Text('Open the camera'),
+                  onTap: () => Navigator.pop(context, _PickerAction.camera),
+                ),
+              if (slot.acceptsCamera)
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Choose from gallery'),
+                  subtitle: const Text('Use an existing JPG or PNG'),
+                  onTap: () => Navigator.pop(context, _PickerAction.gallery),
+                ),
+              if (slot.acceptsDocument)
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf_outlined),
+                  title: const Text('Choose a document'),
+                  subtitle: const Text('PDF, JPG or PNG · maximum 5 MB'),
+                  onTap: () => Navigator.pop(context, _PickerAction.document),
+                ),
+              if (_files.containsKey(slot))
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.danger,
+                  ),
+                  title: const Text(
+                    'Remove selected file',
+                    style: TextStyle(color: AppColors.danger),
+                  ),
+                  onTap: () => Navigator.pop(context, _PickerAction.remove),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _PickerAction.camera:
+        await _pickImage(slot, ImageSource.camera);
+      case _PickerAction.gallery:
+        await _pickImage(slot, ImageSource.gallery);
+      case _PickerAction.document:
+        await _pickDocument(slot);
+      case _PickerAction.remove:
+        setState(() => _files.remove(slot));
+    }
+  }
+
+  Future<void> _pickImage(_KycSlot slot, ImageSource source) async {
+    try {
+      final selected = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 2400,
+        maxHeight: 2400,
+        imageQuality: 88,
+        requestFullMetadata: false,
+      );
+      if (selected != null) await _acceptFile(slot, File(selected.path));
+    } on PlatformException catch (error) {
+      if (!mounted) return;
+      final denied =
+          error.code.contains('access_denied') ||
+          error.code.contains('permission');
+      _showMessage(
+        denied
+            ? 'Camera or photo access is disabled. Enable it in your phone settings and try again.'
+            : 'Could not open the camera or gallery. Please try again.',
+      );
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Could not open the camera or gallery. Please try again.');
+      }
+    }
+  }
+
+  Future<void> _pickDocument(_KycSlot slot) async {
+    try {
+      final selection = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+      );
+      final path = selection?.files.single.path;
+      if (path != null) await _acceptFile(slot, File(path));
+    } on PlatformException catch (_) {
+      if (mounted) {
+        _showMessage(
+          'Could not open your files. Check app access and try again.',
+        );
+      }
+    } catch (_) {
+      if (mounted) _showMessage('Could not select that document.');
+    }
+  }
+
+  Future<void> _acceptFile(_KycSlot slot, File file) async {
+    if (!await file.exists()) {
+      if (mounted) _showMessage('That file is no longer available.');
+      return;
+    }
+
+    final extension = _extension(file.path);
+    if (!const {'jpg', 'jpeg', 'png', 'pdf'}.contains(extension)) {
+      if (mounted) _showMessage('Choose a JPG, PNG, or PDF file.');
+      return;
+    }
+
+    if (await file.length() > _maxFileBytes) {
+      if (mounted) {
+        _showMessage('This file is over 5 MB. Choose a smaller file.');
+      }
+      return;
+    }
+
+    if (mounted) setState(() => _files[slot] = file);
+  }
+
+  Future<void> _submit(SellerApplication application) async {
+    if (_uploading) return;
+
+    // A completed server-side application can continue after navigating back
+    // without forcing the user to select the private documents again.
+    if (application.documentsComplete &&
+        !_KycSlot.values.any(_files.containsKey)) {
+      context.pushNamed(AppRoutes.sellerCatalogSetup);
+      return;
+    }
+
+    final cnicFront = _files[_KycSlot.cnicFront];
+    final cnicBack = _files[_KycSlot.cnicBack];
+    final waterTest = _files[_KycSlot.waterTest];
+    if (cnicFront == null || cnicBack == null || waterTest == null) {
+      _showMessage('Add both CNIC photos and the water testing certificate.');
+      return;
+    }
+
+    setState(() => _uploading = true);
+    final result = await ref
+        .read(sellerApplicationProvider.notifier)
+        .uploadDocuments(
+          cnicFront: cnicFront,
+          cnicBack: cnicBack,
+          waterTest: waterTest,
+          licence: _files[_KycSlot.licence],
+          plantPhoto: _files[_KycSlot.plantPhoto],
+        );
+    if (!mounted) return;
+    setState(() => _uploading = false);
+
+    result.when(
+      success: (_) => context.pushNamed(AppRoutes.sellerCatalogSetup),
+      failure: (failure) => _showMessage(failure.message),
+    );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final application = ref.watch(sellerApplicationProvider);
+    final nextRequired = _KycSlot.values
+        .where((slot) => slot.isRequired && !_isUploaded(slot, application))
         .firstOrNull;
 
     return OnboardingScaffold(
@@ -32,9 +260,9 @@ class SellerKycScreen extends ConsumerWidget {
       totalSteps: 4,
       title: "Prove it's you",
       subtitle: 'Photos are fine — no scanner needed. We check within a day.',
-      primaryLabel: 'Continue',
-      primaryEnabled: application.documentsComplete,
-      onPrimary: () => context.pushNamed(AppRoutes.sellerCatalogSetup),
+      primaryLabel: _uploading ? 'Uploading…' : 'Upload & continue',
+      primaryEnabled: !_uploading && _requiredReady(application),
+      onPrimary: () => _submit(application),
       footer: const AppNote(
         icon: Icons.lock_outline_rounded,
         text:
@@ -42,123 +270,257 @@ class SellerKycScreen extends ConsumerWidget {
             'never see them.',
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          for (final document in KycDocument.values) ...[
-            _UploadTile(
-              document: document,
-              uploaded: application.uploaded.contains(document),
-              isNext: document == nextRequired,
-              onTap: () => ref
-                  .read(sellerApplicationProvider.notifier)
-                  .toggleDocument(document),
+          Text(
+            'Required documents',
+            style: AppTypography.body(size: 14, weight: FontWeight.w700),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          for (final slot in _KycSlot.values) ...[
+            if (slot == _KycSlot.licence) ...[
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Optional documents',
+                style: AppTypography.body(size: 14, weight: FontWeight.w700),
+              ),
+              const SizedBox(height: AppSpacing.md),
+            ],
+            _DocumentUploadTile(
+              slot: slot,
+              file: _files[slot],
+              uploaded: _isUploaded(slot, application),
+              isNext: slot == nextRequired,
+              enabled: !_uploading,
+              onTap: () => _chooseSource(slot),
             ),
             const SizedBox(height: AppSpacing.md),
           ],
+          Text(
+            'Accepted: JPG, PNG or PDF · Maximum 5 MB per file',
+            textAlign: TextAlign.center,
+            style: AppTypography.body(
+              size: 12.5,
+              color: AppColors.textMuted(0.55),
+            ),
+          ),
         ],
       ),
     );
   }
 }
 
-/// One document row: a round badge, the document, and where it stands.
-///
-/// Three states, each carried by fill rather than by a trailing affordance —
-/// done (mint), next up (dashed accent outline), and waiting (plain white).
-class _UploadTile extends StatelessWidget {
-  const _UploadTile({
-    required this.document,
+enum _KycSlot {
+  cnicFront,
+  cnicBack,
+  waterTest,
+  licence,
+  plantPhoto;
+
+  String get label => switch (this) {
+    _KycSlot.cnicFront => 'CNIC — front',
+    _KycSlot.cnicBack => 'CNIC — back',
+    _KycSlot.waterTest => 'Water testing certificate',
+    _KycSlot.licence => 'NTN / business licence',
+    _KycSlot.plantPhoto => 'Photo of your plant',
+  };
+
+  String get hint => switch (this) {
+    _KycSlot.cnicFront => 'Take a clear photo of the front',
+    _KycSlot.cnicBack => 'Take a clear photo of the back',
+    _KycSlot.waterTest => 'Photo or PDF · required',
+    _KycSlot.licence => 'Optional — speeds up approval',
+    _KycSlot.plantPhoto => 'Optional — shown on your store page',
+  };
+
+  bool get isRequired => switch (this) {
+    _KycSlot.cnicFront || _KycSlot.cnicBack || _KycSlot.waterTest => true,
+    _ => false,
+  };
+
+  bool get acceptsCamera => this != _KycSlot.licence;
+
+  bool get acceptsDocument => switch (this) {
+    _KycSlot.waterTest || _KycSlot.licence => true,
+    _ => false,
+  };
+
+  KycDocument get document => switch (this) {
+    _KycSlot.cnicFront || _KycSlot.cnicBack => KycDocument.cnic,
+    _KycSlot.waterTest => KycDocument.waterTest,
+    _KycSlot.licence => KycDocument.licence,
+    _KycSlot.plantPhoto => KycDocument.plantPhoto,
+  };
+}
+
+enum _PickerAction { camera, gallery, document, remove }
+
+class _DocumentUploadTile extends StatelessWidget {
+  const _DocumentUploadTile({
+    required this.slot,
+    required this.file,
     required this.uploaded,
     required this.isNext,
+    required this.enabled,
     required this.onTap,
   });
 
-  final KycDocument document;
+  final _KycSlot slot;
+  final File? file;
   final bool uploaded;
-
-  /// The next required document still missing — the one tile called out.
   final bool isNext;
+  final bool enabled;
   final VoidCallback onTap;
-
-  /// Uploaded tiles all read as a tick; the rest keep their own icon so the
-  /// list is scannable before anything has been done.
-  IconData get _icon => switch (document) {
-    _ when uploaded => Icons.check_rounded,
-    KycDocument.cnic || KycDocument.waterTest => Icons.photo_camera_rounded,
-    KycDocument.licence => Icons.description_rounded,
-    KycDocument.plantPhoto => Icons.storefront_rounded,
-  };
-
-  Color get _badgeColor => uploaded
-      ? AppColors.accent2
-      : isNext
-      ? AppColors.accent200
-      : AppColors.neutral200;
-
-  Color get _iconColor => uploaded
-      ? Colors.white
-      : isNext
-      ? AppColors.accent700
-      : AppColors.textMuted(0.5);
 
   @override
   Widget build(BuildContext context) {
     final tile = AppCard(
-      onTap: onTap,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.md,
-        vertical: AppSpacing.md,
-      ),
+      onTap: enabled ? onTap : null,
+      padding: const EdgeInsets.all(AppSpacing.md),
       color: uploaded ? AppColors.accent2_100 : AppColors.surface,
       borderColor: uploaded ? AppColors.accent2_300 : null,
       child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _badgeColor,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(_icon, size: 24, color: _iconColor),
-          ),
+          _DocumentPreview(slot: slot, file: file, uploaded: uploaded),
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  document.label,
-                  style: AppTypography.body(size: 15, weight: FontWeight.w700),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        slot.label,
+                        style: AppTypography.body(
+                          size: 15,
+                          weight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (slot.isRequired && !uploaded)
+                      Text(
+                        'Required',
+                        style: AppTypography.body(
+                          size: 11.5,
+                          weight: FontWeight.w700,
+                          color: AppColors.accent700,
+                        ),
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: 3),
                 Text(
-                  uploaded ? document.uploadedHint : document.hint,
+                  file != null
+                      ? '${_fileName(file!.path)} · ${_fileSize(file!)}'
+                      : uploaded
+                      ? 'Uploaded securely'
+                      : slot.hint,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.body(
-                    size: 13.5,
+                    size: 13,
                     color: uploaded
                         ? AppColors.accent2Deep
-                        : AppColors.textMuted(0.55),
+                        : AppColors.textMuted(0.58),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: AppSpacing.sm),
+          Icon(
+            uploaded ? Icons.check_circle_rounded : Icons.add_circle_outline,
+            color: uploaded ? AppColors.accent2 : AppColors.accent,
+          ),
         ],
       ),
     );
 
-    // The dashed outline is painted around the tile rather than being a
-    // border on it, since Flutter's BoxBorder has no dashed stroke.
     return isNext
         ? CustomPaint(
-            foregroundPainter: _DashedBorderPainter(
+            foregroundPainter: const _DashedBorderPainter(
               color: AppColors.accent,
               radius: AppRadius.lg,
             ),
             child: tile,
           )
         : tile;
+  }
+}
+
+class _DocumentPreview extends StatelessWidget {
+  const _DocumentPreview({
+    required this.slot,
+    required this.file,
+    required this.uploaded,
+  });
+
+  final _KycSlot slot;
+  final File? file;
+  final bool uploaded;
+
+  @override
+  Widget build(BuildContext context) {
+    final isImage = file != null && _extension(file!.path) != 'pdf';
+    if (isImage) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: Image.file(
+          file!,
+          width: 58,
+          height: 58,
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _badge(Icons.broken_image_outlined),
+        ),
+      );
+    }
+
+    return _badge(
+      file != null
+          ? Icons.picture_as_pdf_rounded
+          : uploaded
+          ? Icons.check_rounded
+          : slot == _KycSlot.plantPhoto
+          ? Icons.storefront_outlined
+          : slot.acceptsDocument
+          ? Icons.description_outlined
+          : Icons.photo_camera_outlined,
+    );
+  }
+
+  Widget _badge(IconData icon) => Container(
+    width: 58,
+    height: 58,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: uploaded ? AppColors.accent2_200 : AppColors.neutral200,
+      borderRadius: BorderRadius.circular(AppRadius.md),
+    ),
+    child: Icon(
+      icon,
+      size: 25,
+      color: uploaded ? AppColors.accent2Deep : AppColors.neutral600,
+    ),
+  );
+}
+
+String _extension(String path) {
+  final name = _fileName(path);
+  final dot = name.lastIndexOf('.');
+  return dot < 0 ? '' : name.substring(dot + 1).toLowerCase();
+}
+
+String _fileName(String path) => path.replaceAll('\\', '/').split('/').last;
+
+String _fileSize(File file) {
+  try {
+    final bytes = file.lengthSync();
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(0)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  } catch (_) {
+    return 'Selected';
   }
 }
 
@@ -179,9 +541,6 @@ class _DashedBorderPainter extends CustomPainter {
       ..color = color
       ..strokeWidth = _width
       ..style = PaintingStyle.stroke;
-
-    // Inset by half the stroke so the dashes sit inside the tile's bounds
-    // instead of being clipped in half at the edge.
     final path = Path()
       ..addRRect(
         RRect.fromRectAndRadius(
@@ -193,10 +552,7 @@ class _DashedBorderPainter extends CustomPainter {
     for (final metric in path.computeMetrics()) {
       var distance = 0.0;
       while (distance < metric.length) {
-        canvas.drawPath(
-          metric.extractPath(distance, distance + _dash),
-          stroke,
-        );
+        canvas.drawPath(metric.extractPath(distance, distance + _dash), stroke);
         distance += _dash + _gap;
       }
     }

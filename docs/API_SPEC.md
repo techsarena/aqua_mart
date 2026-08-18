@@ -354,6 +354,7 @@ default.
 {
   "access_token": "eyJhbGciOi...",
   "refresh_token": "def50200a1b2...",
+  "is_new_user": false,
   "user": {
     "id": "CUST-0001",
     "full_name": "Ayesha Khan",
@@ -371,9 +372,15 @@ default.
 }
 ```
 
-> **Note the envelope.** This endpoint returns the three keys at the **top
-> level**, not under `data`. The client throws a parse error if any of
-> `access_token`, `refresh_token`, `user` is missing. This is deliberate — do
+`is_new_user` is required. Return `true` when this verification created the
+provisional account or when an existing profile is still incomplete; return
+`false` only for a completed registered user. The client uses it to choose
+registration versus the user's home screen. Do not infer this from
+`full_name`, because backends may generate a name as part of account creation.
+
+> **Note the envelope.** This endpoint returns these keys at the **top level**,
+> not under `data`. The client throws a parse error if any of `access_token`,
+> `refresh_token`, or `user` is missing. This is deliberate — do
 > not "normalise" it.
 
 **Errors:** `422` wrong/expired code (`{"errors": {"code": "That code has expired."}}`),
@@ -409,12 +416,15 @@ The **final** sign-up step. See §4.6 for why the ordering matters.
 ```json
 {
   "full_name": "Ayesha Khan",
+  "role": "customer",
   "gender": "female",
   "date_of_birth": "1996-04-12T00:00:00.000"
 }
 ```
 
 `gender` ∈ `female` | `male` | `unspecified`. `date_of_birth` may be `null`.
+`role` may be set exactly once while the OTP-created profile is incomplete;
+ignore it for completed profiles so an existing account can never switch roles.
 
 **Response `200`:** `{ "data": { ...user object... } }`
 
@@ -435,10 +445,10 @@ The client's onboarding is ordered, and the order is load-bearing:
 intro → phone (step 1) → OTP (step 1) → role (step 2) → name (step 3) → details (step 4, customer only)
 ```
 
-- The customer enters the OTP before choosing a role, but the client holds the
-  code in memory until the role card is tapped. It then sends the code and role
-  together to `/auth/otp/verify`, because that request creates the account and
-  role is immutable in v1.
+- OTP verification immediately signs in an existing user (a user with a
+  completed `full_name`). A first-time number receives a provisional,
+  profile-incomplete account and continues through role and name; the role is
+  finalized by `PATCH /auth/profile`.
 - **`/auth/otp/verify` creates the account, but the profile is only complete
   after `PATCH /auth/profile`.** The client's router redirect sends a
   signed-in user straight into the app — so if you treat the user as

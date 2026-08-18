@@ -152,8 +152,20 @@ class SellerOnboardingApiDataSource
     return VerificationState.fromJson(json ?? const {});
   }
 
-  Future<MultipartFile> _part(File file) =>
-      MultipartFile.fromFile(file.path, filename: file.path.split('/').last);
+  Future<MultipartFile> _part(File file) {
+    final filename = file.path.replaceAll('\\', '/').split('/').last;
+    final extension = filename.split('.').last.toLowerCase();
+    final contentType = switch (extension) {
+      'png' => DioMediaType('image', 'png'),
+      'pdf' => DioMediaType('application', 'pdf'),
+      _ => DioMediaType('image', 'jpeg'),
+    };
+    return MultipartFile.fromFile(
+      file.path,
+      filename: filename,
+      contentType: contentType,
+    );
+  }
 
   SellerVerificationStatus _statusFrom(Map<String, dynamic>? json) =>
       SellerVerificationStatus.values

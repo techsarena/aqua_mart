@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/providers/core_providers.dart';
@@ -119,13 +121,34 @@ class SellerApplicationNotifier extends Notifier<SellerApplication> {
     businessType: businessType,
   );
 
-  void toggleDocument(KycDocument document) {
-    final uploaded = Set<KycDocument>.from(state.uploaded);
-    uploaded.contains(document)
-        ? uploaded.remove(document)
-        : uploaded.add(document);
-    state = state.copyWith(uploaded: uploaded);
-  }
+  /// Uploads real KYC files and only marks them complete after the backend
+  /// confirms that private storage succeeded.
+  Future<Result<void>> uploadDocuments({
+    required File cnicFront,
+    required File cnicBack,
+    required File waterTest,
+    File? licence,
+    File? plantPhoto,
+  }) => Result.guard(() async {
+    final status = await ref
+        .read(sellerOnboardingDataSourceProvider)
+        .uploadDocuments(
+          cnicFront: cnicFront,
+          cnicBack: cnicBack,
+          waterTest: waterTest,
+          licence: licence,
+          plantPhoto: plantPhoto,
+        );
+    state = state.copyWith(
+      status: status,
+      uploaded: {
+        KycDocument.cnic,
+        KycDocument.waterTest,
+        if (licence != null) KycDocument.licence,
+        if (plantPhoto != null) KycDocument.plantPhoto,
+      },
+    );
+  });
 
   void toggleSize(BottleSize size) {
     final bottles = [...state.bottles];
@@ -220,9 +243,10 @@ final sellerOnboardingDataSourceProvider =
 ///
 /// Polled rather than pushed: approval is a human decision that takes hours,
 /// so a socket that must stay open for it would cost more than it saves.
-final sellerVerificationProvider = FutureProvider.autoDispose<VerificationState>(
-  (ref) => ref.watch(sellerOnboardingDataSourceProvider).fetchStatus(),
-);
+final sellerVerificationProvider =
+    FutureProvider.autoDispose<VerificationState>(
+      (ref) => ref.watch(sellerOnboardingDataSourceProvider).fetchStatus(),
+    );
 
 final sellerApplicationProvider =
     NotifierProvider<SellerApplicationNotifier, SellerApplication>(

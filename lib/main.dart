@@ -14,7 +14,7 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Loaded up front so preferences and tokens are readable synchronously
+  // Loaded up front so pref erences and tokens are readable synchronously
   // everywhere else in the app.
   final prefs = await SharedPreferences.getInstance();
 
