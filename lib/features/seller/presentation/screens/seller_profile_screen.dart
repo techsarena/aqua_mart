@@ -166,9 +166,7 @@ class SellerProfileScreen extends ConsumerWidget {
             const SizedBox(height: AppSpacing.md),
           ],
           _InviteRiderButton(
-            onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Send an invite by phone number.')),
-            ),
+            onTap: () => context.pushNamed(AppRoutes.inviteRider),
           ),
 
           // ── Setup ───────────────────────────────────────────────────────

@@ -1271,7 +1271,55 @@ performance figures (`delivered`, `on_time_percent`, `rating`,
 ```
 
 `201`. Sends an SMS with the seller's 6-character join code and creates a
-pending invitation the rider will see at §7.5.
+pending invitation the rider will see at §7.5. Responds with the created
+invite, plus the code, so the confirmation screen can quote both:
+
+```json
+{
+  "data": {
+    "id": "INV-0004",
+    "phone": "+923015528841",
+    "status": "pending",
+    "sent_at": "2026-08-19T09:12:00+05:00",
+    "expires_at": "2026-08-26T09:12:00+05:00",
+    "days_left": 7,
+    "code": "CHS42K"
+  }
+}
+```
+
+`phone` comes back **normalised to E.164** — the client must display what the
+server returns rather than what the seller typed.
+
+#### `GET /seller/riders/code`
+
+```json
+{ "data": { "code": "CHS42K" } }
+```
+
+The seller's own join code, created on demand if they have none on file.
+
+#### `GET /seller/riders/invitations`
+
+Invites still awaiting a reply — the seller's "waiting on" list. Same element
+shape as the invite response above, without `code`. Accepted invites are
+**not** listed: the rider is in `GET /seller/riders` by then, and returning
+both would show one person twice.
+
+`days_left` counts whole days to `expires_at` and is floored at `0`, so an
+overdue invite never reports a negative.
+
+#### `POST /seller/riders/invitations/{id}/resend`
+
+Sends the same code to the same number again and restarts the expiry window.
+Deliberately does **not** create a second invitation — the rider would see two
+identical offers. `409 already_answered` once the rider has replied.
+
+#### `DELETE /seller/riders/invitations/{id}`
+
+`204`. Withdraws a pending invite. The record is marked `declined` rather than
+deleted, so a rider still holding the SMS is told it was withdrawn instead of
+hitting a 404. `409 already_answered` if they already replied.
 
 ### 6.7 Disputes
 
@@ -2069,6 +2117,10 @@ Every enum value the API exchanges. **Case-sensitive.**
 | 52 | DELETE | `/seller/inventory/{id}` | seller |
 | 53 | GET | `/seller/riders` | seller |
 | 54 | POST | `/seller/riders/invite` | seller |
+| 54a | GET | `/seller/riders/code` | seller |
+| 54b | GET | `/seller/riders/invitations` | seller |
+| 54c | POST | `/seller/riders/invitations/{id}/resend` | seller |
+| 54d | DELETE | `/seller/riders/invitations/{id}` | seller |
 | 55 | GET | `/seller/disputes` | seller |
 | 56 | GET | `/seller/disputes/{id}` | seller |
 | 57 | POST | `/seller/disputes/{id}/resolve` | seller |

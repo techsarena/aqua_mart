@@ -9,6 +9,7 @@ import '../../../orders/data/models/order_dto.dart';
 import '../../../orders/domain/entities/order.dart';
 import '../../../orders/domain/entities/order_status.dart';
 import '../../data/datasources/seller_data_source.dart';
+import '../../domain/entities/rider_invite.dart';
 import '../../domain/entities/seller_dashboard.dart';
 import '../../domain/entities/service_area.dart';
 
@@ -188,6 +189,54 @@ final bottleByIdProvider = Provider.family<Bottle?, String>((ref, id) {
 final sellerRidersProvider = FutureProvider<List<Rider>>(
   (ref) => ref.watch(sellerDataSourceProvider).fetchRiders(),
 );
+
+/// The seller's own 6-character rider join code.
+///
+/// Kept apart from the invite list so the code block still renders when the
+/// list fails, and vice versa — the design shows them on different screens.
+final riderCodeProvider = FutureProvider<String>(
+  (ref) => ref.watch(sellerDataSourceProvider).fetchRiderCode(),
+);
+
+/// Invites sent but not yet answered — the "Waiting on" list.
+class RiderInvitesNotifier extends AsyncNotifier<List<RiderInvite>> {
+  @override
+  Future<List<RiderInvite>> build() =>
+      ref.watch(sellerDataSourceProvider).fetchRiderInvites();
+
+  /// Sends a fresh invite and returns it, so the confirmation screen can name
+  /// the number the server actually normalised it to.
+  Future<Result<RiderInvite>> invite(String phone) async {
+    final result = await Result.guard(
+      () => ref.read(sellerDataSourceProvider).inviteRider(phone),
+    );
+    if (result.isSuccess) ref.invalidateSelf();
+    return result;
+  }
+
+  Future<Result<void>> resend(String inviteId) async {
+    final result = await Result.guard(
+      () => ref.read(sellerDataSourceProvider).resendInvite(inviteId),
+    );
+    // Resending restarts the countdown the row prints, so the list is stale
+    // even though nothing was added or removed.
+    if (result.isSuccess) ref.invalidateSelf();
+    return result;
+  }
+
+  Future<Result<void>> cancel(String inviteId) async {
+    final result = await Result.guard(
+      () => ref.read(sellerDataSourceProvider).cancelInvite(inviteId),
+    );
+    if (result.isSuccess) ref.invalidateSelf();
+    return result;
+  }
+}
+
+final riderInvitesProvider =
+    AsyncNotifierProvider<RiderInvitesNotifier, List<RiderInvite>>(
+      RiderInvitesNotifier.new,
+    );
 
 final sellerPayoutsProvider = FutureProvider<List<Payout>>(
   (ref) => ref.watch(sellerDataSourceProvider).fetchPayouts(),

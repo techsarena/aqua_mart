@@ -49,6 +49,8 @@ import '../../features/seller/presentation/screens/business_hours_screen.dart';
 import '../../features/seller/presentation/screens/dispute_screen.dart';
 import '../../features/seller/presentation/screens/edit_bottle_screen.dart';
 import '../../features/seller/presentation/screens/payout_statement_screen.dart';
+import '../../features/seller/presentation/screens/invite_rider_screen.dart';
+import '../../features/seller/presentation/screens/rider_invites_screen.dart';
 import '../../features/seller/presentation/screens/rider_performance_screen.dart';
 import '../../features/seller/presentation/screens/seller_alerts_screen.dart';
 import '../../features/seller/presentation/screens/seller_dashboard_screen.dart';
@@ -519,6 +521,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: AppRoutes.riderPerformance,
         parentNavigatorKey: _rootKey,
         builder: (_, _) => const RiderPerformanceScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.inviteRiderPath,
+        name: AppRoutes.inviteRider,
+        parentNavigatorKey: _rootKey,
+        builder: (_, _) => const InviteRiderScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.riderInvitesPath,
+        name: AppRoutes.riderInvites,
+        parentNavigatorKey: _rootKey,
+        // `extra` carries the invite just sent, so the banner can name it. A
+        // deep link arrives without one and shows the plain waiting list.
+        builder: (_, state) =>
+            RiderInvitesScreen(justSentId: state.extra as String?),
       ),
 
       // ── Rider shell ─────────────────────────────────────────────────────

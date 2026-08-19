@@ -75,6 +75,12 @@ abstract final class ApiEndpoints {
   static String payout(String id) => '/seller/payouts/$id';
   static const sellerRiders = '/seller/riders';
   static const inviteRider = '/seller/riders/invite';
+  static const riderCode = '/seller/riders/code';
+  static const riderInvites = '/seller/riders/invitations';
+  static String resendRiderInvite(String id) =>
+      '/seller/riders/invitations/$id/resend';
+  static String cancelRiderInvite(String id) =>
+      '/seller/riders/invitations/$id';
   static const disputes = '/seller/disputes';
   static String resolveDispute(String id) => '/seller/disputes/$id/resolve';
   static const toggleStoreOpen = '/seller/open';

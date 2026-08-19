@@ -2,6 +2,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../catalog/data/models/bottle_dto.dart';
 import '../../../orders/data/models/order_dto.dart';
+import '../../domain/entities/rider_invite.dart';
 import '../../domain/entities/seller_dashboard.dart';
 import '../../domain/entities/service_area.dart';
 
@@ -16,6 +17,11 @@ abstract interface class SellerRemoteDataSource {
   Future<BottleDto> saveBottle(BottleDto bottle);
   Future<void> deleteBottle(String bottleId);
   Future<List<Rider>> fetchRiders();
+  Future<String> fetchRiderCode();
+  Future<List<RiderInvite>> fetchRiderInvites();
+  Future<RiderInvite> inviteRider(String phone);
+  Future<RiderInvite> resendInvite(String inviteId);
+  Future<void> cancelInvite(String inviteId);
   Future<List<Payout>> fetchPayouts();
   Future<Dispute> fetchDispute(String id);
   Future<void> resolveDispute(String id, DisputeResolution resolution);
@@ -115,6 +121,39 @@ class SellerApiDataSource implements SellerRemoteDataSource {
   }
 
   @override
+  Future<String> fetchRiderCode() async {
+    final data = await _client.getObject(ApiEndpoints.riderCode) ?? const {};
+    return data['code'] as String? ?? '';
+  }
+
+  @override
+  Future<List<RiderInvite>> fetchRiderInvites() async {
+    final items = await _client.getList(ApiEndpoints.riderInvites);
+    return items.map(_inviteFrom).toList();
+  }
+
+  @override
+  Future<RiderInvite> inviteRider(String phone) async {
+    final json = await _client.postObject(
+      ApiEndpoints.inviteRider,
+      body: {'phone': phone},
+    );
+    return _inviteFrom(json ?? const {});
+  }
+
+  @override
+  Future<RiderInvite> resendInvite(String inviteId) async {
+    final json = await _client.postObject(
+      ApiEndpoints.resendRiderInvite(inviteId),
+    );
+    return _inviteFrom(json ?? const {});
+  }
+
+  @override
+  Future<void> cancelInvite(String inviteId) =>
+      _client.delete<void>(ApiEndpoints.cancelRiderInvite(inviteId));
+
+  @override
   Future<List<Payout>> fetchPayouts() async {
     final items = await _client.getList(ApiEndpoints.payouts);
     return items.map(_payoutFrom).toList();
@@ -178,6 +217,14 @@ class SellerApiDataSource implements SellerRemoteDataSource {
     rating: (json['rating'] as num?)?.toDouble() ?? 0,
     lateDeliveries: (json['late_deliveries'] as num?)?.toInt() ?? 0,
     complaints: (json['complaints'] as num?)?.toInt() ?? 0,
+  );
+
+  RiderInvite _inviteFrom(Map<String, dynamic> json) => RiderInvite(
+    id: '${json['id']}',
+    phone: json['phone'] as String? ?? '',
+    sentAt: DateTime.tryParse(json['sent_at'] as String? ?? '') ??
+        DateTime.now(),
+    daysLeft: (json['days_left'] as num?)?.toInt() ?? 0,
   );
 
   Payout _payoutFrom(Map<String, dynamic> json) => Payout(

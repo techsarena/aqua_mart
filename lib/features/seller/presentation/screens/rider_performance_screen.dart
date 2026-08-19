@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -21,7 +23,18 @@ class RiderPerformanceScreen extends ConsumerWidget {
     final async = ref.watch(sellerRidersProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Riders this week')),
+      appBar: AppBar(
+        title: const Text('Riders this week'),
+        actions: [
+          // The invite card below only appears when the workload is lopsided,
+          // so without this the invite flow would be unreachable most weeks.
+          TextButton(
+            onPressed: () => context.pushNamed(AppRoutes.inviteRider),
+            child: const Text('Invite'),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+        ],
+      ),
       body: switch (async) {
         AsyncLoading() => const SkeletonList(itemCount: 3, itemHeight: 140),
         AsyncError(:final error) => ErrorView(
@@ -94,11 +107,8 @@ class _Body extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.md),
                 FilledButton(
-                  onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Send an invite by phone number.'),
-                    ),
-                  ),
+                  onPressed: () =>
+                      context.pushNamed(AppRoutes.inviteRider),
                   child: const Text('Invite a rider'),
                 ),
               ],

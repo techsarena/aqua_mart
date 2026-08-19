@@ -149,6 +149,15 @@ abstract final class AppRoutes {
   static const riderPerformance = 'rider-performance';
   static const riderPerformancePath = '/seller/riders';
 
+  static const inviteRider = 'invite-rider';
+  static const inviteRiderPath = '/seller/riders/invite';
+
+  /// The confirmation shown after an invite goes out. Its own route rather
+  /// than a flag on the form, so backing out of it lands on the riders list
+  /// instead of a form still holding a number that was already sent.
+  static const riderInvites = 'rider-invites';
+  static const riderInvitesPath = '/seller/riders/invites';
+
   // ── Rider ───────────────────────────────────────────────────────────────
   static const riderRun = 'rider-run';
   static const riderRunPath = '/rider/run';
