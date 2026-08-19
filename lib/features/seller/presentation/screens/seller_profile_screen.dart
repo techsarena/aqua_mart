@@ -28,6 +28,7 @@ class SellerProfileScreen extends ConsumerWidget {
     final nextPayout = ref.watch(sellerPayoutsProvider).value?.firstOrNull;
     final dashboard = ref.watch(sellerDashboardProvider).value;
     final sync = dashboard?.sync;
+    final ratingCount = dashboard?.ratingCount ?? 0;
     // The store's name, from the same place the header reads it. Falls back
     // to the person's name so the avatar still has initials to draw while the
     // dashboard is in flight.
@@ -99,12 +100,26 @@ class SellerProfileScreen extends ConsumerWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Expanded(
-                  child: _StatCard(value: '4.8', label: 'rating · 1,240'),
+                Expanded(
+                  child: _StatCard(
+                    // A store with no ratings yet shows a dash rather than
+                    // "0.0", which reads as a terrible score instead of none.
+                    value: ratingCount == 0
+                        ? '—'
+                        : dashboard!.rating.toStringAsFixed(1),
+                    label: switch (ratingCount) {
+                      0 => 'no ratings yet',
+                      1 => 'rating · 1',
+                      _ => 'rating · ${Formatters.count(ratingCount)}',
+                    },
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
-                const Expanded(
-                  child: _StatCard(value: '96%', label: 'on time'),
+                Expanded(
+                  child: _StatCard(
+                    value: '${dashboard?.onTimePercent ?? 100}%',
+                    label: 'on time',
+                  ),
                 ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(

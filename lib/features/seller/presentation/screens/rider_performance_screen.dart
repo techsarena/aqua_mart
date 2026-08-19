@@ -6,11 +6,14 @@ import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/app_typography.dart';
+import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/app_avatar.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_tag.dart';
+import '../../../../shared/widgets/back_disc_button.dart';
 import '../../../../shared/widgets/state_views.dart';
+import '../../domain/entities/rider_applicant.dart';
 import '../../domain/entities/seller_dashboard.dart';
 import '../providers/seller_providers.dart';
 
@@ -24,6 +27,13 @@ class RiderPerformanceScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        // The round disc every other screen backs out with, rather than the
+        // bare Material chevron the AppBar would supply.
+        leading: const Padding(
+          padding: EdgeInsets.only(left: AppSpacing.md),
+          child: Center(child: BackDiscButton()),
+        ),
+        leadingWidth: BackDiscButton.diameter + AppSpacing.md * 2,
         title: const Text('Riders this week'),
         actions: [
           // The invite card below only appears when the workload is lopsided,
@@ -43,6 +53,7 @@ class RiderPerformanceScreen extends ConsumerWidget {
         ),
         AsyncValue(value: final riders) when riders != null => _Body(
           riders: riders,
+          applicants: ref.watch(riderApplicantsProvider).value ?? const [],
         ),
         _ => const SizedBox.shrink(),
       },
@@ -51,9 +62,10 @@ class RiderPerformanceScreen extends ConsumerWidget {
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.riders});
+  const _Body({required this.riders, required this.applicants});
 
   final List<Rider> riders;
+  final List<RiderApplicant> applicants;
 
   @override
   Widget build(BuildContext context) {
@@ -75,6 +87,34 @@ class _Body extends StatelessWidget {
         AppSpacing.xxl,
       ),
       children: [
+        // First: a rider cannot start work until this is answered, and the
+        // join notification lands the seller on this screen to answer it.
+        if (applicants.isNotEmpty) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            applicants.length == 1
+                ? '1 rider wants to join'
+                : '${applicants.length} riders want to join',
+            style: AppTypography.heading(size: 18),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          for (final applicant in applicants) ...[
+            _ApplicantCard(applicant: applicant),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          const SizedBox(height: AppSpacing.md),
+        ],
+
+        if (riders.isEmpty && applicants.isEmpty)
+          EmptyView(
+            icon: Icons.two_wheeler_outlined,
+            title: 'No riders yet',
+            message: 'Share your rider code and they will show up here once '
+                'they join.',
+            primaryLabel: 'Invite a rider',
+            onPrimary: () => context.pushNamed(AppRoutes.inviteRider),
+          ),
+
         for (final rider in riders) ...[
           _RiderCard(rider: rider, isTop: rider.id == top?.id),
           const SizedBox(height: AppSpacing.md),
@@ -227,6 +267,196 @@ class _RiderCard extends StatelessWidget {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// A rider waiting to be let onto the team, with the two answers.
+///
+/// Shows identity rather than performance — the seller is deciding whether
+/// they know this person, not how they have been doing.
+class _ApplicantCard extends ConsumerStatefulWidget {
+  const _ApplicantCard({required this.applicant});
+
+  final RiderApplicant applicant;
+
+  @override
+  ConsumerState<_ApplicantCard> createState() => _ApplicantCardState();
+}
+
+class _ApplicantCardState extends ConsumerState<_ApplicantCard> {
+  bool _busy = false;
+
+  Future<void> _decide({required bool approve}) async {
+    final applicant = widget.applicant;
+
+    if (!approve) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text('Reject ${applicant.name}?'),
+          content: const Text(
+            'They will be told you did not accept, and will need a new code '
+            'to apply again.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Keep waiting'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: TextButton.styleFrom(foregroundColor: AppColors.danger),
+              child: const Text('Reject'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+    }
+
+    setState(() => _busy = true);
+    final result = await ref
+        .read(riderApplicantsProvider.notifier)
+        .decide(applicant.id, approve: approve);
+    if (!mounted) return;
+    setState(() => _busy = false);
+
+    result.when(
+      success: (_) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            approve
+                ? '${applicant.name} is on your team.'
+                : '${applicant.name} was not accepted.',
+          ),
+        ),
+      ),
+      failure: (f) => ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(f.message))),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final applicant = widget.applicant;
+
+    return AppCard(
+      borderColor: AppColors.accent200,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              AppAvatar(name: applicant.name, size: 44),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      applicant.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body(
+                        size: 15,
+                        weight: FontWeight.w700,
+                      ),
+                    ),
+                    Text(
+                      Formatters.phone(applicant.phone),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body(
+                        size: 12.5,
+                        color: AppColors.textMuted(0.55),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const AppTag('Waiting', tone: TagTone.neutral),
+            ],
+          ),
+
+          const SizedBox(height: AppSpacing.md),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.neutral100,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.two_wheeler_outlined,
+                  size: 17,
+                  color: AppColors.neutral600,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    applicant.vehicleLine,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTypography.body(
+                      size: 12.5,
+                      weight: FontWeight.w600,
+                      color: AppColors.neutral700,
+                    ),
+                  ),
+                ),
+                if (applicant.cnicLast4 != null)
+                  Text(
+                    'CNIC ••••${applicant.cnicLast4}',
+                    style: AppTypography.body(
+                      size: 12,
+                      color: AppColors.textMuted(0.5),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: AppSpacing.md),
+          if (_busy)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: SizedBox.square(
+                  dimension: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => _decide(approve: false),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.danger,
+                      side: const BorderSide(color: AppColors.dangerBg),
+                    ),
+                    child: const Text('Reject'),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: () => _decide(approve: true),
+                    child: const Text('Approve'),
+                  ),
+                ),
+              ],
+            ),
         ],
       ),
     );

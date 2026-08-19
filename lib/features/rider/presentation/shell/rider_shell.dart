@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
 
-/// The rider's three tabs: the run, the cash, the money earned.
+/// The rider's four tabs: the run, the cash, the money earned, and Me.
 class RiderShell extends StatelessWidget {
   const RiderShell({super.key, required this.shell});
 
@@ -33,6 +33,11 @@ class RiderShell extends StatelessWidget {
           icon: Icon(Icons.trending_up_outlined),
           selectedIcon: Icon(Icons.trending_up_rounded),
           label: 'Earnings',
+        ),
+        NavigationDestination(
+          icon: Icon(Icons.person_outline_rounded),
+          selectedIcon: Icon(Icons.person_rounded),
+          label: 'Me',
         ),
       ],
     ),

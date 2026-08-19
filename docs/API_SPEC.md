@@ -1136,6 +1136,9 @@ current one." — and allow re-submission.
     "is_open": true,
     "pending_count": 3,
     "low_stock_label": "6L bottles running low — 3 left in stock",
+    "rating": 4.8,
+    "rating_count": 1240,
+    "on_time_percent": 96,
     "sync_online": true,
     "sync_pending": 0,
     "last_synced_at": "2026-08-17T14:50:00+05:00"
@@ -1154,6 +1157,13 @@ current one." — and allow re-submission.
 - `low_stock_label` — a ready-made sentence, or `null`. The client displays it
   verbatim; compose it server-side so the threshold logic lives in one place.
 - `earned` — today's delivered revenue in rupees.
+- `rating` / `rating_count` — the store's standing, maintained as customers
+  rate delivered orders. A store nobody has rated sends `0` / `0`; the client
+  prints a dash rather than "0.0", which would read as a terrible score.
+- `on_time_percent` — deliveries that met the promised window over the last 30
+  days, as `delivered_at <= placed_at + eta_minutes`. Orders missing
+  `delivered_at` or with no ETA are **excluded, not counted late** — absent
+  data must never manufacture a bad record. No measurable orders sends `100`.
 
 ### 6.3 `POST /seller/open`
 

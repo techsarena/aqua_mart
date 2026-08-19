@@ -9,6 +9,7 @@ import '../../../orders/data/models/order_dto.dart';
 import '../../../orders/domain/entities/order.dart';
 import '../../../orders/domain/entities/order_status.dart';
 import '../../data/datasources/seller_data_source.dart';
+import '../../domain/entities/rider_applicant.dart';
 import '../../domain/entities/rider_invite.dart';
 import '../../domain/entities/seller_dashboard.dart';
 import '../../domain/entities/service_area.dart';
@@ -189,6 +190,33 @@ final bottleByIdProvider = Provider.family<Bottle?, String>((ref, id) {
 final sellerRidersProvider = FutureProvider<List<Rider>>(
   (ref) => ref.watch(sellerDataSourceProvider).fetchRiders(),
 );
+
+/// Riders who used the seller's code and are waiting on a decision.
+class RiderApplicantsNotifier extends AsyncNotifier<List<RiderApplicant>> {
+  @override
+  Future<List<RiderApplicant>> build() =>
+      ref.watch(sellerDataSourceProvider).fetchRiderApplicants();
+
+  Future<Result<void>> decide(String id, {required bool approve}) async {
+    final result = await Result.guard(
+      () => ref
+          .read(sellerDataSourceProvider)
+          .decideRiderApplicant(id, approve: approve),
+    );
+    if (result.isSuccess) {
+      ref.invalidateSelf();
+      // An approved rider joins the roster, so the list that feeds order
+      // assignment is stale the moment this returns.
+      if (approve) ref.invalidate(sellerRidersProvider);
+    }
+    return result;
+  }
+}
+
+final riderApplicantsProvider =
+    AsyncNotifierProvider<RiderApplicantsNotifier, List<RiderApplicant>>(
+      RiderApplicantsNotifier.new,
+    );
 
 /// The seller's own 6-character rider join code.
 ///

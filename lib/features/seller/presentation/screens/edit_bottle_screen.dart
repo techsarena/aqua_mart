@@ -13,6 +13,7 @@ import '../../../../shared/widgets/photo_placeholder.dart';
 import '../../../../shared/widgets/quantity_stepper.dart';
 import '../../../../shared/widgets/selectable_option.dart';
 import '../../../../shared/widgets/sticky_action_bar.dart';
+import '../../../../shared/widgets/toggle_panel.dart';
 import '../../../catalog/domain/entities/bottle.dart';
 import '../providers/seller_providers.dart';
 
@@ -155,8 +156,8 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
   /// has filled it in and saved.
   Bottle _blankDraft() => Bottle(
     id: 'b-${DateTime.now().millisecondsSinceEpoch}',
-    sellerId: ref.read(sellerInventoryProvider).value?.firstOrNull?.sellerId ??
-        '',
+    sellerId:
+        ref.read(sellerInventoryProvider).value?.firstOrNull?.sellerId ?? '',
     size: BottleSize.twentyFive,
     name: '',
     refillPrice: 0,
@@ -185,12 +186,12 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
         titleSpacing: AppSpacing.gutter,
         title: Row(
           children: [
-            const BackDiscButton(size: 52),
+            const BackDiscButton(),
             const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Text(
                 widget.isNew ? 'Add bottle' : 'Edit bottle',
-                style: AppTypography.heading(size: 32),
+                style: AppTypography.heading(size: 26),
               ),
             ),
           ],
@@ -223,8 +224,8 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
             children: [
               const PhotoPlaceholder(
                 label: 'bottle\nphoto',
-                width: 118,
-                height: 178,
+                width: 110,
+                height: 140,
               ),
               const SizedBox(width: AppSpacing.lg),
               Expanded(
@@ -235,7 +236,7 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
                     TextField(
                       controller: _nameController,
                       style: AppTypography.body(
-                        size: 18,
+                        size: 16.5,
                         weight: FontWeight.w700,
                       ),
                       decoration: InputDecoration(
@@ -266,7 +267,7 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
                     OutlinedButton(
                       onPressed: () {},
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 52),
+                        minimumSize: const Size(0, 46),
                         backgroundColor: AppColors.surface,
                         foregroundColor: AppColors.text,
                         side: const BorderSide(color: AppColors.neutral300),
@@ -363,14 +364,14 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
                     children: [
                       Text(
                         'Filled in stock',
-                        style: AppTypography.heading(size: 20),
+                        style: AppTypography.heading(size: 16),
                       ),
                       if (bottle.emptiesInYard > 0) ...[
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           '${bottle.emptiesInYard} empties waiting in the yard',
                           style: AppTypography.body(
-                            size: 14.5,
+                            size: 13,
                             color: AppColors.textMuted(0.55),
                           ),
                         ),
@@ -392,43 +393,11 @@ class _EditBottleScreenState extends ConsumerState<EditBottleScreen> {
           const SizedBox(height: AppSpacing.md),
           // Tinted, with the switch leading — this is a state the seller reads
           // at a glance rather than a field they fill in.
-          AppCard(
-            color: AppColors.accent2_100,
-            child: Row(
-              children: [
-                Switch(
-                  value: _isVisible,
-                  onChanged: (v) => setState(() => _isVisible = v),
-                  activeThumbColor: Colors.white,
-                  activeTrackColor: AppColors.accent2,
-                  inactiveThumbColor: Colors.white,
-                  inactiveTrackColor: AppColors.neutral300,
-                  trackOutlineColor: const WidgetStatePropertyAll(
-                    Colors.transparent,
-                  ),
-                ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Showing to customers',
-                        style: AppTypography.heading(size: 20),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Turn off to hide without deleting',
-                        style: AppTypography.body(
-                          size: 14.5,
-                          color: AppColors.textMuted(0.55),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          TogglePanel(
+            title: 'Showing to customers',
+            subtitle: 'Turn off to hide without deleting',
+            value: _isVisible,
+            onChanged: (v) => setState(() => _isVisible = v),
           ),
         ],
       ),
@@ -467,9 +436,9 @@ class _CircleIconButton extends StatelessWidget {
       onTap: onTap,
       customBorder: const CircleBorder(),
       child: SizedBox(
-        width: 52,
-        height: 52,
-        child: Icon(icon, color: foreground, size: 26),
+        width: 40,
+        height: 40,
+        child: Icon(icon, color: foreground, size: 20),
       ),
     ),
   );
@@ -496,14 +465,14 @@ class _SizePill extends StatelessWidget {
       onTap: onTap,
       customBorder: const StadiumBorder(),
       child: Container(
-        height: 60,
+        height: 50,
         alignment: Alignment.center,
         child: Text(
           label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: AppTypography.body(
-            size: 17,
+            size: 16,
             weight: FontWeight.w700,
             color: selected ? Colors.white : AppColors.textMuted(0.75),
           ),
@@ -531,10 +500,7 @@ class _MoneyField extends StatelessWidget {
       children: [
         Text(
           label,
-          style: AppTypography.body(
-            size: 14,
-            color: AppColors.textMuted(0.55),
-          ),
+          style: AppTypography.body(size: 12, color: AppColors.textMuted(0.55)),
         ),
         const SizedBox(height: AppSpacing.xs),
         Row(
@@ -555,7 +521,7 @@ class _MoneyField extends StatelessWidget {
                 controller: controller,
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                style: AppTypography.heading(size: 24),
+                style: AppTypography.heading(size: 23),
                 decoration: const InputDecoration(
                   isDense: true,
                   filled: false,

@@ -2,6 +2,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../catalog/data/models/bottle_dto.dart';
 import '../../../orders/data/models/order_dto.dart';
+import '../../domain/entities/rider_applicant.dart';
 import '../../domain/entities/rider_invite.dart';
 import '../../domain/entities/seller_dashboard.dart';
 import '../../domain/entities/service_area.dart';
@@ -18,6 +19,8 @@ abstract interface class SellerRemoteDataSource {
   Future<void> deleteBottle(String bottleId);
   Future<List<Rider>> fetchRiders();
   Future<String> fetchRiderCode();
+  Future<List<RiderApplicant>> fetchRiderApplicants();
+  Future<void> decideRiderApplicant(String id, {required bool approve});
   Future<List<RiderInvite>> fetchRiderInvites();
   Future<RiderInvite> inviteRider(String phone);
   Future<RiderInvite> resendInvite(String inviteId);
@@ -49,6 +52,9 @@ class SellerApiDataSource implements SellerRemoteDataSource {
       isOpen: data['is_open'] as bool? ?? true,
       pendingCount: (data['pending_count'] as num?)?.toInt() ?? 0,
       lowStockLabel: data['low_stock_label'] as String?,
+      rating: (data['rating'] as num?)?.toDouble() ?? 0,
+      ratingCount: (data['rating_count'] as num?)?.toInt() ?? 0,
+      onTimePercent: (data['on_time_percent'] as num?)?.toInt() ?? 100,
       sync: ErpSyncState(
         isOnline: data['sync_online'] as bool? ?? true,
         pendingUploads: (data['sync_pending'] as num?)?.toInt() ?? 0,
@@ -125,6 +131,19 @@ class SellerApiDataSource implements SellerRemoteDataSource {
     final data = await _client.getObject(ApiEndpoints.riderCode) ?? const {};
     return data['code'] as String? ?? '';
   }
+
+  @override
+  Future<List<RiderApplicant>> fetchRiderApplicants() async {
+    final items = await _client.getList(ApiEndpoints.riderApplicants);
+    return items.map(_applicantFrom).toList();
+  }
+
+  @override
+  Future<void> decideRiderApplicant(String id, {required bool approve}) =>
+      _client.post<void>(
+        ApiEndpoints.decideRiderApplicant(id),
+        body: {'approve': approve},
+      );
 
   @override
   Future<List<RiderInvite>> fetchRiderInvites() async {
@@ -217,6 +236,18 @@ class SellerApiDataSource implements SellerRemoteDataSource {
     rating: (json['rating'] as num?)?.toDouble() ?? 0,
     lateDeliveries: (json['late_deliveries'] as num?)?.toInt() ?? 0,
     complaints: (json['complaints'] as num?)?.toInt() ?? 0,
+  );
+
+  RiderApplicant _applicantFrom(Map<String, dynamic> json) => RiderApplicant(
+    id: '${json['id']}',
+    name: json['name'] as String? ?? '',
+    phone: json['phone'] as String? ?? '',
+    appliedAt:
+        DateTime.tryParse(json['applied_at'] as String? ?? '') ??
+        DateTime.now(),
+    vehicle: json['vehicle'] as String?,
+    registrationNumber: json['registration_number'] as String?,
+    cnicLast4: json['cnic_last4'] as String?,
   );
 
   RiderInvite _inviteFrom(Map<String, dynamic> json) => RiderInvite(

@@ -40,6 +40,7 @@ import '../../features/rider/presentation/screens/rider_earnings_screen.dart';
 import '../../features/rider/presentation/screens/rider_identity_screen.dart';
 import '../../features/rider/presentation/screens/rider_invitation_screen.dart';
 import '../../features/rider/presentation/screens/rider_pending_approval_screen.dart';
+import '../../features/rider/presentation/screens/rider_profile_screen.dart';
 import '../../features/rider/presentation/screens/rider_run_screen.dart';
 import '../../features/rider/presentation/screens/rider_seller_code_screen.dart';
 import '../../features/rider/presentation/screens/rider_vehicle_screen.dart';
@@ -566,6 +567,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                 path: AppRoutes.riderEarningsPath,
                 name: AppRoutes.riderEarnings,
                 builder: (_, _) => const RiderEarningsScreen(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: AppRoutes.riderProfilePath,
+                name: AppRoutes.riderProfile,
+                builder: (_, _) => const RiderProfileScreen(),
               ),
             ],
           ),

@@ -11,6 +11,7 @@ import '../../../../core/utils/result.dart';
 import '../../../../shared/widgets/app_card.dart';
 import '../../../../shared/widgets/app_tag.dart';
 import '../../../../shared/widgets/state_views.dart';
+import '../../../../shared/widgets/toggle_panel.dart';
 import '../../../notifications/presentation/widgets/alerts_bell_button.dart';
 import '../../domain/entities/seller_dashboard.dart';
 import '../providers/seller_providers.dart';
@@ -81,35 +82,83 @@ class SellerDashboardScreen extends ConsumerWidget {
                 ],
 
                 // ── Open / closed ───────────────────────────────────────
-                _OpenToggle(
-                  isOpen: dashboard.isOpen,
-                  onToggle: () =>
+                TogglePanel(
+                  title: dashboard.isOpen ? 'Taking orders' : 'Closed for now',
+                  subtitle: dashboard.isOpen
+                      ? 'Customers can order from you'
+                      : 'You are hidden from the app',
+                  value: dashboard.isOpen,
+                  // Words first, switch after: the seller reads this panel to
+                  // check a state, rather than filling in a choice.
+                  switchTrailing: true,
+                  // Closed goes grey — being hidden from the app should not
+                  // look like the same healthy green as being open.
+                  background: dashboard.isOpen
+                      ? AppColors.accent2_100
+                      : AppColors.neutral200,
+                  foreground: dashboard.isOpen
+                      ? AppColors.accent2_700
+                      : AppColors.text,
+                  onChanged: (_) =>
                       ref.read(sellerDashboardProvider.notifier).toggleOpen(),
                 ),
 
                 // ── The day's numbers ───────────────────────────────────
                 const SizedBox(height: AppSpacing.md),
-                AppCard(
+                // A card each rather than one card in thirds: they are three
+                // separate readings, and the gaps say so more plainly than
+                // dividers inside a single panel would.
+                IntrinsicHeight(
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
-                        child: StatTile(
-                          value: '${dashboard.ordersToday}',
-                          label: 'orders today',
+                        child: AppCard(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.lg,
+                            horizontal: AppSpacing.sm,
+                          ),
+                          color: AppColors.accent,
+                          child: StatTile(
+                            value: '${dashboard.ordersToday}',
+                            label: 'orders today',
+                            valueColor: AppColors.surface,
+                            // Solid blue behind it — the muted grey default
+                            // is unreadable there.
+                            labelColor: AppColors.onTint,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
-                        child: StatTile(
-                          value: '${dashboard.delivered}',
-                          label: 'delivered',
-                          valueColor: AppColors.accent2_700,
+                        child: AppCard(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.lg,
+                            horizontal: AppSpacing.sm,
+                          ),
+                          child: StatTile(
+                            value: '${dashboard.delivered}',
+                            label: 'delivered',
+                            valueColor: AppColors.accent2_700,
+                            labelColor: AppColors.accent2_700,
+                          ),
                         ),
                       ),
+                      const SizedBox(width: AppSpacing.md),
                       Expanded(
-                        child: StatTile(
-                          prefix: 'Rs',
-                          value: Formatters.rupeesCompact(dashboard.earned),
-                          label: 'earned',
+                        child: AppCard(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.lg,
+                            horizontal: AppSpacing.sm,
+                          ),
+                          color: AppColors.accent2_200,
+                          child: StatTile(
+                            prefix: 'Rs',
+                            value: Formatters.rupeesCompact(dashboard.earned),
+                            label: 'earned',
+                            valueColor: AppColors.accent2_700,
+                            labelColor: AppColors.accent2Deep,
+                          ),
                         ),
                       ),
                     ],
@@ -271,49 +320,6 @@ class _OfflineBanner extends StatelessWidget {
           ),
           child: const Text('Retry'),
         ),
-      ],
-    ),
-  );
-}
-
-class _OpenToggle extends StatelessWidget {
-  const _OpenToggle({required this.isOpen, required this.onToggle});
-
-  final bool isOpen;
-  final VoidCallback onToggle;
-
-  @override
-  Widget build(BuildContext context) => AppCard(
-    color: isOpen ? AppColors.accent2_100 : AppColors.neutral200,
-    child: Row(
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isOpen ? 'Taking orders' : 'Closed for now',
-                style: AppTypography.heading(
-                  size: 19,
-                  color: isOpen ? AppColors.accent2_700 : AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                isOpen
-                    ? 'Customers can order from you'
-                    : 'You are hidden from the app',
-                style: AppTypography.body(
-                  size: 12.5,
-                  color: isOpen
-                      ? AppColors.accent2_700
-                      : AppColors.textMuted(0.6),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Switch.adaptive(value: isOpen, onChanged: (_) => onToggle()),
       ],
     ),
   );

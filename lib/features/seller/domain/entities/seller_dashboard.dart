@@ -35,6 +35,9 @@ class SellerDashboard extends Equatable {
     this.isVerified = false,
     this.pendingCount = 0,
     this.lowStockLabel,
+    this.rating = 0,
+    this.ratingCount = 0,
+    this.onTimePercent = 100,
   });
 
   /// The store's own name — what the header and profile show. Empty until the
@@ -53,6 +56,13 @@ class SellerDashboard extends Equatable {
   final bool isOpen;
   final ErpSyncState sync;
   final int pendingCount;
+
+  /// The store's standing, averaged over every order a customer rated.
+  final double rating;
+  final int ratingCount;
+
+  /// Deliveries that beat the promised ETA, over the last 30 days.
+  final int onTimePercent;
 
   /// "6L bottles running low — 3 left in stock"
   final String? lowStockLabel;

@@ -168,6 +168,9 @@ abstract final class AppRoutes {
   static const riderEarnings = 'rider-earnings';
   static const riderEarningsPath = '/rider/earnings';
 
+  static const riderProfile = 'rider-profile';
+  static const riderProfilePath = '/rider/profile';
+
   static const riderInvitation = 'rider-invitation';
   static const riderInvitationPath = '/rider/invitation';
 
@@ -203,6 +206,7 @@ abstract final class AppRoutes {
     riderRunPath,
     riderCashHandoverPath,
     riderEarningsPath,
+    riderProfilePath,
   };
 
   /// Whether [location] should be navigated to with `go` rather than `push`.

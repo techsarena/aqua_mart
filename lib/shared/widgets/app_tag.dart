@@ -99,12 +99,17 @@ class StatTile extends StatelessWidget {
     required this.value,
     required this.label,
     this.valueColor,
+    this.labelColor,
     this.prefix,
   });
 
   final String value;
   final String label;
   final Color? valueColor;
+
+  /// Overrides the muted default — a tile on a tinted card needs a label that
+  /// reads against it, not grey text on blue.
+  final Color? labelColor;
 
   /// Rendered small before the value — the `Rs` in `Rs 12.4k`.
   final String? prefix;
@@ -114,34 +119,46 @@ class StatTile extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     mainAxisSize: MainAxisSize.min,
     children: [
-      Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
-        children: [
-          if (prefix != null) ...[
+      // Scaled down rather than clipped: a long value ("Rs 148.2k") in a
+      // narrow tile must stay readable, and three tiles across a phone are
+      // narrow by definition.
+      FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: AlignmentDirectional.centerStart,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            if (prefix != null) ...[
+              Text(
+                prefix!,
+                style: AppTypography.body(
+                  size: 12,
+                  weight: FontWeight.w700,
+                  color: valueColor ?? AppColors.text,
+                ),
+              ),
+              const SizedBox(width: 2),
+            ],
             Text(
-              prefix!,
-              style: AppTypography.body(
-                size: 12,
-                weight: FontWeight.w700,
+              value,
+              style: AppTypography.heading(
+                size: 24,
                 color: valueColor ?? AppColors.text,
               ),
             ),
-            const SizedBox(width: 2),
           ],
-          Text(
-            value,
-            style: AppTypography.heading(
-              size: 24,
-              color: valueColor ?? AppColors.text,
-            ),
-          ),
-        ],
+        ),
       ),
       const SizedBox(height: 2),
       Text(
         label,
-        style: AppTypography.body(size: 11.5, color: AppColors.textMuted(0.6)),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        style: AppTypography.body(
+          size: 11.5,
+          color: labelColor ?? AppColors.textMuted(0.6),
+        ),
       ),
     ],
   );

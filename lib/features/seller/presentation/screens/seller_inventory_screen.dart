@@ -1,3 +1,4 @@
+import 'package:aqua_mart/shared/widgets/app_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,7 +26,7 @@ class SellerInventoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Bottles', style: AppTypography.heading(size: 32)),
+        title: Text('Bottles', style: AppTypography.heading(size: 30)),
         toolbarHeight: 72,
         actions: const [
           AlertsBellButton(routeName: AppRoutes.sellerAlerts),
@@ -45,7 +46,7 @@ class SellerInventoryScreen extends ConsumerWidget {
               child: Text(
                 'Tap a price to change it. Stock syncs with your ERP.',
                 style: AppTypography.body(
-                  size: 15,
+                  size: 14.5,
                   color: AppColors.textMuted(0.55),
                 ),
               ),
@@ -180,7 +181,7 @@ class _InventoryCard extends StatelessWidget {
                       bottle.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTypography.heading(size: 20),
+                      style: AppTypography.heading(size: 18),
                     ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
@@ -190,7 +191,7 @@ class _InventoryCard extends StatelessWidget {
                           : '${bottle.filledStock} filled'
                                 '${bottle.emptiesInYard > 0 ? ' · ${bottle.emptiesInYard} empties in yard' : ''}',
                       style: AppTypography.body(
-                        size: 14.5,
+                        size: 13,
                         weight: isLow ? FontWeight.w700 : FontWeight.w400,
                         color: isLow
                             ? AppColors.accent700
@@ -299,15 +300,8 @@ class _PriceChip extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: AppTypography.body(
-              size: 14,
-              color: AppColors.textMuted(0.5),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(value, style: AppTypography.heading(size: 22)),
+          FieldLabel(label),
+          Text(value, style: AppTypography.heading(size: 20)),
         ],
       ),
     ),
@@ -322,9 +316,10 @@ class _DashedBorderPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final path = Path()..addRRect(
-      RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
-    );
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(Offset.zero & size, Radius.circular(radius)),
+      );
     final paint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke

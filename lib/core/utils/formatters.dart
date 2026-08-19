@@ -11,6 +11,9 @@ abstract final class Formatters {
   /// `Rs 1,180`
   static String rupees(num amount) => 'Rs ${_rupees.format(amount)}';
 
+  /// `1,240` — a plain count with thousands separators.
+  static String count(num value) => _rupees.format(value);
+
   /// `Rs 12.4k` — used in dashboard stat tiles where space is tight.
   static String rupeesCompact(num amount) {
     if (amount >= 1000) {
