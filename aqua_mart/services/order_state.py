@@ -99,6 +99,12 @@ def transition(order, target, role, actor=None, **fields):
 		conflict("Assign a rider before sending this order out.", code="rider_required")
 
 	order.status = target
+	# Stamped here rather than read off `modified` later: any subsequent edit
+	# (a rating, a dispute) moves `modified`, which would silently rewrite
+	# when the order was delivered and corrupt the on-time figures.
+	if target == C.DELIVERED and not order.delivered_at:
+		order.delivered_at = frappe.utils.now_datetime()
+
 	for key, value in fields.items():
 		setattr(order, key, value)
 	order.save(ignore_permissions=True)

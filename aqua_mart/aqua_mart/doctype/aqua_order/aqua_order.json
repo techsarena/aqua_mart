@@ -15,6 +15,7 @@
   "status",
   "payment_method",
   "placed_at",
+  "delivered_at",
   "delivery_fee",
   "eta_minutes",
   "idempotency_key",
@@ -103,6 +104,13 @@
    "fieldname": "placed_at",
    "label": "Placed At",
    "fieldtype": "Datetime"
+  },
+  {
+   "fieldname": "delivered_at",
+   "label": "Delivered At",
+   "fieldtype": "Datetime",
+   "read_only": 1,
+   "description": "Stamped once, on the transition to delivered. On-time is measured against placed_at + eta_minutes."
   },
   {
    "fieldname": "delivery_fee",

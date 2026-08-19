@@ -10,7 +10,7 @@ import frappe
 
 from aqua_mart.aqua_mart.doctype.aqua_settings.aqua_settings import get_settings
 from aqua_mart.services import constants as C
-from aqua_mart.services.serializers import compute_is_open, iso
+from aqua_mart.services.serializers import compute_is_open, iso, on_time_percent
 
 
 def build_dashboard(seller_name):
@@ -41,6 +41,15 @@ def build_dashboard(seller_name):
 		"is_open": compute_is_open(seller),
 		"pending_count": pending_count,
 		"low_stock_label": low_stock_label(seller_name),
+		# The store's standing, shown on the seller's profile. Held on the
+		# profile doc and maintained when a customer rates an order.
+		"rating": round(float(seller.rating or 0), 1),
+		"rating_count": int(seller.rating_count or 0),
+		# Measured over the last 30 days, so one bad week does not define the
+		# store and a quiet week still has something to average.
+		"on_time_percent": on_time_percent(
+			{"seller": seller_name}, frappe.utils.add_days(today, -30)
+		),
 		"sync_online": bool(seller.sync_online),
 		"sync_pending": int(seller.sync_pending or 0),
 		"last_synced_at": iso(seller.last_synced_at),

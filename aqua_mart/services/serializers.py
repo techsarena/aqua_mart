@@ -549,11 +549,45 @@ def serialize_rider(rider, distance_from_customer=None, eta_minutes=None):
 
 
 def _on_time_percent(rider_name, since):
-	total = frappe.db.count("Aqua Order", {"rider": rider_name, "status": C.DELIVERED,
-	                                       "modified": [">=", since]})
-	if not total:
+	"""Share of this rider's deliveries that beat the promised ETA."""
+	return on_time_percent({"rider": rider_name}, since)
+
+
+def on_time_percent(filters, since):
+	"""Percent of delivered orders that arrived within the promised window.
+
+	On time means `delivered_at <= placed_at + eta_minutes`. Orders with no
+	`delivered_at` are EXCLUDED rather than counted as late: the field was
+	added after launch, and treating pre-existing orders as misses would
+	invent a bad record out of missing data.
+
+	No measurable orders yields 100 - a seller with nothing to judge reads as
+	fine, not as a failure.
+	"""
+	rows = frappe.get_all(
+		"Aqua Order",
+		filters={
+			**filters,
+			"status": C.DELIVERED,
+			"delivered_at": [">=", since],
+		},
+		fields=["placed_at", "delivered_at", "eta_minutes"],
+	)
+	# An order with no promised ETA cannot be late - there was no promise to
+	# miss - so it is excluded rather than counted against the seller.
+	measurable = [
+		r for r in rows if r.placed_at and r.delivered_at and int(r.eta_minutes or 0) > 0
+	]
+	if not measurable:
 		return 100
-	return 100
+
+	on_time = 0
+	for row in measurable:
+		promised = frappe.utils.add_to_date(row.placed_at, minutes=int(row.eta_minutes))
+		if frappe.utils.get_datetime(row.delivered_at) <= promised:
+			on_time += 1
+
+	return round(on_time / len(measurable) * 100)
 
 
 # --- notifications --------------------------------------------------------
@@ -663,4 +697,29 @@ def serialize_seller_invitation(invitation):
 		"expires_at": iso(expires_at),
 		# Clamped at 0 so an overdue invite never reads "expires in -1".
 		"days_left": max(0, days_left),
+	}
+
+
+def serialize_rider_applicant(rider):
+	"""A rider WAITING on the seller's decision (6.6).
+
+	Deliberately not `serialize_rider`: an applicant has no deliveries, no
+	rating and no stops, so every performance figure would be a zero the
+	seller might read as bad rather than absent. What matters here is who
+	they are and what they ride.
+	"""
+	if isinstance(rider, str):
+		rider = frappe.get_doc("Aqua Rider Profile", rider)
+
+	return {
+		"id": sid(rider.name),
+		"name": rider.full_name,
+		"phone": rider.phone,
+		"vehicle": rider.vehicle,
+		"registration_number": rider.registration_number,
+		"approval_status": rider.approval_status,
+		"applied_at": iso(rider.creation),
+		# The last four digits are enough for the seller to check the CNIC
+		# against the card in the rider's hand; the rest is not theirs to see.
+		"cnic_last4": (rider.cnic or "")[-4:] or None,
 	}

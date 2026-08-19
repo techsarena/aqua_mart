@@ -30,6 +30,7 @@ from aqua_mart.services.serializers import (
 	serialize_order,
 	serialize_payout,
 	serialize_rider,
+	serialize_rider_applicant,
 	serialize_seller_invitation,
 )
 
@@ -624,6 +625,73 @@ def riders(**kwargs):
 		out.append(serialize_rider(rider, distance_from_customer=distance, eta_minutes=eta))
 
 	return ok(out)
+
+
+@frappe.whitelist()
+@aqua_endpoint(role=C.ROLE_SELLER)
+def rider_applicants(**kwargs):
+	"""GET /seller/riders/applicants - riders waiting on a decision.
+
+	Kept out of `GET /seller/riders`, which is the working roster used for
+	assigning orders: an unapproved rider must never be assignable, so the
+	two lists stay separate rather than sharing a status flag.
+	"""
+	seller_name = require_approved_seller()
+
+	names = frappe.get_all(
+		"Aqua Rider Profile",
+		filters={"seller": seller_name, "approval_status": C.IN_REVIEW},
+		order_by="creation asc",
+		pluck="name",
+	)
+	return ok([serialize_rider_applicant(name) for name in names])
+
+
+@frappe.whitelist()
+@aqua_endpoint(role=C.ROLE_SELLER)
+def decide_rider(id=None, **kwargs):
+	"""POST /seller/riders/applicants/{id} - {"approve": true|false}
+
+	Approving puts the rider on the roster as off duty - never straight onto
+	a run, which is the seller's separate decision.
+	"""
+	seller_name = require_approved_seller()
+	body = request_body()
+
+	row = frappe.db.get_value(
+		"Aqua Rider Profile", id, ["name", "seller", "approval_status", "user"], as_dict=True
+	)
+	if not row or row.seller != seller_name:
+		not_found("We could not find that rider.")
+	if row.approval_status != C.IN_REVIEW:
+		conflict("You have already answered this rider.", code="already_answered")
+
+	approve = bool(body.get("approve"))
+	rider = frappe.get_doc("Aqua Rider Profile", row.name)
+	rider.approval_status = C.APPROVED if approve else C.REJECTED
+	if approve:
+		rider.status = "offDuty"
+	rider.save(ignore_permissions=True)
+
+	seller = frappe.get_doc("Aqua Seller Profile", seller_name)
+	if approve:
+		notify(
+			row.user,
+			"riderRun",
+			f"You are on {seller.business_name}'s team",
+			"Your seller approved you. Open My run to start.",
+			"/rider/run",
+		)
+	else:
+		notify(
+			row.user,
+			"riderRun",
+			"Application not accepted",
+			f"{seller.business_name} did not accept your application.",
+			None,
+		)
+
+	return ok(serialize_rider_applicant(rider))
 
 
 @frappe.whitelist()

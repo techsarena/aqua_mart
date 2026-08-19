@@ -90,6 +90,8 @@ ROUTES = [
 	("PUT", "/seller/inventory/{id}", seller.update_bottle),
 	("DELETE", "/seller/inventory/{id}", seller.delete_bottle),
 	("GET", "/seller/riders/code", seller.rider_code),
+	("GET", "/seller/riders/applicants", seller.rider_applicants),
+	("POST", "/seller/riders/applicants/{id}", seller.decide_rider),
 	("GET", "/seller/riders/invitations", seller.rider_invitations),
 	("POST", "/seller/riders/invitations/{id}/resend", seller.resend_invitation),
 	("DELETE", "/seller/riders/invitations/{id}", seller.cancel_invitation),
