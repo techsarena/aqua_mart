@@ -30,6 +30,7 @@ from aqua_mart.services.serializers import (
 	serialize_order,
 	serialize_payout,
 	serialize_rider,
+	serialize_seller_invitation,
 )
 
 # --- 6.1 onboarding & KYC -------------------------------------------------
@@ -632,7 +633,7 @@ def invite_rider(**kwargs):
 	seller_name = require_approved_seller()
 	body = request_body()
 
-	from aqua_mart.services.phone import require_phone, send_sms
+	from aqua_mart.services.phone import require_phone, send_message
 
 	phone = require_phone(body.get("phone"))
 
@@ -654,9 +655,121 @@ def invite_rider(**kwargs):
 		}
 	).insert(ignore_permissions=True)
 
-	send_sms(phone, f"Join {seller.business_name} on Aqua Mart with code {code}")
+	send_message(phone, f"Join {seller.business_name} on Aqua Mart with code {code}")
 
-	return ok({"id": invitation.name}, status=201)
+	# The code and the normalised phone come back because the confirmation
+	# screen quotes both, and the client must not re-guess either.
+	return ok(
+		dict(serialize_seller_invitation(invitation), code=code),
+		status=201,
+	)
+
+
+@frappe.whitelist()
+@aqua_endpoint(role=C.ROLE_SELLER)
+def rider_code(**kwargs):
+	"""GET /seller/riders/code - the seller's own 6-character join code.
+
+	Created on demand: sellers approved before invite codes existed have none
+	on file, and the invite screen must still have something to show.
+	"""
+	seller_name = require_approved_seller()
+
+	code = frappe.db.get_value(
+		"Aqua Rider Invite Code", {"seller": seller_name, "active": 1}, "code"
+	)
+	if not code:
+		_ensure_invite_code(seller_name)
+		code = frappe.db.get_value(
+			"Aqua Rider Invite Code", {"seller": seller_name, "active": 1}, "code"
+		)
+
+	return ok({"code": code})
+
+
+@frappe.whitelist()
+@aqua_endpoint(role=C.ROLE_SELLER)
+def rider_invitations(**kwargs):
+	"""GET /seller/riders/invitations - the invites still waiting on a reply.
+
+	Only pending ones: an accepted invite becomes a rider in `GET
+	/seller/riders`, so listing it here too would show the same person twice.
+	"""
+	seller_name = require_approved_seller()
+	limit, offset = paginate(frappe.local.form_dict)
+
+	names = frappe.get_all(
+		"Aqua Rider Invitation",
+		filters={"seller": seller_name, "status": C.PENDING},
+		order_by="creation desc",
+		limit_page_length=limit,
+		limit_start=offset,
+		pluck="name",
+	)
+	return ok([serialize_seller_invitation(name) for name in names])
+
+
+def _seller_invitation(seller_name, invitation_id):
+	"""The invite, or 404 - never another seller's, even with a valid id."""
+	row = frappe.db.get_value(
+		"Aqua Rider Invitation", invitation_id, ["name", "seller", "status"], as_dict=True
+	)
+	if not row or row.seller != seller_name:
+		not_found("We could not find that invite.")
+	return row
+
+
+@frappe.whitelist()
+@aqua_endpoint(role=C.ROLE_SELLER)
+def resend_invitation(id=None, **kwargs):
+	"""POST /seller/riders/invitations/{id}/resend - send the same SMS again.
+
+	Deliberately does not create a second invitation: the rider would then see
+	two identical offers, and accepting one would leave the other dangling.
+	"""
+	seller_name = require_approved_seller()
+	row = _seller_invitation(seller_name, id)
+
+	if row.status != C.PENDING:
+		conflict("That rider has already answered this invite.", code="already_answered")
+
+	from aqua_mart.services.phone import send_message
+
+	invitation = frappe.get_doc("Aqua Rider Invitation", row.name)
+	code = frappe.db.get_value(
+		"Aqua Rider Invite Code", {"seller": seller_name, "active": 1}, "code"
+	)
+	seller = frappe.get_doc("Aqua Seller Profile", seller_name)
+
+	send_message(
+		invitation.sent_to,
+		f"Reminder: join {seller.business_name} on Aqua Mart with code {code}",
+	)
+
+	# Resending restarts the window: `modified` is what the serializer reads
+	# as "last sent", and Frappe stamps it here. `creation` is deliberately
+	# left alone - it is when the rider was FIRST approached, which is not
+	# ours to rewrite.
+	invitation.db_set("status", C.PENDING)
+
+	return ok(dict(serialize_seller_invitation(invitation.name), code=code))
+
+
+@frappe.whitelist()
+@aqua_endpoint(role=C.ROLE_SELLER)
+def cancel_invitation(id=None, **kwargs):
+	"""DELETE /seller/riders/invitations/{id} - withdraw a pending invite."""
+	seller_name = require_approved_seller()
+	row = _seller_invitation(seller_name, id)
+
+	if row.status != C.PENDING:
+		conflict("That rider has already answered this invite.", code="already_answered")
+
+	# Declined, not deleted: the rider may still be holding the SMS, and a
+	# missing invitation would 404 at them instead of saying it was withdrawn.
+	frappe.db.set_value("Aqua Rider Invitation", row.name, "status", "declined")
+
+	return no_content()
 
 
 # --- 6.7 disputes ---------------------------------------------------------

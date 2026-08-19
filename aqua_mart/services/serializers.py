@@ -628,3 +628,39 @@ def serialize_invitation(invitation):
 		"areas": invitation.areas,
 		"hours": invitation.hours,
 	}
+
+
+# How long a pending invite stays good for. Not a stored field: the invite
+# doctype has no expiry column, and the window is a policy the seller app
+# only ever displays ("expires in 5"), never negotiates.
+INVITE_VALID_DAYS = 7
+
+
+def serialize_seller_invitation(invitation):
+	"""The seller's view of an invite they sent (6.6).
+
+	Differs from `serialize_invitation`, which is the RIDER's view: the seller
+	already knows their own business, and instead needs the age and the
+	remaining life of the invite to decide between resending and cancelling.
+	"""
+	if isinstance(invitation, str):
+		invitation = frappe.get_doc("Aqua Rider Invitation", invitation)
+
+	# `modified`, not `creation`: resending restarts the window, and the row
+	# should then read "sent just now" rather than keep aging off the first
+	# attempt the rider never answered.
+	last_sent = invitation.modified or invitation.creation
+	expires_at = frappe.utils.add_days(last_sent, INVITE_VALID_DAYS)
+	days_left = frappe.utils.date_diff(expires_at, frappe.utils.now_datetime())
+
+	return {
+		"id": sid(invitation.name),
+		"phone": invitation.sent_to,
+		"status": invitation.status,
+		"areas": invitation.areas,
+		"hours": invitation.hours,
+		"sent_at": iso(last_sent),
+		"expires_at": iso(expires_at),
+		# Clamped at 0 so an overdue invite never reads "expires in -1".
+		"days_left": max(0, days_left),
+	}

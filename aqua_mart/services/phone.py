@@ -295,6 +295,45 @@ def _send_sms_generic(phone, message, settings):
 	requests.get(url, params=params, timeout=15)
 
 
+def send_message(phone, message, settings=None):
+	"""Deliver a plain notification text - an invite, a reminder.
+
+	Separate from `send_code`, which formats an OTP sentence around its second
+	argument and would otherwise rewrite the caller's message into "Your Aqua
+	Mart code is Join ...". Delivery failures are swallowed for the same
+	reason they are there: the record already exists, and a gateway outage
+	must not surface as a 500.
+	"""
+	settings = settings or get_settings()
+
+	try:
+		if settings.provider == "sms":
+			_send_sms(phone, message, settings)
+		elif settings.provider == "whatsapp":
+			_send_whatsapp_text(phone, message, settings)
+		else:
+			frappe.log_error(f"SMS to {phone}: {message}", "Aqua Mart SMS (console mode)")
+	except Exception:
+		frappe.log_error(title="Aqua Mart message delivery failed")
+
+
+def _send_whatsapp_text(phone, message, settings):
+	"""Free-form WhatsApp send, for the backends that accept one.
+
+	Meta's cloud API only accepts approved TEMPLATES outside a 24-hour
+	customer-service window, and there is no template for invites - so that
+	backend falls back to SMS rather than silently dropping the message.
+	"""
+	backend = settings.whatsapp_backend or "meta"
+
+	if backend == "ultramsg":
+		_send_whatsapp_ultramsg(phone, message, settings)
+	elif backend == "openwaapi":
+		_send_whatsapp_openwaapi(phone, message, settings)
+	else:
+		_send_sms(phone, message, settings)
+
+
 # Kept as the old name so any external caller keeps working.
 send_sms = send_code
 
