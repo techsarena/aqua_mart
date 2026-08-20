@@ -1,7 +1,7 @@
 app_name = "aqua_mart"
 app_title = "Aqua Mart"
 app_publisher = "Muhammad Saad"
-app_description = "aqua"
+app_description = "Aqua Mart is a multi-vendor marketplace for fresh water and related products."
 app_email = "muhammadsaadsafdar2005@gmail.com"
 app_license = "mit"
 
