@@ -15,6 +15,7 @@ from aqua_mart.services.guard import aqua_endpoint, current_user, request_body
 from aqua_mart.services.notifications import notify, notify_seller_new_order
 from aqua_mart.services.pricing import delivery_fee, order_total, price_lines
 from aqua_mart.services.response import conflict, invalid, no_content, not_found, ok, paginate
+from aqua_mart.services.routing import route_line
 from aqua_mart.services.serializers import (
 	compose_items,
 	compute_is_open,
@@ -262,7 +263,35 @@ def tracking(id=None, **kwargs):
 	if timeline:
 		payload["timeline"] = timeline
 
+	route = _delivery_route(order)
+	if route:
+		payload["route"] = route
+
 	return ok(payload)
+
+
+def _delivery_route(order):
+	"""The road the rider is taking to the door, once one is carrying it.
+
+	Only meaningful while the order is onTheWay: before that there is no
+	rider position to route from, and afterwards nothing is moving.
+	"""
+	if order.status != C.ON_THE_WAY or not order.rider:
+		return None
+	if not order.address_latitude or not order.address_longitude:
+		return None
+
+	rider = frappe.db.get_value(
+		"Aqua Rider Profile", order.rider, ["latitude", "longitude"], as_dict=True
+	)
+	if not rider or not rider.latitude or not rider.longitude:
+		return None
+
+	return route_line(
+		(float(rider.latitude), float(rider.longitude)),
+		(float(order.address_latitude), float(order.address_longitude)),
+		order_name=order.name,
+	)
 
 
 @frappe.whitelist()
