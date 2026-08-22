@@ -188,6 +188,10 @@ app_license = "mit"
 # 	"Task": "aqua_mart.task.get_dashboard_data"
 # }
 
+override_doctype_dashboards = {
+	"User": "aqua_mart.overrides.user_dashboard.get_data",
+}
+
 # exempt linked doctypes from being automatically cancelled
 #
 # auto_cancel_exempted_doctypes = ["Auto Repeat"]
