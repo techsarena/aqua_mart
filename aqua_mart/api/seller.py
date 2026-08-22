@@ -479,9 +479,28 @@ def assign_rider(id=None, **kwargs):
 	order.rider = rider.name
 	order.rider_name = rider.full_name
 	order.rider_rating = rider.rating
+
+	# An order with a rider on it IS on the way - the two are the same fact,
+	# so assigning dispatches rather than leaving a packed order that nobody
+	# remembers to advance. Terminal orders are left alone: a delivered or
+	# cancelled order must never be dragged back onto the happy path.
+	dispatched = False
+	if not order_state.is_terminal(order.status) and order.status != C.ON_THE_WAY:
+		order.status = C.ON_THE_WAY
+		dispatched = True
+
 	order.save(ignore_permissions=True)
 
 	frappe.db.set_value("Aqua Rider Profile", rider.name, "status", "onRun")
+
+	# Written straight to the log rather than through `transition()`: that
+	# helper re-saves the order and would reject the jump from pending or
+	# accepted, which the transition table only permits from packed.
+	if dispatched:
+		order_state.log(order.name, C.ON_THE_WAY, actor=frappe.session.user)
+		realtime.emit_order_status(order)
+		realtime.emit_seller_dashboard(order.seller)
+		notify_order_status(order, actor=frappe.session.user)
 
 	realtime.emit_rider_assigned(order)
 	rider_user = frappe.db.get_value("Aqua Rider Profile", rider.name, "user")
